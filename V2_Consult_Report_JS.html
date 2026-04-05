@@ -1,0 +1,1535 @@
+<!-- V2_Consult_Report_JS.html -->
+<script>
+  var V2_CONSULT_REPORT_CURRENT = null;
+  var V2_CONSULT_REPORT_STUDENT_SEARCH_STATE = {
+    items: [],
+    selectedStudent: null
+  };
+  var V2_CONSULT_REPORT_RECENT_STATE = {
+    items: [],
+    activeKey: ''
+  };
+
+  function V2_ConsultReport_setLoading_(isLoading) {
+    try {
+      var loadingBox = document.getElementById('loadingBox');
+      var searchButton = document.getElementById('searchButton');
+      var printPreviewButton = document.getElementById('printPreviewButton');
+      var openStudentSearchButton = document.getElementById('openStudentSearchButton');
+      var deleteAllRecentViewsButton = document.getElementById('deleteAllRecentViewsButton');
+
+      if (loadingBox) {
+        loadingBox.style.display = isLoading ? 'block' : 'none';
+      }
+
+      if (searchButton) {
+        searchButton.disabled = !!isLoading;
+      }
+
+      if (printPreviewButton) {
+        printPreviewButton.disabled = !!isLoading;
+      }
+
+      if (openStudentSearchButton) {
+        openStudentSearchButton.disabled = !!isLoading;
+      }
+
+      if (deleteAllRecentViewsButton) {
+        deleteAllRecentViewsButton.disabled = !!isLoading;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_showError_(message) {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'block';
+      errorBox.textContent = message || '오류가 발생했다.';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_clearError_() {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'none';
+      errorBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_showSuccess_(message) {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'block';
+      successBox.textContent = message || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_clearSuccess_() {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'none';
+      successBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_setSummary_(text) {
+    try {
+      var summaryBox = document.getElementById('summaryBox');
+      if (summaryBox) {
+        summaryBox.textContent = text || '';
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_clearNotice_() {
+    try {
+      V2_ConsultReport_clearError_();
+      V2_ConsultReport_clearSuccess_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_escapeHtml_(value) {
+    try {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_ConsultReport_setEmptyState_(isEmpty) {
+    try {
+      var emptyBox = document.getElementById('emptyBox');
+      var reportWrap = document.getElementById('reportWrap');
+
+      if (emptyBox) {
+        emptyBox.style.display = isEmpty ? 'block' : 'none';
+      }
+
+      if (reportWrap) {
+        reportWrap.style.display = isEmpty ? 'none' : 'block';
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_clearReportArea_() {
+    try {
+      V2_CONSULT_REPORT_CURRENT = null;
+      document.getElementById('studentInfoBox').innerHTML = '';
+      document.getElementById('attendanceWrap').innerHTML = '';
+      document.getElementById('scoresWrap').innerHTML = '';
+      document.getElementById('lessonsWrap').innerHTML = '';
+      document.getElementById('commentsWrap').innerHTML = '';
+      document.getElementById('absenceContactsWrap').innerHTML = '';
+      V2_ConsultReport_setEmptyState_(true);
+      V2_ConsultReport_renderReportStatusBox_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_createInfoItem_(label, value) {
+    try {
+      var html = '';
+      html += '<div class="info-item">';
+      html += '  <div class="info-label">' + V2_ConsultReport_escapeHtml_(label) + '</div>';
+      html += '  <div class="info-value">' + V2_ConsultReport_escapeHtml_(value) + '</div>';
+      html += '</div>';
+      return html;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_ConsultReport_renderStudentInfo_(student, report) {
+    try {
+      var box = document.getElementById('studentInfoBox');
+      if (!box) {
+        return;
+      }
+
+      var displayClassValue = student.className || student.classId || '';
+
+      var html = '';
+      html += V2_ConsultReport_createInfoItem_('학생 ID', student.studentId || '');
+      html += V2_ConsultReport_createInfoItem_('학생명', student.studentName || '');
+      html += V2_ConsultReport_createInfoItem_('반', displayClassValue);
+      html += V2_ConsultReport_createInfoItem_('학생 상태', student.status || '');
+      html += V2_ConsultReport_createInfoItem_('학부모 이름', student.parentName || '');
+      html += V2_ConsultReport_createInfoItem_('학부모 연락처', student.parentPhone || '');
+      html += V2_ConsultReport_createInfoItem_('학생 메모', student.notes || student.memo || '');
+      html += V2_ConsultReport_createInfoItem_('리포트 생성 시각', report.generatedAt || '');
+      html += V2_ConsultReport_createInfoItem_('조회 교사', report.teacherName || '');
+
+      box.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderMiniEmpty_(containerId, message) {
+    try {
+      var box = document.getElementById(containerId);
+      if (!box) {
+        return;
+      }
+
+      box.innerHTML = '<div class="mini-empty">' + V2_ConsultReport_escapeHtml_(message || '기록이 없다.') + '</div>';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderTable_(containerId, headers, rows, emptyMessage) {
+    try {
+      var box = document.getElementById(containerId);
+      if (!box) {
+        return;
+      }
+
+      if (!rows || rows.length === 0) {
+        V2_ConsultReport_renderMiniEmpty_(containerId, emptyMessage || '기록이 없다.');
+        return;
+      }
+
+      var html = '';
+      html += '<table>';
+      html += '<thead><tr>';
+
+      headers.forEach(function(header) {
+        html += '<th>' + V2_ConsultReport_escapeHtml_(header.label) + '</th>';
+      });
+
+      html += '</tr></thead><tbody>';
+
+      rows.forEach(function(row) {
+        html += '<tr>';
+        headers.forEach(function(header) {
+          html += '<td>' + V2_ConsultReport_escapeHtml_(row[header.key] || '') + '</td>';
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+
+      box.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderAttendance_(list) {
+    try {
+      V2_ConsultReport_renderTable_(
+        'attendanceWrap',
+        [
+          { key: 'date', label: '날짜' },
+          { key: 'status', label: '상태' },
+          { key: 'teacherName', label: '교사명' },
+          { key: 'memo', label: '메모' },
+          { key: 'updatedAt', label: '수정일' }
+        ],
+        list || [],
+        '출석 기록이 없다.'
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderScores_(list) {
+    try {
+      V2_ConsultReport_renderTable_(
+        'scoresWrap',
+        [
+          { key: 'examDate', label: '시험일' },
+          { key: 'subject', label: '과목' },
+          { key: 'score', label: '점수' },
+          { key: 'teacherName', label: '교사명' },
+          { key: 'memo', label: '메모' }
+        ],
+        list || [],
+        '성적 기록이 없다.'
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderLessons_(list) {
+    try {
+      V2_ConsultReport_renderTable_(
+        'lessonsWrap',
+        [
+          { key: 'lessonDate', label: '수업일' },
+          { key: 'topic', label: '주제' },
+          { key: 'content', label: '내용' },
+          { key: 'teacherName', label: '교사명' }
+        ],
+        list || [],
+        '수업 기록이 없다.'
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderComments_(list) {
+    try {
+      V2_ConsultReport_renderTable_(
+        'commentsWrap',
+        [
+          { key: 'commentDate', label: '작성일' },
+          { key: 'commentType', label: '유형' },
+          { key: 'content', label: '내용' },
+          { key: 'teacherName', label: '교사명' }
+        ],
+        list || [],
+        '코멘트 기록이 없다.'
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderAbsenceContacts_(list) {
+    try {
+      V2_ConsultReport_renderTable_(
+        'absenceContactsWrap',
+        [
+          { key: 'contactDate', label: '연락일' },
+          { key: 'contactStatus', label: '연락 상태' },
+          { key: 'parentPhone', label: '학부모 연락처' },
+          { key: 'memo', label: '메모' },
+          { key: 'teacherName', label: '교사명' },
+          { key: 'updatedAt', label: '수정일' }
+        ],
+        list || [],
+        '결석 연락 기록이 없다.'
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderReport_(report) {
+    try {
+      V2_CONSULT_REPORT_CURRENT = report || null;
+
+      if (!report || !report.student) {
+        V2_ConsultReport_clearReportArea_();
+        V2_ConsultReport_setSummary_('조회된 리포트가 없다.');
+        V2_ConsultReport_renderReportStatusBox_();
+        return;
+      }
+
+      V2_ConsultReport_setEmptyState_(false);
+      V2_ConsultReport_renderStudentInfo_(report.student, report);
+      V2_ConsultReport_renderAttendance_(report.attendance || []);
+      V2_ConsultReport_renderScores_(report.scores || []);
+      V2_ConsultReport_renderLessons_(report.lessons || []);
+      V2_ConsultReport_renderComments_(report.comments || []);
+      V2_ConsultReport_renderAbsenceContacts_(report.absenceContacts || []);
+
+      V2_ConsultReport_setSummary_(
+        '학생명: ' + (report.student.studentName || '') +
+        '\n반: ' + (report.student.className || report.student.classId || '') +
+        '\n조회 기간: ' + V2_ConsultReport_buildPeriodLabel_() +
+        '\n출석 ' + (report.attendance || []).length + '건 / 성적 ' + (report.scores || []).length + '건 / 수업 ' + (report.lessons || []).length + '건 / 코멘트 ' + (report.comments || []).length + '건 / 결석 연락 ' + (report.absenceContacts || []).length + '건'
+      );
+
+      V2_ConsultReport_renderReportStatusBox_();
+    } catch (error) {
+      V2_ConsultReport_showError_(error.message || '리포트 렌더링 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_validateDateRange_() {
+    try {
+      var startDate = V2_ConsultReport_normalizeText_(document.getElementById('startDate').value);
+      var endDate = V2_ConsultReport_normalizeText_(document.getElementById('endDate').value);
+
+      if (startDate && endDate && startDate > endDate) {
+        throw new Error('조회 기간이 올바르지 않다. 시작일이 종료일보다 늦다.');
+      }
+
+      return {
+        startDate: startDate,
+        endDate: endDate
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_ConsultReport_search_() {
+    try {
+      V2_ConsultReport_clearNotice_();
+
+      var studentId = String(document.getElementById('studentId').value || '').trim();
+      V2_ConsultReport_validateDateRange_();
+
+      if (!studentId) {
+        throw new Error('학생 ID를 입력해라.');
+      }
+
+      V2_ConsultReport_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_ConsultReport_setLoading_(false);
+
+          if (response && response.success) {
+            V2_ConsultReport_renderReport_(response.data || null);
+            V2_ConsultReport_syncSelectedStudentFromReport_(response.data || null);
+            V2_ConsultReport_syncRecentStateFromCurrentInput_();
+            V2_ConsultReport_saveRecentView_(response.data || null);
+            V2_ConsultReport_showSuccess_('상담 리포트 조회가 완료되었다.');
+            return;
+          }
+
+          V2_ConsultReport_clearReportArea_();
+          V2_ConsultReport_showError_(
+            response && response.message ? response.message : '상담 리포트 조회에 실패했다.'
+          );
+        })
+        .withFailureHandler(function(error) {
+          V2_ConsultReport_setLoading_(false);
+          V2_ConsultReport_clearReportArea_();
+          V2_ConsultReport_showError_(
+            error && error.message ? error.message : '상담 리포트 조회 중 오류가 발생했다.'
+          );
+        })
+        .V2_ConsultReportService_getReport(studentId);
+    } catch (error) {
+      V2_ConsultReport_setLoading_(false);
+      V2_ConsultReport_showError_(error.message || '조회 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_syncSelectedStudentFromReport_(report) {
+    try {
+      if (!report || !report.student) {
+        return;
+      }
+
+      V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent = {
+        studentId: report.student.studentId || '',
+        studentName: report.student.studentName || '',
+        classId: report.student.classId || '',
+        className: report.student.className || report.student.classId || '',
+        status: report.student.status || '',
+        parentName: report.student.parentName || '',
+        parentPhone: report.student.parentPhone || ''
+      };
+
+      V2_ConsultReport_showSelectedStudentBox_(V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_openPrintPreview_() {
+    try {
+      V2_ConsultReport_clearNotice_();
+
+      var studentId = String(document.getElementById('studentId').value || '').trim();
+      var dateRange = V2_ConsultReport_validateDateRange_();
+      var startDate = dateRange.startDate;
+      var endDate = dateRange.endDate;
+
+      if (!studentId) {
+        throw new Error('출력 미리보기를 하려면 학생 ID를 입력해라.');
+      }
+
+      V2_ConsultReport_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_ConsultReport_setLoading_(false);
+
+          if (!response || response.success !== true || !response.data) {
+            var detailMessage = '출력용 데이터 조회에 실패했다.';
+            if (response && response.message) {
+              detailMessage += '\n\n상세 오류:\n' + response.message;
+            }
+            V2_ConsultReport_showError_(detailMessage);
+            return;
+          }
+
+          V2_ConsultReport_openPrintWindow_(response.data);
+          V2_ConsultReport_showSuccess_('출력 미리보기를 열었다.');
+        })
+        .withFailureHandler(function(error) {
+          V2_ConsultReport_setLoading_(false);
+
+          var failureMessage = '출력 미리보기 생성 중 오류가 발생했다.';
+          if (error && error.message) {
+            failureMessage += '\n\n상세 오류:\n' + error.message;
+          } else if (error) {
+            failureMessage += '\n\n상세 오류:\n' + error;
+          }
+
+          V2_ConsultReport_showError_(failureMessage);
+        })
+        .V2_getConsultReportPrintData({
+          studentId: studentId,
+          startDate: startDate,
+          endDate: endDate
+        });
+    } catch (error) {
+      V2_ConsultReport_setLoading_(false);
+      V2_ConsultReport_showError_(error.message || '출력 미리보기 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_openPrintWindow_(data) {
+    try {
+      var printWindow = window.open('', '_blank');
+
+      if (!printWindow) {
+        throw new Error('팝업 창을 열 수 없다. 브라우저 팝업 차단을 확인해라.');
+      }
+
+      var html = V2_ConsultReport_buildPrintHtml_(data);
+
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+    } catch (error) {
+      V2_ConsultReport_showError_(error.message || '출력 창 생성 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_buildPrintSummaryChips_(summary) {
+    try {
+      var chips = [];
+      chips.push('출석 ' + (summary.attendanceCount || 0) + '건');
+      chips.push('성적 ' + (summary.scoreCount || 0) + '건');
+      chips.push('수업 ' + (summary.lessonCount || 0) + '건');
+      chips.push('코멘트 ' + (summary.commentCount || 0) + '건');
+      chips.push('결석 연락 ' + (summary.absenceContactCount || 0) + '건');
+
+      if (summary.averageScore !== null && summary.averageScore !== undefined && summary.averageScore !== '') {
+        chips.push('평균 점수 ' + summary.averageScore);
+      }
+
+      var html = '';
+      for (var i = 0; i < chips.length; i++) {
+        html += '<span class="chip">' + V2_ConsultReport_escapeHtml_(chips[i]) + '</span>';
+      }
+      return html;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_ConsultReport_buildPrintHtml_(data) {
+    try {
+      var student = data.student || {};
+      var summary = data.summary || {};
+      var sections = data.sections || {};
+
+      var html = '';
+      html += '<!DOCTYPE html>';
+      html += '<html><head><meta charset="UTF-8"><title>학부모 상담 리포트 출력</title>';
+      html += '<style>';
+      html += 'body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#222;background:#f6f8fb;}';
+      html += '.page-wrap{max-width:1120px;margin:0 auto;}';
+      html += '.top-actions{position:sticky;top:0;z-index:10;margin-bottom:20px;padding:12px 14px;border:1px solid #d9e2f1;border-radius:12px;background:#ffffff;box-shadow:0 2px 10px rgba(0,0,0,0.05);text-align:right;}';
+      html += '.btn{border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:bold;cursor:pointer;margin-left:8px;}';
+      html += '.btn-print{background:#1f4e78;color:#fff;}';
+      html += '.btn-close{background:#e9eef3;color:#333;}';
+      html += '.hero{background:#ffffff;border:1px solid #d9e2f1;border-radius:16px;padding:24px 24px 20px;margin-bottom:18px;}';
+      html += '.title{font-size:28px;font-weight:bold;color:#1f4e78;text-align:center;margin-bottom:6px;}';
+      html += '.sub{font-size:13px;color:#555;text-align:center;margin-bottom:4px;}';
+      html += '.meta{font-size:12px;color:#777;text-align:center;margin-bottom:14px;}';
+      html += '.chip-row{text-align:center;}';
+      html += '.chip{display:inline-block;margin:4px 4px 0;padding:6px 10px;border-radius:999px;background:#eef4ff;border:1px solid #d7e5fb;color:#1f4e78;font-size:12px;font-weight:bold;}';
+      html += '.print-note{margin-top:14px;padding:12px 14px;border:1px solid #f3dfb7;border-radius:12px;background:#fffaf2;color:#6c4d10;font-size:12px;line-height:1.7;}';
+      html += '.section{margin-top:18px;background:#ffffff;border:1px solid #d9e2f1;border-radius:16px;padding:18px;}';
+      html += '.section-title{font-size:18px;font-weight:bold;color:#1f4e78;border-left:5px solid #1f4e78;padding-left:10px;margin-bottom:12px;}';
+      html += 'table{width:100%;border-collapse:collapse;margin-bottom:0;}';
+      html += 'th,td{border:1px solid #d9e2f1;padding:8px 10px;font-size:13px;text-align:left;vertical-align:top;word-break:break-word;white-space:pre-line;}';
+      html += 'th{background:#eef4ff;}';
+      html += '.empty{border:1px dashed #c7d2e3;border-radius:8px;padding:14px;color:#666;background:#fafcff;}';
+      html += '@media print {';
+      html += 'body{padding:0;background:#fff;}';
+      html += '.page-wrap{max-width:none;margin:0;}';
+      html += '.top-actions{display:none;}';
+      html += '.hero,.section{border:none;border-radius:0;box-shadow:none;padding:0;background:#fff;}';
+      html += '.hero{margin-bottom:14px;}';
+      html += '.section{page-break-inside:avoid;margin-top:18px;}';
+      html += '.chip{border:1px solid #cfd8e6;background:#fff;}';
+      html += '.print-note{border:1px solid #d9e2f1;background:#fff;}';
+      html += '}';
+      html += '</style>';
+      html += '<scr' + 'ipt>';
+      html += 'window.addEventListener("keydown",function(event){';
+      html += 'if((event.ctrlKey||event.metaKey)&&String(event.key).toLowerCase()==="p"){event.preventDefault();window.print();}';
+      html += 'if(event.key==="Escape"){window.close();}';
+      html += '});';
+      html += '</scr' + 'ipt>';
+      html += '</head><body><div class="page-wrap">';
+
+      html += '<div class="top-actions">';
+      html += '<button class="btn btn-print" onclick="window.print()">인쇄</button>';
+      html += '<button class="btn btn-close" onclick="window.close()">닫기</button>';
+      html += '</div>';
+
+      html += '<div class="hero">';
+      html += '<div class="title">' + V2_ConsultReport_escapeHtml_(data.reportTitle || '학부모 상담 리포트') + '</div>';
+      html += '<div class="sub">' + V2_ConsultReport_escapeHtml_((data.period && data.period.label) ? data.period.label : '전체 기간') + '</div>';
+      html += '<div class="meta">생성일시: ' + V2_ConsultReport_escapeHtml_(data.generatedAt || '') + '</div>';
+      html += '<div class="chip-row">' + V2_ConsultReport_buildPrintSummaryChips_(summary) + '</div>';
+      html += '<div class="print-note">';
+      html += '출력 안내\n';
+      html += '1. 상단 인쇄 버튼 또는 Ctrl+P / Command+P로 바로 인쇄할 수 있다.\n';
+      html += '2. 화면의 조회 기간과 학생 정보가 맞는지 확인한 뒤 출력해라.\n';
+      html += '3. 빈 기록 섹션도 상담 이력 확인용으로 함께 출력된다.';
+      html += '</div>';
+      html += '</div>';
+
+      html += '<div class="section">';
+      html += '<div class="section-title">기본 정보</div>';
+      html += '<table><tbody>';
+      html += '<tr><th style="width:140px;">학생명</th><td>' + V2_ConsultReport_escapeHtml_(student.studentName || '') + '</td><th style="width:140px;">학생 ID</th><td>' + V2_ConsultReport_escapeHtml_(student.studentId || '') + '</td></tr>';
+      html += '<tr><th>반</th><td>' + V2_ConsultReport_escapeHtml_(student.className || student.classId || '') + '</td><th>상태</th><td>' + V2_ConsultReport_escapeHtml_(student.status || '') + '</td></tr>';
+      html += '<tr><th>학부모명</th><td>' + V2_ConsultReport_escapeHtml_(student.parentName || '') + '</td><th>학부모 연락처</th><td>' + V2_ConsultReport_escapeHtml_(student.parentPhone || '') + '</td></tr>';
+      html += '<tr><th>담임교사</th><td>' + V2_ConsultReport_escapeHtml_(student.homeroomTeacherName || '') + '</td><th>비고</th><td>' + V2_ConsultReport_escapeHtml_(student.memo || '') + '</td></tr>';
+      html += '</tbody></table>';
+      html += '</div>';
+
+      html += '<div class="section">';
+      html += '<div class="section-title">요약 정보</div>';
+      html += '<table><tbody>';
+      html += '<tr><th style="width:180px;">출석 기록 수</th><td>' + V2_ConsultReport_escapeHtml_(summary.attendanceCount) + '</td><th style="width:180px;">성적 기록 수</th><td>' + V2_ConsultReport_escapeHtml_(summary.scoreCount) + '</td></tr>';
+      html += '<tr><th>수업 기록 수</th><td>' + V2_ConsultReport_escapeHtml_(summary.lessonCount) + '</td><th>코멘트 기록 수</th><td>' + V2_ConsultReport_escapeHtml_(summary.commentCount) + '</td></tr>';
+      html += '<tr><th>결석 연락 수</th><td>' + V2_ConsultReport_escapeHtml_(summary.absenceContactCount) + '</td><th>평균 점수</th><td>' + V2_ConsultReport_escapeHtml_(summary.averageScore === null ? '' : summary.averageScore) + '</td></tr>';
+      html += '<tr><th>출석 상태 요약</th><td colspan="3">' + V2_ConsultReport_escapeHtml_(V2_ConsultReport_buildAttendanceStatusText_(summary.attendanceStatusCount || {})) + '</td></tr>';
+      html += '<tr><th>성적 요약</th><td colspan="3">' + V2_ConsultReport_escapeHtml_(summary.scoreSummaryText || '') + '</td></tr>';
+      html += '</tbody></table>';
+      html += '</div>';
+
+      html += '<div class="section"><div class="section-title">출석 기록</div>' + V2_ConsultReport_buildPrintTable_(
+        ['날짜', '상태', '비고', '교사명'],
+        sections.attendance || [],
+        function(item) {
+          return [item.date || '', item.status || '', item.note || '', item.teacherName || ''];
+        }
+      ) + '</div>';
+
+      html += '<div class="section"><div class="section-title">성적 기록</div>' + V2_ConsultReport_buildPrintTable_(
+        ['날짜', '과목', '점수', '비고', '교사명'],
+        sections.scores || [],
+        function(item) {
+          return [item.date || '', item.subject || '', item.scoreText || '', item.note || '', item.teacherName || ''];
+        }
+      ) + '</div>';
+
+      html += '<div class="section"><div class="section-title">수업 기록</div>' + V2_ConsultReport_buildPrintTable_(
+        ['날짜', '과목/유형', '수업 내용', '비고', '교사명'],
+        sections.lessons || [],
+        function(item) {
+          return [item.date || '', item.subject || '', item.content || '', item.note || '', item.teacherName || ''];
+        }
+      ) + '</div>';
+
+      html += '<div class="section"><div class="section-title">코멘트 기록</div>' + V2_ConsultReport_buildPrintTable_(
+        ['날짜', '분류', '코멘트', '교사명'],
+        sections.comments || [],
+        function(item) {
+          return [item.date || '', item.category || '', item.comment || '', item.teacherName || ''];
+        }
+      ) + '</div>';
+
+      html += '<div class="section"><div class="section-title">결석 연락 기록</div>' + V2_ConsultReport_buildPrintTable_(
+        ['결석일', '연락일', '연락방식', '결과', '메모', '교사명'],
+        sections.absenceContacts || [],
+        function(item) {
+          return [item.absenceDate || '', item.contactDate || '', item.contactType || '', item.result || '', item.memo || '', item.teacherName || ''];
+        }
+      ) + '</div>';
+
+      html += '</div></body></html>';
+      return html;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_ConsultReport_buildPrintTable_(headers, items, rowBuilder) {
+    try {
+      if (!items || items.length === 0) {
+        return '<div class="empty">데이터가 없다.</div>';
+      }
+
+      var html = '<table><thead><tr>';
+      headers.forEach(function(header) {
+        html += '<th>' + V2_ConsultReport_escapeHtml_(header) + '</th>';
+      });
+      html += '</tr></thead><tbody>';
+
+      items.forEach(function(item) {
+        var row = rowBuilder(item);
+        html += '<tr>';
+        row.forEach(function(cell) {
+          html += '<td>' + V2_ConsultReport_escapeHtml_(cell) + '</td>';
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      return html;
+    } catch (error) {
+      return '<div class="empty">출력 테이블 생성 중 오류가 발생했다.</div>';
+    }
+  }
+
+  function V2_ConsultReport_buildAttendanceStatusText_(statusMap) {
+    try {
+      var parts = [];
+      for (var key in statusMap) {
+        if (Object.prototype.hasOwnProperty.call(statusMap, key)) {
+          parts.push(key + ': ' + statusMap[key] + '건');
+        }
+      }
+      return parts.length > 0 ? parts.join(', ') : '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_ConsultReport_buildPeriodLabel_() {
+    try {
+      var startDate = String(document.getElementById('startDate').value || '').trim();
+      var endDate = String(document.getElementById('endDate').value || '').trim();
+
+      if (startDate && endDate) {
+        return startDate + ' ~ ' + endDate;
+      }
+
+      if (startDate) {
+        return startDate + ' 이후';
+      }
+
+      if (endDate) {
+        return endDate + ' 이전';
+      }
+
+      return '전체 기간';
+    } catch (error) {
+      return '전체 기간';
+    }
+  }
+
+  function V2_ConsultReport_buildRecentPeriodLabel_(startDate, endDate) {
+    try {
+      var s = String(startDate || '').trim();
+      var e = String(endDate || '').trim();
+
+      if (s && e) {
+        return s + ' ~ ' + e;
+      }
+
+      if (s) {
+        return s + ' 이후';
+      }
+
+      if (e) {
+        return e + ' 이전';
+      }
+
+      return '전체 기간';
+    } catch (error) {
+      return '전체 기간';
+    }
+  }
+
+  function V2_ConsultReport_normalizeText_(value) {
+    try {
+      return String(value || '').trim();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_ConsultReport_buildRecentActiveKey_(studentId, startDate, endDate) {
+    try {
+      return [
+        V2_ConsultReport_normalizeText_(studentId),
+        V2_ConsultReport_normalizeText_(startDate),
+        V2_ConsultReport_normalizeText_(endDate)
+      ].join('||');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_ConsultReport_getCurrentInputState_() {
+    try {
+      return {
+        studentId: V2_ConsultReport_normalizeText_(document.getElementById('studentId').value),
+        startDate: V2_ConsultReport_normalizeText_(document.getElementById('startDate').value),
+        endDate: V2_ConsultReport_normalizeText_(document.getElementById('endDate').value)
+      };
+    } catch (error) {
+      return {
+        studentId: '',
+        startDate: '',
+        endDate: ''
+      };
+    }
+  }
+
+  function V2_ConsultReport_findMatchingRecentItem_(inputState) {
+    try {
+      inputState = inputState || V2_ConsultReport_getCurrentInputState_();
+
+      var items = V2_CONSULT_REPORT_RECENT_STATE.items || [];
+      var currentKey = V2_ConsultReport_buildRecentActiveKey_(
+        inputState.studentId,
+        inputState.startDate,
+        inputState.endDate
+      );
+
+      if (!currentKey || currentKey === '||') {
+        return null;
+      }
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var itemKey = V2_ConsultReport_buildRecentActiveKey_(
+          item.studentId || '',
+          item.startDate || '',
+          item.endDate || ''
+        );
+
+        if (itemKey === currentKey) {
+          return item;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function V2_ConsultReport_syncRecentStateFromCurrentInput_() {
+    try {
+      var inputState = V2_ConsultReport_getCurrentInputState_();
+      var matchedItem = V2_ConsultReport_findMatchingRecentItem_(inputState);
+
+      if (matchedItem) {
+        V2_CONSULT_REPORT_RECENT_STATE.activeKey = V2_ConsultReport_buildRecentActiveKey_(
+          matchedItem.studentId || '',
+          matchedItem.startDate || '',
+          matchedItem.endDate || ''
+        );
+      } else {
+        V2_CONSULT_REPORT_RECENT_STATE.activeKey = '';
+      }
+
+      V2_ConsultReport_renderRecentViews_(V2_CONSULT_REPORT_RECENT_STATE.items || []);
+      V2_ConsultReport_renderQueryStateBox_();
+      V2_ConsultReport_renderReportStatusBox_();
+    } catch (error) {
+      V2_CONSULT_REPORT_RECENT_STATE.activeKey = '';
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderQueryStateBox_() {
+    try {
+      var box = document.getElementById('queryStateBox');
+      if (!box) {
+        return;
+      }
+
+      var inputState = V2_ConsultReport_getCurrentInputState_();
+      var matchedItem = V2_ConsultReport_findMatchingRecentItem_(inputState);
+      var hasStudentId = !!inputState.studentId;
+      var hasPeriod = !!(inputState.startDate || inputState.endDate);
+      var lines = [];
+
+      box.style.display = 'block';
+
+      if (!hasStudentId && !hasPeriod) {
+        lines.push('현재 조회 조건');
+        lines.push('상태: 입력 대기');
+        lines.push('학생 ID와 기간 조건을 입력하거나 최근 조회 카드를 선택해라.');
+        box.textContent = lines.join('\n');
+        return;
+      }
+
+      lines.push('현재 조회 조건');
+      lines.push('학생 ID: ' + (inputState.studentId || ''));
+      lines.push('조회 기간: ' + V2_ConsultReport_buildRecentPeriodLabel_(inputState.startDate, inputState.endDate));
+
+      if (matchedItem) {
+        lines.push('연결 상태: 최근 조회 카드와 동기화됨');
+        lines.push('연결 카드: ' + (matchedItem.studentName || matchedItem.studentId || ''));
+      } else {
+        lines.push('연결 상태: 수동 조건 편집 중');
+        lines.push('최근 조회 카드와 일치하는 저장 조건은 없다.');
+      }
+
+      box.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderReportStatusBox_() {
+    try {
+      var box = document.getElementById('reportStatusBox');
+      if (!box) {
+        return;
+      }
+
+      var lines = [];
+      var report = V2_CONSULT_REPORT_CURRENT;
+      var inputState = V2_ConsultReport_getCurrentInputState_();
+
+      box.style.display = 'block';
+
+      if (!inputState.studentId) {
+        lines.push('리포트 상태');
+        lines.push('상태: 조회 대기');
+        lines.push('학생 ID 입력 후 리포트 조회 가능');
+        lines.push('출력 준비: 불가');
+        box.textContent = lines.join('\n');
+        return;
+      }
+
+      if (!report || !report.student) {
+        lines.push('리포트 상태');
+        lines.push('상태: 입력 완료 / 조회 전');
+        lines.push('현재 학생 ID: ' + inputState.studentId);
+        lines.push('조회 기간: ' + V2_ConsultReport_buildPeriodLabel_());
+        lines.push('출력 준비: 리포트 조회 후 가능');
+        box.textContent = lines.join('\n');
+        return;
+      }
+
+      lines.push('리포트 상태');
+      lines.push('상태: 조회 완료');
+      lines.push('표시 학생: ' + (report.student.studentName || report.student.studentId || ''));
+      lines.push('조회 기간: ' + V2_ConsultReport_buildPeriodLabel_());
+      lines.push(
+        '표시 데이터: 출석 ' + (report.attendance || []).length +
+        ' / 성적 ' + (report.scores || []).length +
+        ' / 수업 ' + (report.lessons || []).length +
+        ' / 코멘트 ' + (report.comments || []).length +
+        ' / 결석 연락 ' + (report.absenceContacts || []).length
+      );
+      lines.push('출력 준비: 가능');
+
+      box.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_reset_() {
+    try {
+      document.getElementById('studentId').value = '';
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      V2_ConsultReport_clearNotice_();
+      V2_ConsultReport_clearReportArea_();
+      V2_ConsultReport_setSummary_('학생 ID를 입력한 뒤 리포트 조회를 실행해라.');
+      V2_ConsultReport_clearSelectedStudentBox_();
+      V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent = null;
+      V2_CONSULT_REPORT_RECENT_STATE.activeKey = '';
+      V2_ConsultReport_renderRecentViews_(V2_CONSULT_REPORT_RECENT_STATE.items || []);
+      V2_ConsultReport_renderQueryStateBox_();
+      V2_ConsultReport_renderReportStatusBox_();
+    } catch (error) {
+      V2_ConsultReport_showError_(error.message || '초기화 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_openStudentSearchLayer_() {
+    try {
+      var overlay = document.getElementById('studentSearchOverlay');
+      if (!overlay) {
+        return;
+      }
+
+      overlay.style.display = 'block';
+      V2_ConsultReport_setStudentSearchStatus_('', '');
+      document.getElementById('searchKeyword').focus();
+    } catch (error) {
+      V2_ConsultReport_showError_(error.message || '학생 검색 창 열기 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_closeStudentSearchLayer_() {
+    try {
+      var overlay = document.getElementById('studentSearchOverlay');
+      if (!overlay) {
+        return;
+      }
+
+      overlay.style.display = 'none';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_handleStudentSearchEnter_(event) {
+    try {
+      if (event && event.key === 'Enter') {
+        V2_ConsultReport_searchStudents_();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_setStudentSearchStatus_(message, type) {
+    try {
+      var box = document.getElementById('studentSearchStatusBox');
+      if (!box) {
+        return;
+      }
+
+      box.className = 'search-status';
+      box.textContent = '';
+
+      if (!message) {
+        return;
+      }
+
+      box.className = 'search-status ' + (type || 'info');
+      box.textContent = message;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderStudentSearchEmpty_(message) {
+    try {
+      var body = document.getElementById('studentSearchResultBody');
+      if (!body) {
+        return;
+      }
+
+      body.innerHTML =
+        '<tr><td colspan="6" class="empty" style="display: table-cell;">' +
+        V2_ConsultReport_escapeHtml_(message || '검색 결과가 없다.') +
+        '</td></tr>';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderStudentSearchResults_(items) {
+    try {
+      var body = document.getElementById('studentSearchResultBody');
+      if (!body) {
+        return;
+      }
+
+      var html = '';
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+
+        html += '<tr style="cursor:pointer;" onclick="V2_ConsultReport_selectStudentByIndex_(' + i + ')">';
+        html += '<td>' + V2_ConsultReport_escapeHtml_(item.studentId) + '</td>';
+        html += '<td>' + V2_ConsultReport_escapeHtml_(item.studentName) + '</td>';
+        html += '<td>' + V2_ConsultReport_escapeHtml_(item.className || item.classId) + '</td>';
+        html += '<td>' + V2_ConsultReport_escapeHtml_(item.status) + '</td>';
+        html += '<td>' + V2_ConsultReport_escapeHtml_(item.parentName) + '</td>';
+        html += '<td><button class="btn btn-primary btn-small" type="button" onclick="event.stopPropagation(); V2_ConsultReport_selectStudentByIndex_(' + i + ')">선택</button></td>';
+        html += '</tr>';
+      }
+
+      body.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+      V2_ConsultReport_renderStudentSearchEmpty_('검색 결과 화면 생성 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_searchStudents_() {
+    try {
+      var keyword = String(document.getElementById('searchKeyword').value || '').trim();
+      var classId = String(document.getElementById('searchClassId').value || '').trim();
+      var status = String(document.getElementById('searchStatus').value || '').trim();
+
+      if (!keyword && !classId && !status) {
+        V2_ConsultReport_setStudentSearchStatus_('검색어, 반 ID, 상태 중 하나는 입력해야 한다.', 'error');
+        V2_ConsultReport_renderStudentSearchEmpty_('검색 조건을 먼저 입력해라.');
+        return;
+      }
+
+      V2_ConsultReport_setStudentSearchStatus_('학생을 검색하는 중이다...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (!response || response.success !== true || !response.data) {
+            V2_ConsultReport_setStudentSearchStatus_(
+              response && response.message ? response.message : '학생 검색에 실패했다.',
+              'error'
+            );
+            V2_ConsultReport_renderStudentSearchEmpty_('검색 결과가 없다.');
+            return;
+          }
+
+          var items = response.data.items || [];
+          V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.items = items;
+
+          if (items.length === 0) {
+            V2_ConsultReport_setStudentSearchStatus_('검색 결과가 없다.', 'info');
+            V2_ConsultReport_renderStudentSearchEmpty_('일치하는 학생이 없다.');
+            return;
+          }
+
+          V2_ConsultReport_setStudentSearchStatus_('학생 검색 완료: ' + items.length + '건', 'success');
+          V2_ConsultReport_renderStudentSearchResults_(items);
+        })
+        .withFailureHandler(function(error) {
+          V2_ConsultReport_setStudentSearchStatus_(
+            error && error.message ? error.message : '학생 검색 중 오류가 발생했다.',
+            'error'
+          );
+          V2_ConsultReport_renderStudentSearchEmpty_('검색 결과를 불러오지 못했다.');
+        })
+        .V2_StudentSearchService_searchStudents({
+          keyword: keyword,
+          classId: classId,
+          status: status,
+          limit: 20
+        });
+    } catch (error) {
+      V2_ConsultReport_setStudentSearchStatus_(error.message || '학생 검색 처리 중 오류가 발생했다.', 'error');
+    }
+  }
+
+  function V2_ConsultReport_selectStudentByIndex_(index) {
+    try {
+      var items = V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.items || [];
+      var student = items[index];
+
+      if (!student) {
+        V2_ConsultReport_setStudentSearchStatus_('선택할 학생 정보를 찾지 못했다.', 'error');
+        return;
+      }
+
+      V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent = student;
+      document.getElementById('studentId').value = student.studentId || '';
+      V2_ConsultReport_showSelectedStudentBox_(student);
+      V2_ConsultReport_syncRecentStateFromCurrentInput_();
+      V2_ConsultReport_setStudentSearchStatus_('학생 선택 완료', 'success');
+      V2_ConsultReport_closeStudentSearchLayer_();
+      V2_ConsultReport_runSearchAfterStudentSelect_();
+    } catch (error) {
+      V2_ConsultReport_setStudentSearchStatus_(error.message || '학생 선택 중 오류가 발생했다.', 'error');
+    }
+  }
+
+  function V2_ConsultReport_runSearchAfterStudentSelect_() {
+    try {
+      V2_ConsultReport_clearNotice_();
+      V2_ConsultReport_showSuccess_('학생 선택 완료. 상담 리포트를 자동 조회한다.');
+      V2_ConsultReport_search_();
+    } catch (error) {
+      V2_ConsultReport_showError_(error.message || '학생 선택 후 자동 조회 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_showSelectedStudentBox_(student) {
+    try {
+      var box = document.getElementById('selectedStudentBox');
+      if (!box) {
+        return;
+      }
+
+      box.style.display = 'block';
+      box.textContent =
+        '선택된 학생\n' +
+        '학생명: ' + (student.studentName || '') + '\n' +
+        '학생 ID: ' + (student.studentId || '') + '\n' +
+        '반: ' + (student.className || student.classId || '') + '\n' +
+        '상태: ' + (student.status || '') + '\n' +
+        '학부모명: ' + (student.parentName || '') + '\n' +
+        '학부모 연락처: ' + (student.parentPhone || '') + '\n' +
+        '현재 조회 기간: ' + V2_ConsultReport_buildPeriodLabel_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_clearSelectedStudentBox_() {
+    try {
+      var box = document.getElementById('selectedStudentBox');
+      if (!box) {
+        return;
+      }
+
+      box.style.display = 'none';
+      box.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_resetStudentSearch_() {
+    try {
+      document.getElementById('searchKeyword').value = '';
+      document.getElementById('searchClassId').value = '';
+      document.getElementById('searchStatus').value = '';
+      V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.items = [];
+      V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent = null;
+      V2_ConsultReport_setStudentSearchStatus_('', '');
+      V2_ConsultReport_renderStudentSearchEmpty_('검색어를 입력한 뒤 검색 버튼을 눌러라.');
+    } catch (error) {
+      V2_ConsultReport_setStudentSearchStatus_(error.message || '학생 검색 초기화 중 오류가 발생했다.', 'error');
+    }
+  }
+
+  function V2_ConsultReport_loadRecentViews_() {
+    try {
+      var recentViewsWrap = document.getElementById('recentViewsWrap');
+      if (recentViewsWrap) {
+        recentViewsWrap.innerHTML = '<div class="recent-empty">최근 조회 학생을 불러오는 중이다.</div>';
+      }
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (!response || response.success !== true || !response.data) {
+            V2_ConsultReport_renderRecentViewsEmpty_(
+              response && response.message ? response.message : '최근 조회 학생을 불러오지 못했다.'
+            );
+            return;
+          }
+
+          var items = response.data.items || [];
+          V2_CONSULT_REPORT_RECENT_STATE.items = items;
+          V2_ConsultReport_syncRecentStateFromCurrentInput_();
+        })
+        .withFailureHandler(function(error) {
+          V2_ConsultReport_renderRecentViewsEmpty_(
+            error && error.message ? error.message : '최근 조회 학생을 불러오지 못했다.'
+          );
+        })
+        .V2_ConsultReportRecentService_getRecentViews({
+          limit: 5
+        });
+    } catch (error) {
+      V2_ConsultReport_renderRecentViewsEmpty_(error.message || '최근 조회 학생 로딩 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_renderRecentViewsEmpty_(message) {
+    try {
+      var wrap = document.getElementById('recentViewsWrap');
+      if (!wrap) {
+        return;
+      }
+
+      wrap.innerHTML = '<div class="recent-empty">' + V2_ConsultReport_escapeHtml_(message || '최근 조회 학생이 없다.') + '</div>';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_renderRecentViews_(items) {
+    try {
+      var wrap = document.getElementById('recentViewsWrap');
+      if (!wrap) {
+        return;
+      }
+
+      if (!items || items.length === 0) {
+        V2_ConsultReport_renderRecentViewsEmpty_('최근 조회 학생이 없다.');
+        return;
+      }
+
+      var html = '<div class="recent-list">';
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var itemKey = V2_ConsultReport_buildRecentActiveKey_(
+          item.studentId || '',
+          item.startDate || '',
+          item.endDate || ''
+        );
+        var activeClass = itemKey === V2_CONSULT_REPORT_RECENT_STATE.activeKey ? ' active' : '';
+
+        html += '<div class="recent-item' + activeClass + '" onclick="V2_ConsultReport_selectRecentViewByIndex_(' + i + ')">';
+        html += '<div class="recent-delete-row">';
+        html += '<button type="button" class="recent-delete-button" onclick="event.stopPropagation(); V2_ConsultReport_deleteRecentViewByIndex_(' + i + ')">삭제</button>';
+        html += '</div>';
+        html += '<div class="recent-student-name">' + V2_ConsultReport_escapeHtml_(item.studentName || item.studentId || '') + '</div>';
+        html += '<div class="recent-meta">';
+        html += '학생 ID: ' + V2_ConsultReport_escapeHtml_(item.studentId || '') + '\n';
+        html += '반: ' + V2_ConsultReport_escapeHtml_(item.className || item.classId || '') + '\n';
+        html += '조회 기간: ' + V2_ConsultReport_escapeHtml_(V2_ConsultReport_buildRecentPeriodLabel_(item.startDate, item.endDate)) + '\n';
+        html += '최근 조회: ' + V2_ConsultReport_escapeHtml_(item.viewedAt || '');
+        html += '</div>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      wrap.innerHTML = html;
+    } catch (error) {
+      V2_ConsultReport_renderRecentViewsEmpty_('최근 조회 학생 화면 생성 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_selectRecentViewByIndex_(index) {
+    try {
+      var items = V2_CONSULT_REPORT_RECENT_STATE.items || [];
+      var item = items[index];
+
+      if (!item) {
+        throw new Error('최근 조회 학생 정보를 찾지 못했다.');
+      }
+
+      document.getElementById('studentId').value = item.studentId || '';
+      document.getElementById('startDate').value = item.startDate || '';
+      document.getElementById('endDate').value = item.endDate || '';
+
+      V2_ConsultReport_showSelectedStudentBox_({
+        studentName: item.studentName || '',
+        studentId: item.studentId || '',
+        classId: item.classId || '',
+        className: item.className || item.classId || '',
+        status: '',
+        parentName: '',
+        parentPhone: ''
+      });
+
+      V2_ConsultReport_syncRecentStateFromCurrentInput_();
+      V2_ConsultReport_clearNotice_();
+      V2_ConsultReport_showSuccess_('최근 조회 학생을 선택했다. 저장된 기간 조건으로 상담 리포트를 자동 조회한다.');
+      V2_ConsultReport_search_();
+    } catch (error) {
+      V2_ConsultReport_showError_(error.message || '최근 조회 학생 선택 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_deleteRecentViewByIndex_(index) {
+    try {
+      var items = V2_CONSULT_REPORT_RECENT_STATE.items || [];
+      var item = items[index];
+
+      if (!item) {
+        throw new Error('삭제할 최근 조회 항목을 찾지 못했다.');
+      }
+
+      var confirmed = window.confirm('선택한 최근 조회 1건을 삭제할까?');
+      if (!confirmed) {
+        return;
+      }
+
+      V2_ConsultReport_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_ConsultReport_setLoading_(false);
+
+          if (!response || response.success !== true) {
+            V2_ConsultReport_showError_(
+              response && response.message ? response.message : '최근 조회 삭제에 실패했다.'
+            );
+            return;
+          }
+
+          var deletedKey = V2_ConsultReport_buildRecentActiveKey_(
+            item.studentId || '',
+            item.startDate || '',
+            item.endDate || ''
+          );
+
+          if (deletedKey === V2_CONSULT_REPORT_RECENT_STATE.activeKey) {
+            V2_CONSULT_REPORT_RECENT_STATE.activeKey = '';
+          }
+
+          V2_ConsultReport_loadRecentViews_();
+          V2_ConsultReport_showSuccess_('최근 조회 1건이 삭제되었다.');
+        })
+        .withFailureHandler(function(error) {
+          V2_ConsultReport_setLoading_(false);
+          V2_ConsultReport_showError_(
+            error && error.message ? error.message : '최근 조회 삭제 중 오류가 발생했다.'
+          );
+        })
+        .V2_ConsultReportRecentDeleteService_deleteOne({
+          recentViewId: item.recentViewId || '',
+          studentId: item.studentId || '',
+          startDate: item.startDate || '',
+          endDate: item.endDate || ''
+        });
+    } catch (error) {
+      V2_ConsultReport_setLoading_(false);
+      V2_ConsultReport_showError_(error.message || '최근 조회 삭제 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_deleteAllRecentViews_() {
+    try {
+      var items = V2_CONSULT_REPORT_RECENT_STATE.items || [];
+
+      if (items.length === 0) {
+        V2_ConsultReport_showError_('삭제할 최근 조회 항목이 없다.');
+        return;
+      }
+
+      var confirmed = window.confirm('현재 교사의 최근 조회 전체를 비울까?');
+      if (!confirmed) {
+        return;
+      }
+
+      V2_ConsultReport_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_ConsultReport_setLoading_(false);
+
+          if (!response || response.success !== true) {
+            V2_ConsultReport_showError_(
+              response && response.message ? response.message : '최근 조회 전체 삭제에 실패했다.'
+            );
+            return;
+          }
+
+          V2_CONSULT_REPORT_RECENT_STATE.items = [];
+          V2_CONSULT_REPORT_RECENT_STATE.activeKey = '';
+          V2_ConsultReport_renderRecentViewsEmpty_('최근 조회 학생이 없다.');
+          V2_ConsultReport_renderQueryStateBox_();
+          V2_ConsultReport_renderReportStatusBox_();
+          V2_ConsultReport_showSuccess_('최근 조회 전체 비우기가 완료되었다.');
+        })
+        .withFailureHandler(function(error) {
+          V2_ConsultReport_setLoading_(false);
+          V2_ConsultReport_showError_(
+            error && error.message ? error.message : '최근 조회 전체 삭제 중 오류가 발생했다.'
+          );
+        })
+        .V2_ConsultReportRecentDeleteService_deleteAll();
+    } catch (error) {
+      V2_ConsultReport_setLoading_(false);
+      V2_ConsultReport_showError_(error.message || '최근 조회 전체 삭제 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_ConsultReport_saveRecentView_(report) {
+    try {
+      if (!report || !report.student || !report.student.studentId) {
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function() {
+          V2_ConsultReport_loadRecentViews_();
+        })
+        .withFailureHandler(function(error) {
+          console.error(error);
+        })
+        .V2_ConsultReportRecentService_saveRecentView({
+          studentId: report.student.studentId || '',
+          studentName: report.student.studentName || '',
+          classId: report.student.classId || '',
+          className: report.student.className || report.student.classId || '',
+          startDate: String(document.getElementById('startDate').value || '').trim(),
+          endDate: String(document.getElementById('endDate').value || '').trim()
+        });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_ConsultReport_bindInputSyncEvents_() {
+    try {
+      var studentId = document.getElementById('studentId');
+      var startDate = document.getElementById('startDate');
+      var endDate = document.getElementById('endDate');
+
+      if (studentId) {
+        studentId.addEventListener('input', function() {
+          V2_ConsultReport_syncRecentStateFromCurrentInput_();
+        });
+        studentId.addEventListener('change', function() {
+          V2_ConsultReport_syncRecentStateFromCurrentInput_();
+        });
+      }
+
+      if (startDate) {
+        startDate.addEventListener('change', function() {
+          V2_ConsultReport_syncRecentStateFromCurrentInput_();
+          if (V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent) {
+            V2_ConsultReport_showSelectedStudentBox_(V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent);
+          }
+        });
+      }
+
+      if (endDate) {
+        endDate.addEventListener('change', function() {
+          V2_ConsultReport_syncRecentStateFromCurrentInput_();
+          if (V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent) {
+            V2_ConsultReport_showSelectedStudentBox_(V2_CONSULT_REPORT_STUDENT_SEARCH_STATE.selectedStudent);
+          }
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_ConsultReport_clearReportArea_();
+      V2_ConsultReport_setSummary_('학생 ID를 입력한 뒤 리포트 조회를 실행해라.');
+      V2_ConsultReport_renderStudentSearchEmpty_('검색어를 입력한 뒤 검색 버튼을 눌러라.');
+      V2_ConsultReport_bindInputSyncEvents_();
+      V2_ConsultReport_renderQueryStateBox_();
+      V2_ConsultReport_renderReportStatusBox_();
+      V2_ConsultReport_loadRecentViews_();
+    } catch (error) {
+      V2_ConsultReport_showError_(error.message || '초기 로딩 중 오류가 발생했다.');
+    }
+  });
+</script>
