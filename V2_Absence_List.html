@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>결석 연락 조회</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+
+    .wrap {
+      padding: 20px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .title-box h2 {
+      margin: 0;
+      font-size: 22px;
+      color: #1f4e78;
+    }
+
+    .title-box p {
+      margin: 6px 0 0 0;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .field select,
+    .field input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .field select:focus,
+    .field input:focus {
+      outline: none;
+      border-color: #1f4e78;
+      box-shadow: 0 0 0 2px rgba(31, 78, 120, 0.15);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      height: 40px;
+    }
+
+    .btn-primary {
+      background: #1f4e78;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e9eef3;
+      color: #333;
+    }
+
+    .summary {
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #444;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      white-space: pre-line;
+    }
+
+    .loading {
+      display: none;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .error {
+      display: none;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #b3261e;
+      background: #fdecea;
+      border: 1px solid #f3b7b2;
+      border-radius: 8px;
+      padding: 10px 12px;
+      white-space: pre-line;
+    }
+
+    .success {
+      display: none;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #196127;
+      background: #e8f5e9;
+      border: 1px solid #b7dfb9;
+      border-radius: 8px;
+      padding: 10px 12px;
+      white-space: pre-line;
+    }
+
+    .empty {
+      display: none;
+      text-align: center;
+      color: #666;
+      border: 1px dashed #d0d7de;
+      border-radius: 10px;
+      padding: 28px 12px;
+      font-size: 14px;
+      background: #fafafa;
+    }
+
+    .table-wrap {
+      display: none;
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1400px;
+    }
+
+    thead {
+      background: #1f4e78;
+      color: #fff;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      font-size: 13px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+
+    tbody tr:hover {
+      background: #f8fbff;
+    }
+
+    .status-badge {
+      display: inline-block;
+      min-width: 74px;
+      text-align: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      background: #fdecea;
+      color: #b3261e;
+    }
+
+    .contact-select,
+    .memo-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #fff;
+    }
+
+    .memo-input {
+      min-height: 68px;
+      resize: vertical;
+    }
+
+    .save-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #1f4e78;
+      color: #fff;
+      min-width: 78px;
+    }
+
+    .save-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .record-hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #666;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+
+    @media (max-width: 980px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <div class="title-box">
+          <h2>결석 연락 조회</h2>
+          <p>
+            반별 결석 학생을 일별 / 주별로 조회하고<br>
+            학부모 연락 상태와 메모를 기록한다.
+          </p>
+        </div>
+        <div class="top-actions">
+          <button class="btn btn-secondary" type="button" onclick="google.script.host.close()">닫기</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="classId">반 선택</label>
+          <select id="classId"></select>
+        </div>
+
+        <div class="field">
+          <label for="baseDate">기준 날짜</label>
+          <input type="date" id="baseDate">
+        </div>
+
+        <div class="field">
+          <label for="viewType">조회 방식</label>
+          <select id="viewType">
+            <option value="daily" selected>일별</option>
+            <option value="weekly">주별</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" type="button" onclick="V2_AbsenceList_search_()">조회</button>
+        <button class="btn btn-secondary" type="button" onclick="V2_AbsenceList_reset_()">초기화</button>
+      </div>
+
+      <div class="summary" id="summaryBox">조회 조건을 선택한 뒤 조회를 실행해라.</div>
+      <div class="loading" id="loadingBox">결석 학생 목록을 조회 중이다...</div>
+      <div class="error" id="errorBox"></div>
+      <div class="success" id="successBox"></div>
+      <div class="empty" id="emptyBox">조회된 결석 학생이 없다.</div>
+
+      <div class="table-wrap" id="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>학생명</th>
+              <th>반 ID</th>
+              <th>상태</th>
+              <th>학부모 이름</th>
+              <th>전화번호</th>
+              <th>출석 메모</th>
+              <th>연락 상태</th>
+              <th>연락 메모</th>
+              <th>저장</th>
+            </tr>
+          </thead>
+          <tbody id="absenceTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <?!= V2_include('V2_Absence_List_JS'); ?>
+</body>
+</html>
