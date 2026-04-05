@@ -1,0 +1,534 @@
+<div class="v2-home-page">
+  <div class="v2-home-header">
+    <div>
+      <h2 class="v2-home-title">V2 홈 대시보드</h2>
+      <div class="v2-home-subtitle">반별 학생 수 / 최근 7일 출석률 / 반 평균 점수</div>
+    </div>
+    <div class="v2-home-actions">
+      <button type="button" class="v2-home-btn primary" id="V2_Home_refreshButton">새로고침</button>
+    </div>
+  </div>
+
+  <div class="v2-home-notice error" id="V2_Home_errorBox" style="display:none;"></div>
+  <div class="v2-home-notice success" id="V2_Home_successBox" style="display:none;"></div>
+
+  <div class="v2-home-loading" id="V2_Home_loadingBox" style="display:none;">불러오는 중...</div>
+
+  <div class="v2-home-teacher-card" id="V2_Home_teacherCard">
+    <div class="v2-home-card-title">로그인 교사 정보</div>
+    <div class="v2-home-teacher-grid">
+      <div class="v2-home-teacher-item">
+        <div class="label">교사명</div>
+        <div class="value" id="V2_Home_teacherName">-</div>
+      </div>
+      <div class="v2-home-teacher-item">
+        <div class="label">교사 ID</div>
+        <div class="value" id="V2_Home_teacherId">-</div>
+      </div>
+      <div class="v2-home-teacher-item">
+        <div class="label">이메일</div>
+        <div class="value" id="V2_Home_teacherEmail">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v2-home-summary-grid" id="V2_Home_summaryGrid"></div>
+
+  <div class="v2-home-table-wrap">
+    <table class="v2-home-table">
+      <thead>
+        <tr>
+          <th>반명</th>
+          <th>반 ID</th>
+          <th>현재 학생 수</th>
+          <th>최근 7일 출석률</th>
+          <th>반 평균 점수</th>
+        </tr>
+      </thead>
+      <tbody id="V2_Home_tableBody">
+        <tr>
+          <td colspan="5">대시보드 데이터를 불러오는 중이다.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .v2-home-page {
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .v2-home-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .v2-home-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .v2-home-subtitle {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #6b7280;
+  }
+
+  .v2-home-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .v2-home-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .v2-home-btn.primary {
+    background: #2563eb;
+    color: #ffffff;
+  }
+
+  .v2-home-btn.primary:disabled {
+    background: #93c5fd;
+    cursor: default;
+  }
+
+  .v2-home-notice {
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    white-space: pre-line;
+  }
+
+  .v2-home-notice.error {
+    background: #fef2f2;
+    color: #991b1b;
+  }
+
+  .v2-home-notice.success {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  .v2-home-loading {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 14px;
+  }
+
+  .v2-home-teacher-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+
+  .v2-home-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+  }
+
+  .v2-home-teacher-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .v2-home-teacher-item {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .v2-home-teacher-item .label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+  }
+
+  .v2-home-teacher-item .value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    word-break: break-word;
+  }
+
+  .v2-home-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .v2-home-summary-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+
+  .v2-home-summary-card .label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+
+  .v2-home-summary-card .value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .v2-home-summary-card .sub {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .v2-home-table-wrap {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+
+  .v2-home-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .v2-home-table th,
+  .v2-home-table td {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 12px 10px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .v2-home-table th {
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-weight: 700;
+  }
+
+  .v2-home-table td:first-child {
+    text-align: left;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .v2-home-rate.good {
+    color: #166534;
+    font-weight: 700;
+  }
+
+  .v2-home-rate.normal {
+    color: #b45309;
+    font-weight: 700;
+  }
+
+  .v2-home-rate.bad {
+    color: #991b1b;
+    font-weight: 700;
+  }
+
+  @media (max-width: 900px) {
+    .v2-home-teacher-grid,
+    .v2-home-summary-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .v2-home-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+
+<script>
+  var V2_HOME_STATE = {
+    data: null
+  };
+
+  function V2_Home_setLoading_(isLoading) {
+    try {
+      var loadingBox = document.getElementById('V2_Home_loadingBox');
+      var refreshButton = document.getElementById('V2_Home_refreshButton');
+
+      if (loadingBox) {
+        loadingBox.style.display = isLoading ? 'block' : 'none';
+      }
+
+      if (refreshButton) {
+        refreshButton.disabled = !!isLoading;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_showError_(message) {
+    try {
+      var box = document.getElementById('V2_Home_errorBox');
+      if (!box) {
+        return;
+      }
+
+      box.style.display = 'block';
+      box.textContent = message || '오류가 발생했다.';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_clearError_() {
+    try {
+      var box = document.getElementById('V2_Home_errorBox');
+      if (!box) {
+        return;
+      }
+
+      box.style.display = 'none';
+      box.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_showSuccess_(message) {
+    try {
+      var box = document.getElementById('V2_Home_successBox');
+      if (!box) {
+        return;
+      }
+
+      box.style.display = 'block';
+      box.textContent = message || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_clearSuccess_() {
+    try {
+      var box = document.getElementById('V2_Home_successBox');
+      if (!box) {
+        return;
+      }
+
+      box.style.display = 'none';
+      box.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_escapeHtml_(value) {
+    try {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_Home_toNumber_(value) {
+    try {
+      var numberValue = Number(value);
+      return isNaN(numberValue) ? 0 : numberValue;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function V2_Home_renderTeacherInfo_(teacherInfo) {
+    try {
+      teacherInfo = teacherInfo || {};
+
+      document.getElementById('V2_Home_teacherName').textContent = teacherInfo.teacherName || '-';
+      document.getElementById('V2_Home_teacherId').textContent = teacherInfo.teacherId || '-';
+      document.getElementById('V2_Home_teacherEmail').textContent = teacherInfo.teacherEmail || '-';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_renderSummary_(summary) {
+    try {
+      summary = summary || {};
+
+      var summaryGrid = document.getElementById('V2_Home_summaryGrid');
+      if (!summaryGrid) {
+        return;
+      }
+
+      var html = '';
+      html += V2_Home_buildSummaryCard_('반 수', summary.totalClassCount || 0, 'V2_Classes 기준');
+      html += V2_Home_buildSummaryCard_('현재 재학 학생 수', summary.totalActiveStudentCount || 0, 'V2_Students 기준');
+      html += V2_Home_buildSummaryCard_('생성 시각', summary.generatedAt || '-', '대시보드 갱신 기준');
+
+      summaryGrid.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_buildSummaryCard_(label, value, subText) {
+    try {
+      var html = '';
+      html += '<div class="v2-home-summary-card">';
+      html += '<div class="label">' + V2_Home_escapeHtml_(label) + '</div>';
+      html += '<div class="value">' + V2_Home_escapeHtml_(String(value)) + '</div>';
+      html += '<div class="sub">' + V2_Home_escapeHtml_(subText || '') + '</div>';
+      html += '</div>';
+      return html;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_Home_getRateClass_(rate) {
+    try {
+      var numericRate = V2_Home_toNumber_(rate);
+
+      if (numericRate >= 90) {
+        return 'good';
+      }
+
+      if (numericRate >= 70) {
+        return 'normal';
+      }
+
+      return 'bad';
+    } catch (error) {
+      return 'normal';
+    }
+  }
+
+  function V2_Home_renderTable_(items) {
+    try {
+      items = Array.isArray(items) ? items : [];
+
+      var body = document.getElementById('V2_Home_tableBody');
+      if (!body) {
+        return;
+      }
+
+      if (items.length < 1) {
+        body.innerHTML = '<tr><td colspan="5">표시할 반 데이터가 없다.</td></tr>';
+        return;
+      }
+
+      var html = '';
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i] || {};
+        var rateClass = V2_Home_getRateClass_(item.recent7DayAttendanceRate);
+
+        html += '<tr>';
+        html += '<td>' + V2_Home_escapeHtml_(item.className || '') + '</td>';
+        html += '<td>' + V2_Home_escapeHtml_(item.classId || '') + '</td>';
+        html += '<td>' + V2_Home_escapeHtml_(String(item.currentStudentCount || 0)) + '</td>';
+        html += '<td class="v2-home-rate ' + rateClass + '">' + V2_Home_escapeHtml_(String(item.recent7DayAttendanceRate || 0)) + '%</td>';
+        html += '<td>' + V2_Home_escapeHtml_(String(item.averageScore || 0)) + '</td>';
+        html += '</tr>';
+      }
+
+      body.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Home_loadDashboard_() {
+    try {
+      V2_Home_clearError_();
+      V2_Home_clearSuccess_();
+      V2_Home_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          try {
+            V2_Home_setLoading_(false);
+
+            if (!response || response.success !== true || !response.data) {
+              V2_HOME_STATE.data = null;
+              V2_Home_showError_(response && response.message ? response.message : '홈 대시보드 데이터를 불러오지 못했다.');
+              V2_Home_renderTeacherInfo_({});
+              V2_Home_renderSummary_({});
+              V2_Home_renderTable_([]);
+              return;
+            }
+
+            V2_HOME_STATE.data = response.data;
+            V2_Home_renderTeacherInfo_(response.data.teacherInfo || {});
+            V2_Home_renderSummary_(response.data.summary || {});
+            V2_Home_renderTable_(response.data.items || []);
+            V2_Home_showSuccess_(response.message || '홈 대시보드를 불러왔다.');
+          } catch (innerError) {
+            V2_Home_showError_(innerError.message || '홈 화면 렌더링 중 오류가 발생했다.');
+          }
+        })
+        .withFailureHandler(function(error) {
+          V2_Home_setLoading_(false);
+          V2_HOME_STATE.data = null;
+          V2_Home_showError_(error && error.message ? error.message : '홈 대시보드 조회 중 오류가 발생했다.');
+          V2_Home_renderTeacherInfo_({});
+          V2_Home_renderSummary_({});
+          V2_Home_renderTable_([]);
+        })
+        .V2_HomeService_getDashboardData({});
+    } catch (error) {
+      V2_Home_setLoading_(false);
+      V2_Home_showError_(error.message || '홈 대시보드 실행 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_Home_bindEvents_() {
+    try {
+      var refreshButton = document.getElementById('V2_Home_refreshButton');
+
+      if (refreshButton && !refreshButton.getAttribute('data-v2-bound')) {
+        refreshButton.addEventListener('click', V2_Home_loadDashboard_);
+        refreshButton.setAttribute('data-v2-bound', 'true');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_Home_bindEvents_();
+      V2_Home_loadDashboard_();
+    } catch (error) {
+      V2_Home_showError_(error.message || '홈 화면 초기화 중 오류가 발생했다.');
+    }
+  });
+</script>
