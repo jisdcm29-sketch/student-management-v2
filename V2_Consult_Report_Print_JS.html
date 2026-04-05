@@ -1,0 +1,350 @@
+<script>
+  var V2_CRP_PRINT_STATE = {
+    reportData: null
+  };
+
+  function V2_CRP_UI_loadPrintReport() {
+    try {
+      var studentId = V2_CRP_UI_getValue_('studentId');
+      var startDate = V2_CRP_UI_getValue_('startDate');
+      var endDate = V2_CRP_UI_getValue_('endDate');
+
+      if (!studentId) {
+        V2_CRP_UI_setStatus_('학생 ID를 입력해주세요.', true);
+        return;
+      }
+
+      V2_CRP_UI_setLoading_(true);
+      V2_CRP_UI_setStatus_('리포트를 조회 중입니다...', false);
+      V2_CRP_UI_hideReport_();
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          V2_CRP_UI_setLoading_(false);
+
+          if (!result || result.success !== true || !result.data) {
+            V2_CRP_UI_setStatus_((result && result.message) ? result.message : '리포트 조회에 실패했습니다.', true);
+            V2_CRP_UI_showEmpty_('조회 결과가 없습니다.');
+            return;
+          }
+
+          V2_CRP_PRINT_STATE.reportData = result.data;
+          V2_CRP_UI_renderPrintReport_(result.data);
+          V2_CRP_UI_setStatus_('리포트 조회가 완료되었습니다.', false);
+        })
+        .withFailureHandler(function(error) {
+          V2_CRP_UI_setLoading_(false);
+          V2_CRP_UI_setStatus_('서버 오류: ' + (error && error.message ? error.message : error), true);
+          V2_CRP_UI_showEmpty_('리포트를 불러오지 못했습니다.');
+        })
+        .V2_getConsultReportPrintData({
+          studentId: studentId,
+          startDate: startDate,
+          endDate: endDate
+        });
+    } catch (error) {
+      V2_CRP_UI_setLoading_(false);
+      V2_CRP_UI_setStatus_('화면 처리 오류: ' + error.message, true);
+      V2_CRP_UI_showEmpty_('리포트를 불러오지 못했습니다.');
+    }
+  }
+
+  function V2_CRP_UI_renderPrintReport_(data) {
+    try {
+      V2_CRP_UI_showReport_();
+
+      document.getElementById('reportTitle').textContent = data.reportTitle || '학부모 상담 리포트';
+      document.getElementById('reportPeriodLabel').textContent = (data.period && data.period.label) ? data.period.label : '전체 기간';
+      document.getElementById('reportGeneratedAt').textContent = '생성일시: ' + (data.generatedAt || '');
+
+      V2_CRP_UI_renderStudentInfo_(data.student || {});
+      V2_CRP_UI_renderSummary_(data.summary || {});
+      V2_CRP_UI_renderAttendance_(data.sections ? data.sections.attendance || [] : []);
+      V2_CRP_UI_renderScores_(data.sections ? data.sections.scores || [] : []);
+      V2_CRP_UI_renderLessons_(data.sections ? data.sections.lessons || [] : []);
+      V2_CRP_UI_renderComments_(data.sections ? data.sections.comments || [] : []);
+      V2_CRP_UI_renderAbsenceContacts_(data.sections ? data.sections.absenceContacts || [] : []);
+    } catch (error) {
+      V2_CRP_UI_setStatus_('리포트 렌더링 오류: ' + error.message, true);
+      V2_CRP_UI_showEmpty_('리포트 화면 생성에 실패했습니다.');
+    }
+  }
+
+  function V2_CRP_UI_renderStudentInfo_(student) {
+    try {
+      var html = '';
+      html += '<tr>';
+      html += '<th style="width:140px;">학생명</th><td>' + V2_CRP_UI_escapeHtml_(student.studentName) + '</td>';
+      html += '<th style="width:140px;">학생 ID</th><td>' + V2_CRP_UI_escapeHtml_(student.studentId) + '</td>';
+      html += '</tr>';
+
+      html += '<tr>';
+      html += '<th>반</th><td>' + V2_CRP_UI_escapeHtml_(student.className || student.classId) + '</td>';
+      html += '<th>상태</th><td>' + V2_CRP_UI_escapeHtml_(student.status) + '</td>';
+      html += '</tr>';
+
+      html += '<tr>';
+      html += '<th>학부모명</th><td>' + V2_CRP_UI_escapeHtml_(student.parentName) + '</td>';
+      html += '<th>학부모 연락처</th><td>' + V2_CRP_UI_escapeHtml_(student.parentPhone) + '</td>';
+      html += '</tr>';
+
+      html += '<tr>';
+      html += '<th>담임교사</th><td>' + V2_CRP_UI_escapeHtml_(student.homeroomTeacherName) + '</td>';
+      html += '<th>비고</th><td>' + V2_CRP_UI_escapeHtml_(student.memo) + '</td>';
+      html += '</tr>';
+
+      document.getElementById('studentInfoBody').innerHTML = html;
+    } catch (error) {
+      document.getElementById('studentInfoBody').innerHTML = '';
+    }
+  }
+
+  function V2_CRP_UI_renderSummary_(summary) {
+    try {
+      var attendanceStatusText = V2_CRP_UI_buildAttendanceStatusText_(summary.attendanceStatusCount || {});
+      var html = '';
+
+      html += '<tr>';
+      html += '<th style="width:160px;">출석 기록 수</th><td>' + V2_CRP_UI_escapeHtml_(summary.attendanceCount) + '</td>';
+      html += '<th style="width:160px;">성적 기록 수</th><td>' + V2_CRP_UI_escapeHtml_(summary.scoreCount) + '</td>';
+      html += '</tr>';
+
+      html += '<tr>';
+      html += '<th>수업 기록 수</th><td>' + V2_CRP_UI_escapeHtml_(summary.lessonCount) + '</td>';
+      html += '<th>코멘트 기록 수</th><td>' + V2_CRP_UI_escapeHtml_(summary.commentCount) + '</td>';
+      html += '</tr>';
+
+      html += '<tr>';
+      html += '<th>결석 연락 수</th><td>' + V2_CRP_UI_escapeHtml_(summary.absenceContactCount) + '</td>';
+      html += '<th>평균 점수</th><td>' + V2_CRP_UI_escapeHtml_(summary.averageScore === null ? '' : summary.averageScore) + '</td>';
+      html += '</tr>';
+
+      html += '<tr>';
+      html += '<th>출석 상태 요약</th><td colspan="3">' + V2_CRP_UI_escapeHtml_(attendanceStatusText) + '</td>';
+      html += '</tr>';
+
+      html += '<tr>';
+      html += '<th>성적 요약</th><td colspan="3">' + V2_CRP_UI_escapeHtml_(summary.scoreSummaryText) + '</td>';
+      html += '</tr>';
+
+      document.getElementById('summaryBody').innerHTML = html;
+    } catch (error) {
+      document.getElementById('summaryBody').innerHTML = '';
+    }
+  }
+
+  function V2_CRP_UI_renderAttendance_(items) {
+    var html = V2_CRP_UI_buildTableOrEmpty_(
+      items,
+      ['날짜', '상태', '비고', '교사명'],
+      function(item) {
+        return [
+          item.date || '',
+          item.status || '',
+          item.note || '',
+          item.teacherName || ''
+        ];
+      }
+    );
+
+    document.getElementById('attendanceSection').innerHTML = html;
+  }
+
+  function V2_CRP_UI_renderScores_(items) {
+    var html = V2_CRP_UI_buildTableOrEmpty_(
+      items,
+      ['날짜', '과목', '점수', '비고', '교사명'],
+      function(item) {
+        return [
+          item.date || '',
+          item.subject || '',
+          item.scoreText || '',
+          item.note || '',
+          item.teacherName || ''
+        ];
+      }
+    );
+
+    document.getElementById('scoresSection').innerHTML = html;
+  }
+
+  function V2_CRP_UI_renderLessons_(items) {
+    var html = V2_CRP_UI_buildTableOrEmpty_(
+      items,
+      ['날짜', '과목/유형', '수업 내용', '비고', '교사명'],
+      function(item) {
+        return [
+          item.date || '',
+          item.subject || '',
+          item.content || '',
+          item.note || '',
+          item.teacherName || ''
+        ];
+      }
+    );
+
+    document.getElementById('lessonsSection').innerHTML = html;
+  }
+
+  function V2_CRP_UI_renderComments_(items) {
+    var html = V2_CRP_UI_buildTableOrEmpty_(
+      items,
+      ['날짜', '분류', '코멘트', '교사명'],
+      function(item) {
+        return [
+          item.date || '',
+          item.category || '',
+          item.comment || '',
+          item.teacherName || ''
+        ];
+      }
+    );
+
+    document.getElementById('commentsSection').innerHTML = html;
+  }
+
+  function V2_CRP_UI_renderAbsenceContacts_(items) {
+    var html = V2_CRP_UI_buildTableOrEmpty_(
+      items,
+      ['결석일', '연락일', '연락방식', '결과', '메모', '교사명'],
+      function(item) {
+        return [
+          item.absenceDate || '',
+          item.contactDate || '',
+          item.contactType || '',
+          item.result || '',
+          item.memo || '',
+          item.teacherName || ''
+        ];
+      }
+    );
+
+    document.getElementById('absenceContactsSection').innerHTML = html;
+  }
+
+  function V2_CRP_UI_buildTableOrEmpty_(items, headers, rowBuilder) {
+    try {
+      if (!items || items.length === 0) {
+        return '<div class="empty-box">데이터가 없습니다.</div>';
+      }
+
+      var html = '<table class="list-table"><thead><tr>';
+      for (var i = 0; i < headers.length; i++) {
+        html += '<th>' + V2_CRP_UI_escapeHtml_(headers[i]) + '</th>';
+      }
+      html += '</tr></thead><tbody>';
+
+      for (var r = 0; r < items.length; r++) {
+        var cells = rowBuilder(items[r]);
+        html += '<tr>';
+        for (var c = 0; c < cells.length; c++) {
+          html += '<td>' + V2_CRP_UI_escapeHtml_(cells[c]) + '</td>';
+        }
+        html += '</tr>';
+      }
+
+      html += '</tbody></table>';
+      return html;
+    } catch (error) {
+      return '<div class="empty-box">테이블 생성 중 오류가 발생했습니다.</div>';
+    }
+  }
+
+  function V2_CRP_UI_buildAttendanceStatusText_(statusMap) {
+    try {
+      var parts = [];
+      for (var key in statusMap) {
+        if (Object.prototype.hasOwnProperty.call(statusMap, key)) {
+          parts.push(key + ': ' + statusMap[key] + '건');
+        }
+      }
+      return parts.length > 0 ? parts.join(', ') : '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_CRP_UI_printReport() {
+    try {
+      if (!V2_CRP_PRINT_STATE.reportData) {
+        V2_CRP_UI_setStatus_('먼저 리포트를 조회해주세요.', true);
+        return;
+      }
+
+      window.print();
+    } catch (error) {
+      V2_CRP_UI_setStatus_('인쇄 실행 오류: ' + error.message, true);
+    }
+  }
+
+  function V2_CRP_UI_resetPrintForm() {
+    try {
+      V2_CRP_PRINT_STATE.reportData = null;
+
+      document.getElementById('studentId').value = '';
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+
+      V2_CRP_UI_setStatus_('', false);
+      V2_CRP_UI_showEmpty_('학생 ID와 기간을 입력한 뒤 리포트 조회를 눌러주세요.');
+    } catch (error) {
+      V2_CRP_UI_setStatus_('초기화 오류: ' + error.message, true);
+    }
+  }
+
+  function V2_CRP_UI_setLoading_(isLoading) {
+    var loadingBox = document.getElementById('loadingBox');
+    if (!loadingBox) {
+      return;
+    }
+
+    if (isLoading) {
+      loadingBox.classList.remove('hidden');
+    } else {
+      loadingBox.classList.add('hidden');
+    }
+  }
+
+  function V2_CRP_UI_showReport_() {
+    document.getElementById('emptyBox').classList.add('hidden');
+    document.getElementById('reportRoot').classList.remove('hidden');
+  }
+
+  function V2_CRP_UI_hideReport_() {
+    document.getElementById('reportRoot').classList.add('hidden');
+  }
+
+  function V2_CRP_UI_showEmpty_(message) {
+    document.getElementById('emptyBox').innerHTML = message || '데이터가 없습니다.';
+    document.getElementById('emptyBox').classList.remove('hidden');
+    document.getElementById('reportRoot').classList.add('hidden');
+  }
+
+  function V2_CRP_UI_setStatus_(message, isError) {
+    var el = document.getElementById('statusMessage');
+    if (!el) {
+      return;
+    }
+
+    el.textContent = message || '';
+    el.style.color = isError ? '#c62828' : '#444';
+  }
+
+  function V2_CRP_UI_getValue_(id) {
+    var el = document.getElementById(id);
+    return el ? String(el.value || '').trim() : '';
+  }
+
+  function V2_CRP_UI_escapeHtml_(value) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+</script>
