@@ -1,0 +1,291 @@
+<!-- V2_Teacher_Context_Bridge_JS.html -->
+<script>
+  var V2_TEACHER_CONTEXT_BRIDGE_STATE = {
+    mapping: {
+      teacherNameId: '',
+      teacherEmailId: '',
+      teacherIdId: '',
+      teacherPhoneId: '',
+      teacherStatusId: ''
+    },
+    lastAppliedAt: '',
+    lastApplySuccess: false
+  };
+
+  function V2_TeacherContextBridge_toText_(value) {
+    try {
+      if (value === null || value === undefined) {
+        return '';
+      }
+
+      return String(value).trim();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContextBridge_nowText_() {
+    try {
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = ('0' + (now.getMonth() + 1)).slice(-2);
+      var day = ('0' + now.getDate()).slice(-2);
+      var hours = ('0' + now.getHours()).slice(-2);
+      var minutes = ('0' + now.getMinutes()).slice(-2);
+      var seconds = ('0' + now.getSeconds()).slice(-2);
+
+      return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContextBridge_setTextById_(id, text) {
+    try {
+      var element = document.getElementById(id);
+      if (!element) {
+        return;
+      }
+
+      element.textContent = V2_TeacherContextBridge_toText_(text);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContextBridge_hasCommonModule_() {
+    try {
+      return typeof V2_TeacherContextCommon_getState_ === 'function';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function V2_TeacherContextBridge_getCommonState_() {
+    try {
+      if (!V2_TeacherContextBridge_hasCommonModule_()) {
+        return {
+          loaded: false,
+          found: false,
+          autoDetected: false,
+          teacherId: '',
+          teacherName: '',
+          teacherEmail: '',
+          teacherPhone: '',
+          status: '',
+          displayTeacherName: '',
+          displayLabel: ''
+        };
+      }
+
+      return V2_TeacherContextCommon_getState_();
+    } catch (error) {
+      return {
+        loaded: false,
+        found: false,
+        autoDetected: false,
+        teacherId: '',
+        teacherName: '',
+        teacherEmail: '',
+        teacherPhone: '',
+        status: '',
+        displayTeacherName: '',
+        displayLabel: ''
+      };
+    }
+  }
+
+  function V2_TeacherContextBridge_setMapping_(mapping) {
+    try {
+      mapping = mapping || {};
+
+      V2_TEACHER_CONTEXT_BRIDGE_STATE.mapping = {
+        teacherNameId: V2_TeacherContextBridge_toText_(mapping.teacherNameId),
+        teacherEmailId: V2_TeacherContextBridge_toText_(mapping.teacherEmailId),
+        teacherIdId: V2_TeacherContextBridge_toText_(mapping.teacherIdId),
+        teacherPhoneId: V2_TeacherContextBridge_toText_(mapping.teacherPhoneId),
+        teacherStatusId: V2_TeacherContextBridge_toText_(mapping.teacherStatusId)
+      };
+
+      V2_TeacherContextBridge_render_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContextBridge_getMappingSummary_() {
+    try {
+      var mapping = V2_TEACHER_CONTEXT_BRIDGE_STATE.mapping || {};
+      var lines = [];
+
+      lines.push('연결 대상 입력 칸');
+      lines.push('교사명: ' + (mapping.teacherNameId || '(미지정)'));
+      lines.push('이메일: ' + (mapping.teacherEmailId || '(미지정)'));
+      lines.push('교사 ID: ' + (mapping.teacherIdId || '(미지정)'));
+      lines.push('연락처: ' + (mapping.teacherPhoneId || '(미지정)'));
+      lines.push('재직 상태: ' + (mapping.teacherStatusId || '(미지정)'));
+
+      return lines.join('\n');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContextBridge_buildStatusText_() {
+    try {
+      var commonState = V2_TeacherContextBridge_getCommonState_();
+      var lines = [];
+
+      lines.push('브리지 상태');
+
+      if (!V2_TeacherContextBridge_hasCommonModule_()) {
+        lines.push('상태: 공통 교사 모듈 미연결');
+        lines.push('V2_Teacher_Context_Common.html / JS 포함이 먼저 필요하다.');
+        return lines.join('\n');
+      }
+
+      if (!commonState.loaded) {
+        lines.push('상태: 공통 교사 정보 로딩 중');
+        return lines.join('\n');
+      }
+
+      if (commonState.found) {
+        lines.push('상태: 교사 시트 연결 완료');
+      } else if (commonState.autoDetected) {
+        lines.push('상태: 로그인 정보 기반');
+      } else {
+        lines.push('상태: 자동 확인 불가');
+      }
+
+      lines.push('표시 교사명: ' + (commonState.displayTeacherName || commonState.teacherName || ''));
+      lines.push('이메일: ' + (commonState.teacherEmail || ''));
+      lines.push('마지막 적용 시각: ' + (V2_TEACHER_CONTEXT_BRIDGE_STATE.lastAppliedAt || '없음'));
+      lines.push('마지막 적용 결과: ' + (V2_TEACHER_CONTEXT_BRIDGE_STATE.lastApplySuccess ? '성공' : '미적용'));
+
+      return lines.join('\n');
+    } catch (error) {
+      return '브리지 상태 표시 중 오류가 발생했다.';
+    }
+  }
+
+  function V2_TeacherContextBridge_buildGuideText_() {
+    try {
+      var lines = [];
+      lines.push('연결 안내');
+      lines.push('1. 먼저 공통 교사 모듈을 화면에 포함해라.');
+      lines.push('2. 다음으로 브리지 매핑 함수에 입력 칸 ID를 연결해라.');
+      lines.push('3. 마지막으로 자동 적용 버튼 또는 자동 호출 함수로 입력 칸을 채워라.');
+      lines.push('');
+      lines.push(V2_TeacherContextBridge_getMappingSummary_());
+
+      return lines.join('\n');
+    } catch (error) {
+      return '연결 안내 표시 중 오류가 발생했다.';
+    }
+  }
+
+  function V2_TeacherContextBridge_render_() {
+    try {
+      V2_TeacherContextBridge_setTextById_(
+        'V2TeacherContextBridgeStatus',
+        V2_TeacherContextBridge_buildStatusText_()
+      );
+
+      V2_TeacherContextBridge_setTextById_(
+        'V2TeacherContextBridgeGuide',
+        V2_TeacherContextBridge_buildGuideText_()
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContextBridge_applyToMappedForm_() {
+    try {
+      if (!V2_TeacherContextBridge_hasCommonModule_()) {
+        V2_TEACHER_CONTEXT_BRIDGE_STATE.lastApplySuccess = false;
+        V2_TeacherContextBridge_render_();
+        return false;
+      }
+
+      var mapping = V2_TEACHER_CONTEXT_BRIDGE_STATE.mapping || {};
+      var hasAnyMapping =
+        !!mapping.teacherNameId ||
+        !!mapping.teacherEmailId ||
+        !!mapping.teacherIdId ||
+        !!mapping.teacherPhoneId ||
+        !!mapping.teacherStatusId;
+
+      if (!hasAnyMapping) {
+        V2_TEACHER_CONTEXT_BRIDGE_STATE.lastApplySuccess = false;
+        V2_TeacherContextBridge_render_();
+        return false;
+      }
+
+      var result = V2_TeacherContextCommon_applyTeacherInfoToForm_(mapping);
+
+      V2_TEACHER_CONTEXT_BRIDGE_STATE.lastAppliedAt = V2_TeacherContextBridge_nowText_();
+      V2_TEACHER_CONTEXT_BRIDGE_STATE.lastApplySuccess = !!result;
+      V2_TeacherContextBridge_render_();
+
+      return !!result;
+    } catch (error) {
+      V2_TEACHER_CONTEXT_BRIDGE_STATE.lastApplySuccess = false;
+      V2_TeacherContextBridge_render_();
+      console.error(error);
+      return false;
+    }
+  }
+
+  function V2_TeacherContextBridge_reload_(callback) {
+    try {
+      if (!V2_TeacherContextBridge_hasCommonModule_()) {
+        V2_TeacherContextBridge_render_();
+        return;
+      }
+
+      V2_TeacherContextCommon_load_(function() {
+        try {
+          V2_TeacherContextBridge_render_();
+
+          if (typeof callback === 'function') {
+            callback(V2_TeacherContextBridge_getCommonState_());
+          }
+        } catch (innerError) {
+          console.error(innerError);
+        }
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContextBridge_reloadAndApply_(callback) {
+    try {
+      V2_TeacherContextBridge_reload_(function(state) {
+        try {
+          var applied = V2_TeacherContextBridge_applyToMappedForm_();
+
+          if (typeof callback === 'function') {
+            callback({
+              state: state,
+              applied: applied
+            });
+          }
+        } catch (innerError) {
+          console.error(innerError);
+        }
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_TeacherContextBridge_render_();
+    } catch (error) {
+      console.error(error);
+    }
+  });
+</script>
