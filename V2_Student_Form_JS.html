@@ -1,0 +1,433 @@
+<script>
+  var V2_STUDENT_FORM_STATE = {
+    classItems: [],
+    selectedClass: null,
+    classDropdownReady: false
+  };
+
+  function V2_StudentForm_setLoading_(isLoading) {
+    try {
+      var button = document.getElementById('submitButton');
+      var loadingText = document.getElementById('loadingText');
+      var classIdInput = document.getElementById('classId');
+
+      if (button) {
+        button.disabled = !!isLoading;
+      }
+
+      if (loadingText) {
+        loadingText.style.display = isLoading ? 'block' : 'none';
+      }
+
+      if (classIdInput) {
+        classIdInput.disabled = !!isLoading;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_showResult_(type, message) {
+    try {
+      var resultBox = document.getElementById('resultBox');
+
+      if (!resultBox) {
+        return;
+      }
+
+      resultBox.className = 'result ' + type;
+      resultBox.textContent = message || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_clearResult_() {
+    try {
+      var resultBox = document.getElementById('resultBox');
+
+      if (!resultBox) {
+        return;
+      }
+
+      resultBox.className = 'result';
+      resultBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_getFormData_() {
+    try {
+      return {
+        studentName: document.getElementById('studentName').value,
+        classId: document.getElementById('classId').getAttribute('data-selected-class-id') || document.getElementById('classId').value,
+        status: document.getElementById('status').value,
+        parentName: document.getElementById('parentName').value,
+        parentPhone: document.getElementById('parentPhone').value,
+        notes: document.getElementById('notes').value
+      };
+    } catch (error) {
+      throw new Error('입력값 수집 중 오류가 발생했다: ' + error.message);
+    }
+  }
+
+  function V2_StudentForm_validate_(data) {
+    try {
+      if (!data.studentName || !String(data.studentName).trim()) {
+        throw new Error('학생 이름을 입력해라.');
+      }
+
+      if (!data.classId || !String(data.classId).trim()) {
+        throw new Error('반을 클릭해서 선택해라.');
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_StudentForm_clearForm_() {
+    try {
+      document.getElementById('studentName').value = '';
+      document.getElementById('status').value = '재학';
+      document.getElementById('parentName').value = '';
+      document.getElementById('parentPhone').value = '';
+      document.getElementById('notes').value = '';
+      V2_StudentForm_clearSelectedClass_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_submit() {
+    try {
+      V2_StudentForm_clearResult_();
+
+      var data = V2_StudentForm_getFormData_();
+      V2_StudentForm_validate_(data);
+      V2_StudentForm_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_StudentForm_setLoading_(false);
+
+          if (response && response.success) {
+            V2_StudentForm_showResult_(
+              'success',
+              '학생 등록이 완료되었다.\n\n학생명: ' + (response.data.studentName || '') +
+              '\n반 ID: ' + (response.data.classId || '') +
+              '\n상태: ' + (response.data.status || '')
+            );
+            V2_StudentForm_clearForm_();
+            return;
+          }
+
+          V2_StudentForm_showResult_(
+            'error',
+            response && response.message ? response.message : '학생 등록에 실패했다.'
+          );
+        })
+        .withFailureHandler(function(error) {
+          V2_StudentForm_setLoading_(false);
+          V2_StudentForm_showResult_(
+            'error',
+            error && error.message ? error.message : '서버 처리 중 오류가 발생했다.'
+          );
+        })
+        .V2_createStudent(data);
+
+    } catch (error) {
+      V2_StudentForm_setLoading_(false);
+      V2_StudentForm_showResult_('error', error.message || '입력 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_StudentForm_initializeClassSelector_() {
+    try {
+      var classIdInput = document.getElementById('classId');
+      if (!classIdInput) {
+        return;
+      }
+
+      classIdInput.readOnly = true;
+      classIdInput.placeholder = '클릭해서 개설된 반을 선택해라.';
+      classIdInput.style.cursor = 'pointer';
+      classIdInput.setAttribute('autocomplete', 'off');
+
+      if (!V2_STUDENT_FORM_STATE.classDropdownReady) {
+        V2_StudentForm_createClassDropdownUi_();
+        V2_STUDENT_FORM_STATE.classDropdownReady = true;
+      }
+
+      if (!classIdInput.getAttribute('data-v2-class-bound')) {
+        classIdInput.addEventListener('click', function(event) {
+          try {
+            event.stopPropagation();
+            V2_StudentForm_toggleClassDropdown_();
+          } catch (innerError) {
+            console.error(innerError);
+          }
+        });
+
+        classIdInput.addEventListener('keydown', function(event) {
+          try {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+              event.preventDefault();
+              V2_StudentForm_toggleClassDropdown_();
+            }
+          } catch (innerError) {
+            console.error(innerError);
+          }
+        });
+
+        classIdInput.setAttribute('data-v2-class-bound', 'true');
+      }
+
+      document.addEventListener('click', function(event) {
+        try {
+          var wrap = document.getElementById('V2_StudentForm_classSelectorWrap');
+          if (!wrap) {
+            return;
+          }
+
+          if (!wrap.contains(event.target)) {
+            V2_StudentForm_hideClassDropdown_();
+          }
+        } catch (innerError) {
+          console.error(innerError);
+        }
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_createClassDropdownUi_() {
+    try {
+      var classIdInput = document.getElementById('classId');
+      if (!classIdInput || document.getElementById('V2_StudentForm_classSelectorWrap')) {
+        return;
+      }
+
+      var wrapper = document.createElement('div');
+      wrapper.id = 'V2_StudentForm_classSelectorWrap';
+      wrapper.style.position = 'relative';
+      wrapper.style.width = '100%';
+
+      classIdInput.parentNode.insertBefore(wrapper, classIdInput);
+      wrapper.appendChild(classIdInput);
+
+      var selectedInfo = document.createElement('div');
+      selectedInfo.id = 'V2_StudentForm_selectedClassInfo';
+      selectedInfo.style.marginTop = '8px';
+      selectedInfo.style.fontSize = '12px';
+      selectedInfo.style.color = '#1f4e78';
+      selectedInfo.style.display = 'none';
+      wrapper.appendChild(selectedInfo);
+
+      var dropdown = document.createElement('div');
+      dropdown.id = 'V2_StudentForm_classDropdown';
+      dropdown.style.display = 'none';
+      dropdown.style.position = 'absolute';
+      dropdown.style.top = '100%';
+      dropdown.style.left = '0';
+      dropdown.style.right = '0';
+      dropdown.style.marginTop = '6px';
+      dropdown.style.maxHeight = '220px';
+      dropdown.style.overflowY = 'auto';
+      dropdown.style.background = '#ffffff';
+      dropdown.style.border = '1px solid #d0d7de';
+      dropdown.style.borderRadius = '8px';
+      dropdown.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.12)';
+      dropdown.style.zIndex = '1000';
+      wrapper.appendChild(dropdown);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_toggleClassDropdown_() {
+    try {
+      var dropdown = document.getElementById('V2_StudentForm_classDropdown');
+      if (!dropdown) {
+        return;
+      }
+
+      if (dropdown.style.display === 'block') {
+        V2_StudentForm_hideClassDropdown_();
+        return;
+      }
+
+      V2_StudentForm_loadClassList_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_hideClassDropdown_() {
+    try {
+      var dropdown = document.getElementById('V2_StudentForm_classDropdown');
+      if (!dropdown) {
+        return;
+      }
+
+      dropdown.style.display = 'none';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_loadClassList_() {
+    try {
+      var dropdown = document.getElementById('V2_StudentForm_classDropdown');
+      if (dropdown) {
+        dropdown.innerHTML = '<div style="padding:10px 12px; font-size:13px; color:#666;">반 목록을 불러오는 중이다.</div>';
+        dropdown.style.display = 'block';
+      }
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          try {
+            if (!response || response.success !== true || !response.data) {
+              V2_STUDENT_FORM_STATE.classItems = [];
+              V2_StudentForm_renderClassDropdown_([]);
+              return;
+            }
+
+            var items = Array.isArray(response.data.items) ? response.data.items : [];
+            V2_STUDENT_FORM_STATE.classItems = items;
+            V2_StudentForm_renderClassDropdown_(items);
+          } catch (innerError) {
+            console.error(innerError);
+            V2_StudentForm_renderClassDropdown_([]);
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error(error);
+          V2_STUDENT_FORM_STATE.classItems = [];
+          V2_StudentForm_renderClassDropdown_([]);
+        })
+        .V2_getStudentFormClassList();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_renderClassDropdown_(items) {
+    try {
+      var dropdown = document.getElementById('V2_StudentForm_classDropdown');
+      if (!dropdown) {
+        return;
+      }
+
+      items = Array.isArray(items) ? items : [];
+      dropdown.innerHTML = '';
+
+      if (items.length < 1) {
+        dropdown.innerHTML = '<div style="padding:10px 12px; font-size:13px; color:#b3261e;">선택 가능한 반이 없다.</div>';
+        dropdown.style.display = 'block';
+        return;
+      }
+
+      for (var i = 0; i < items.length; i++) {
+        (function(item) {
+          var option = document.createElement('div');
+          option.style.padding = '10px 12px';
+          option.style.borderBottom = '1px solid #eef2f6';
+          option.style.cursor = 'pointer';
+          option.style.background = '#ffffff';
+
+          option.addEventListener('mouseenter', function() {
+            option.style.background = '#f4f8fb';
+          });
+
+          option.addEventListener('mouseleave', function() {
+            option.style.background = '#ffffff';
+          });
+
+          option.addEventListener('click', function() {
+            V2_StudentForm_selectClass_(item);
+          });
+
+          var nameDiv = document.createElement('div');
+          nameDiv.style.fontSize = '14px';
+          nameDiv.style.fontWeight = 'bold';
+          nameDiv.style.color = '#222';
+          nameDiv.textContent = item.className || item.classId || '';
+
+          var metaDiv = document.createElement('div');
+          metaDiv.style.fontSize = '12px';
+          metaDiv.style.color = '#666';
+          metaDiv.style.marginTop = '2px';
+          metaDiv.textContent = '반 ID: ' + (item.classId || '');
+
+          option.appendChild(nameDiv);
+          option.appendChild(metaDiv);
+          dropdown.appendChild(option);
+        })(items[i]);
+      }
+
+      dropdown.style.display = 'block';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_selectClass_(item) {
+    try {
+      item = item || {};
+
+      var classIdInput = document.getElementById('classId');
+      var selectedInfo = document.getElementById('V2_StudentForm_selectedClassInfo');
+
+      V2_STUDENT_FORM_STATE.selectedClass = item;
+
+      if (classIdInput) {
+        classIdInput.value = item.classId || '';
+        classIdInput.setAttribute('data-selected-class-id', item.classId || '');
+        classIdInput.title = (item.className || '') + ' (' + (item.classId || '') + ')';
+      }
+
+      if (selectedInfo) {
+        selectedInfo.style.display = 'block';
+        selectedInfo.textContent = '선택된 반: ' + (item.className || '') + ' (' + (item.classId || '') + ')';
+      }
+
+      V2_StudentForm_hideClassDropdown_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentForm_clearSelectedClass_() {
+    try {
+      var classIdInput = document.getElementById('classId');
+      var selectedInfo = document.getElementById('V2_StudentForm_selectedClassInfo');
+
+      V2_STUDENT_FORM_STATE.selectedClass = null;
+
+      if (classIdInput) {
+        classIdInput.value = '';
+        classIdInput.removeAttribute('data-selected-class-id');
+        classIdInput.title = '';
+      }
+
+      if (selectedInfo) {
+        selectedInfo.style.display = 'none';
+        selectedInfo.textContent = '';
+      }
+
+      V2_StudentForm_hideClassDropdown_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_StudentForm_initializeClassSelector_();
+    } catch (error) {
+      console.error(error);
+    }
+  });
+</script>
