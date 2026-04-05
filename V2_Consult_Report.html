@@ -1,0 +1,661 @@
+<!-- V2_Consult_Report.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f7fb;
+        color: #1f2937;
+      }
+
+      .page {
+        padding: 20px;
+      }
+
+      .title-area {
+        margin-bottom: 16px;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: bold;
+        color: #1f4e78;
+      }
+
+      .desc {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #5b6470;
+      }
+
+      .panel {
+        background: #ffffff;
+        border: 1px solid #d8e2ee;
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        margin-bottom: 16px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 1fr;
+        gap: 12px;
+        align-items: end;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .field label {
+        font-size: 13px;
+        font-weight: bold;
+        color: #344054;
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        height: 38px;
+        padding: 8px 10px;
+        border: 1px solid #cdd6e1;
+        border-radius: 8px;
+        font-size: 13px;
+        background: #fff;
+      }
+
+      .field input:focus,
+      .field select:focus {
+        outline: none;
+        border-color: #1f4e78;
+        box-shadow: 0 0 0 2px rgba(31, 78, 120, 0.12);
+      }
+
+      .inline-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .btn-primary {
+        background: #1f4e78;
+        color: #ffffff;
+      }
+
+      .btn-secondary {
+        background: #e7eef7;
+        color: #1f3347;
+      }
+
+      .btn-light {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .btn-success {
+        background: #1f7a4d;
+        color: #ffffff;
+      }
+
+      .btn-danger {
+        background: #b42318;
+        color: #ffffff;
+      }
+
+      .btn-small {
+        padding: 6px 10px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+
+      .notice {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        white-space: pre-line;
+      }
+
+      .notice.error {
+        display: none;
+        background: #fdecec;
+        border: 1px solid #f5c2c7;
+        color: #a61b1b;
+      }
+
+      .notice.success {
+        display: none;
+        background: #eaf7ee;
+        border: 1px solid #b7e1c1;
+        color: #1f6b3b;
+      }
+
+      .loading-box {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        background: #eef4ff;
+        border: 1px solid #d5e3ff;
+        color: #274c77;
+        font-size: 13px;
+      }
+
+      .summary-box {
+        background: #f8fbff;
+        border: 1px solid #d9e6f5;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 13px;
+        color: #334155;
+        white-space: pre-line;
+        min-height: 72px;
+      }
+
+      .top-info-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .selected-student-box,
+      .query-state-box,
+      .report-status-box {
+        display: none;
+        background: #eef7ff;
+        border: 1px solid #cfe3ff;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 13px;
+        color: #1f3b5c;
+        white-space: pre-line;
+        min-height: 120px;
+      }
+
+      .query-state-box {
+        background: #f8fbff;
+        border: 1px solid #d9e6f5;
+        color: #334155;
+      }
+
+      .report-status-box {
+        background: #f6fbf7;
+        border: 1px solid #cfe8d3;
+        color: #1f4d32;
+      }
+
+      .recent-wrap {
+        margin-top: 16px;
+      }
+
+      .recent-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .recent-list {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .recent-item {
+        position: relative;
+        border: 1px solid #d8e2ee;
+        background: #f8fbff;
+        border-radius: 10px;
+        padding: 10px;
+        cursor: pointer;
+        text-align: left;
+        transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .recent-item:hover {
+        border-color: #9fc1e5;
+        background: #eef6ff;
+      }
+
+      .recent-item.active {
+        border-color: #1f4e78;
+        background: #e8f2ff;
+        box-shadow: 0 0 0 2px rgba(31, 78, 120, 0.15);
+      }
+
+      .recent-delete-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 6px;
+      }
+
+      .recent-delete-button {
+        border: 1px solid #efc0c0;
+        background: #fff5f5;
+        color: #b42318;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .recent-delete-button:hover {
+        background: #ffe6e6;
+      }
+
+      .recent-student-name {
+        font-size: 13px;
+        font-weight: bold;
+        color: #1f3b5c;
+        margin-bottom: 6px;
+      }
+
+      .recent-meta {
+        font-size: 12px;
+        color: #667085;
+        line-height: 1.5;
+        white-space: pre-line;
+      }
+
+      .recent-empty {
+        padding: 14px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        background: #fcfdff;
+        color: #667085;
+        font-size: 13px;
+      }
+
+      .empty-box {
+        display: block;
+        padding: 24px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        background: #fcfdff;
+        color: #667085;
+        text-align: center;
+        font-size: 13px;
+      }
+
+      .report-wrap {
+        display: none;
+      }
+
+      .section {
+        margin-top: 18px;
+      }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #1f4e78;
+        margin-bottom: 10px;
+        padding-left: 10px;
+        border-left: 4px solid #1f4e78;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .info-item {
+        border: 1px solid #d8e2ee;
+        border-radius: 10px;
+        background: #ffffff;
+        padding: 10px;
+      }
+
+      .info-label {
+        font-size: 12px;
+        color: #667085;
+        margin-bottom: 6px;
+      }
+
+      .info-value {
+        font-size: 13px;
+        font-weight: bold;
+        color: #1f2937;
+        white-space: pre-line;
+        word-break: break-word;
+      }
+
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+      }
+
+      th,
+      td {
+        border: 1px solid #dbe5f0;
+        padding: 8px 10px;
+        font-size: 13px;
+        text-align: left;
+        vertical-align: top;
+        word-break: break-word;
+        white-space: pre-line;
+      }
+
+      th {
+        background: #edf4fb;
+        color: #1f3b5c;
+      }
+
+      .mini-empty {
+        padding: 14px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        background: #fcfdff;
+        color: #667085;
+        font-size: 13px;
+      }
+
+      .overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        z-index: 999;
+      }
+
+      .overlay-panel {
+        width: 920px;
+        max-width: calc(100vw - 40px);
+        max-height: calc(100vh - 40px);
+        overflow: auto;
+        margin: 20px auto;
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid #d7e0ea;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+        padding: 18px;
+      }
+
+      .overlay-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .overlay-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #1f4e78;
+      }
+
+      .search-status {
+        min-height: 20px;
+        margin: 10px 0 12px;
+        font-size: 13px;
+      }
+
+      .search-status.info {
+        color: #335c85;
+      }
+
+      .search-status.success {
+        color: #1f6b3b;
+      }
+
+      .search-status.error {
+        color: #b42318;
+      }
+
+      .search-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr 1fr;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .result-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 10px;
+      }
+
+      .empty {
+        text-align: center;
+        color: #667085;
+        background: #fcfdff;
+      }
+
+      @media (max-width: 1100px) {
+        .recent-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 960px) {
+        .form-grid,
+        .search-grid,
+        .info-grid,
+        .recent-list,
+        .top-info-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .recent-header-row {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="title-area">
+        <h1 class="title">학부모 상담 리포트</h1>
+        <div class="desc">학생 ID 조회 및 학생 찾기 레이어를 통해 상담 리포트를 조회하고 출력할 수 있다.</div>
+      </div>
+
+      <div class="panel">
+        <div id="loadingBox" class="loading-box">처리 중이다. 잠시만 기다려라.</div>
+        <div id="errorBox" class="notice error"></div>
+        <div id="successBox" class="notice success"></div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="studentId">학생 ID</label>
+            <div class="inline-row">
+              <input type="text" id="studentId" placeholder="학생 ID 입력">
+              <button type="button" id="openStudentSearchButton" class="btn btn-secondary" onclick="V2_ConsultReport_openStudentSearchLayer_()">학생 찾기</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="startDate">시작일</label>
+            <input type="date" id="startDate">
+          </div>
+
+          <div class="field">
+            <label for="endDate">종료일</label>
+            <input type="date" id="endDate">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="searchButton" class="btn btn-primary" onclick="V2_ConsultReport_search_()">리포트 조회</button>
+          <button type="button" id="printPreviewButton" class="btn btn-success" onclick="V2_ConsultReport_openPrintPreview_()">출력 미리보기</button>
+          <button type="button" class="btn btn-light" onclick="V2_ConsultReport_reset_()">초기화</button>
+        </div>
+
+        <div class="top-info-grid">
+          <div id="selectedStudentBox" class="selected-student-box"></div>
+          <div id="queryStateBox" class="query-state-box"></div>
+          <div id="reportStatusBox" class="report-status-box"></div>
+        </div>
+
+        <div class="section recent-wrap">
+          <div class="recent-header-row">
+            <div class="section-title" style="margin-bottom: 0;">최근 조회 학생</div>
+            <button type="button" id="deleteAllRecentViewsButton" class="btn btn-danger btn-small" onclick="V2_ConsultReport_deleteAllRecentViews_()">최근 조회 전체 비우기</button>
+          </div>
+          <div id="recentViewsWrap" class="recent-empty">최근 조회 학생을 불러오는 중이다.</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">조회 요약</div>
+          <div id="summaryBox" class="summary-box"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div id="emptyBox" class="empty-box">
+          학생 ID를 입력하거나 학생 찾기 버튼으로 학생을 선택한 뒤 리포트 조회를 실행해라.
+        </div>
+
+        <div id="reportWrap" class="report-wrap">
+          <div class="section">
+            <div class="section-title">학생 기본 정보</div>
+            <div id="studentInfoBox" class="info-grid"></div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">출석 기록</div>
+            <div class="table-wrap">
+              <div id="attendanceWrap"></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">성적 기록</div>
+            <div class="table-wrap">
+              <div id="scoresWrap"></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">수업 기록</div>
+            <div class="table-wrap">
+              <div id="lessonsWrap"></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">코멘트 기록</div>
+            <div class="table-wrap">
+              <div id="commentsWrap"></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">결석 연락 기록</div>
+            <div class="table-wrap">
+              <div id="absenceContactsWrap"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="studentSearchOverlay" class="overlay">
+      <div class="overlay-panel">
+        <div class="overlay-title-row">
+          <div class="overlay-title">학생 찾기</div>
+          <button type="button" class="btn btn-light" onclick="V2_ConsultReport_closeStudentSearchLayer_()">닫기</button>
+        </div>
+
+        <div class="search-grid">
+          <div class="field">
+            <label for="searchKeyword">검색어</label>
+            <input type="text" id="searchKeyword" placeholder="학생명 또는 학생 ID 입력" onkeydown="V2_ConsultReport_handleStudentSearchEnter_(event)">
+          </div>
+
+          <div class="field">
+            <label for="searchClassId">반 ID</label>
+            <input type="text" id="searchClassId" placeholder="예: CLASS_A" onkeydown="V2_ConsultReport_handleStudentSearchEnter_(event)">
+          </div>
+
+          <div class="field">
+            <label for="searchStatus">학생 상태</label>
+            <select id="searchStatus">
+              <option value="">전체</option>
+              <option value="재학">재학</option>
+              <option value="보관">보관</option>
+              <option value="삭제대기">삭제대기</option>
+              <option value="완전삭제">완전삭제</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" onclick="V2_ConsultReport_searchStudents_()">검색</button>
+          <button type="button" class="btn btn-light" onclick="V2_ConsultReport_resetStudentSearch_()">검색 초기화</button>
+        </div>
+
+        <div id="studentSearchStatusBox" class="search-status"></div>
+
+        <div class="result-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 140px;">학생 ID</th>
+                <th style="width: 140px;">학생명</th>
+                <th style="width: 120px;">반</th>
+                <th style="width: 100px;">상태</th>
+                <th>학부모명</th>
+                <th style="width: 90px;">선택</th>
+              </tr>
+            </thead>
+            <tbody id="studentSearchResultBody">
+              <tr>
+                <td colspan="6" class="empty">검색어를 입력한 뒤 검색 버튼을 눌러라.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <?!= V2_include('V2_Consult_Report_JS'); ?>
+  </body>
+</html>
