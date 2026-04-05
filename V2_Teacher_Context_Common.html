@@ -1,0 +1,96 @@
+<!-- V2_Teacher_Context_Common.html -->
+<div id="V2TeacherContextCommonWrap" class="v2-teacher-context-common-wrap">
+  <style>
+    .v2-teacher-context-common-wrap {
+      margin-top: 12px;
+    }
+
+    .v2-teacher-context-common-panel {
+      background: #f8fbff;
+      border: 1px solid #d9e6f5;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .v2-teacher-context-common-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #1f4e78;
+      margin-bottom: 10px;
+    }
+
+    .v2-teacher-context-common-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .v2-teacher-context-common-item {
+      border: 1px solid #d8e2ee;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 10px;
+    }
+
+    .v2-teacher-context-common-label {
+      font-size: 12px;
+      color: #667085;
+      margin-bottom: 6px;
+    }
+
+    .v2-teacher-context-common-value {
+      font-size: 13px;
+      font-weight: bold;
+      color: #1f2937;
+      white-space: pre-line;
+      word-break: break-word;
+    }
+
+    .v2-teacher-context-common-guide {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid #f3dfb7;
+      border-radius: 8px;
+      background: #fffaf2;
+      color: #6c4d10;
+      font-size: 12px;
+      white-space: pre-line;
+    }
+
+    @media (max-width: 900px) {
+      .v2-teacher-context-common-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <div class="v2-teacher-context-common-panel">
+    <div class="v2-teacher-context-common-title">공통 교사 정보</div>
+
+    <div class="v2-teacher-context-common-grid">
+      <div class="v2-teacher-context-common-item">
+        <div class="v2-teacher-context-common-label">자동 입력 교사명</div>
+        <div id="V2TeacherContextCommonTeacherName" class="v2-teacher-context-common-value">불러오는 중이다.</div>
+      </div>
+
+      <div class="v2-teacher-context-common-item">
+        <div class="v2-teacher-context-common-label">교사 연결 상태</div>
+        <div id="V2TeacherContextCommonStatus" class="v2-teacher-context-common-value">불러오는 중이다.</div>
+      </div>
+
+      <div class="v2-teacher-context-common-item">
+        <div class="v2-teacher-context-common-label">이메일</div>
+        <div id="V2TeacherContextCommonEmail" class="v2-teacher-context-common-value"></div>
+      </div>
+
+      <div class="v2-teacher-context-common-item">
+        <div class="v2-teacher-context-common-label">교사 ID</div>
+        <div id="V2TeacherContextCommonTeacherId" class="v2-teacher-context-common-value"></div>
+      </div>
+    </div>
+
+    <div id="V2TeacherContextCommonGuide" class="v2-teacher-context-common-guide">
+      업무 화면에서 교사명 입력 칸이 있으면 자동 적용 함수를 연결해서 사용할 수 있다.
+    </div>
+  </div>
+</div>
