@@ -1,0 +1,113 @@
+<!-- V2_Teacher_Context_Bridge.html -->
+<div id="V2TeacherContextBridgeWrap" class="v2-teacher-context-bridge-wrap">
+  <style>
+    .v2-teacher-context-bridge-wrap {
+      margin-top: 12px;
+    }
+
+    .v2-teacher-context-bridge-panel {
+      background: #ffffff;
+      border: 1px solid #d8e2ee;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .v2-teacher-context-bridge-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #1f4e78;
+      margin-bottom: 10px;
+    }
+
+    .v2-teacher-context-bridge-status {
+      padding: 10px 12px;
+      border: 1px solid #d9e6f5;
+      border-radius: 8px;
+      background: #f8fbff;
+      color: #334155;
+      font-size: 12px;
+      white-space: pre-line;
+      min-height: 72px;
+      margin-bottom: 10px;
+    }
+
+    .v2-teacher-context-bridge-guide {
+      padding: 10px 12px;
+      border: 1px solid #f3dfb7;
+      border-radius: 8px;
+      background: #fffaf2;
+      color: #6c4d10;
+      font-size: 12px;
+      white-space: pre-line;
+      margin-bottom: 10px;
+    }
+
+    .v2-teacher-context-bridge-button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .v2-teacher-context-bridge-button {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .v2-teacher-context-bridge-button.primary {
+      background: #1f4e78;
+      color: #ffffff;
+    }
+
+    .v2-teacher-context-bridge-button.secondary {
+      background: #e7eef7;
+      color: #1f3347;
+    }
+
+    .v2-teacher-context-bridge-button.light {
+      background: #f3f4f6;
+      color: #374151;
+    }
+  </style>
+
+  <div class="v2-teacher-context-bridge-panel">
+    <div class="v2-teacher-context-bridge-title">교사 정보 자동 연결</div>
+
+    <div id="V2TeacherContextBridgeStatus" class="v2-teacher-context-bridge-status">
+      공통 교사 정보를 화면 입력 칸과 연결할 준비 상태다.
+    </div>
+
+    <div id="V2TeacherContextBridgeGuide" class="v2-teacher-context-bridge-guide">
+      이 영역은 실제 업무 화면에서 교사명 입력 칸과 공통 교사 정보를 연결할 때 사용한다.
+    </div>
+
+    <div class="v2-teacher-context-bridge-button-row">
+      <button
+        type="button"
+        class="v2-teacher-context-bridge-button primary"
+        onclick="V2_TeacherContextBridge_reload_()"
+      >
+        교사 정보 다시 불러오기
+      </button>
+
+      <button
+        type="button"
+        class="v2-teacher-context-bridge-button secondary"
+        onclick="V2_TeacherContextBridge_applyToMappedForm_()"
+      >
+        연결된 입력 칸에 자동 적용
+      </button>
+
+      <button
+        type="button"
+        class="v2-teacher-context-bridge-button light"
+        onclick="V2_TeacherContextBridge_render_()"
+      >
+        상태 새로 표시
+      </button>
+    </div>
+  </div>
+</div>
