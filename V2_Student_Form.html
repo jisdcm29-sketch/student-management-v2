@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학생 등록</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+
+    .wrap {
+      padding: 20px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .title {
+      margin: 0 0 8px 0;
+      font-size: 22px;
+      font-weight: bold;
+      color: #1f4e78;
+    }
+
+    .desc {
+      margin: 0 0 18px 0;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .required {
+      color: #d93025;
+      margin-left: 4px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #1f4e78;
+      box-shadow: 0 0 0 2px rgba(31, 78, 120, 0.15);
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #1f4e78;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e9eef3;
+      color: #333;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .result {
+      margin-top: 16px;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
+      white-space: pre-line;
+    }
+
+    .result.success {
+      display: block;
+      background: #e8f5e9;
+      color: #196127;
+      border: 1px solid #b7dfb9;
+    }
+
+    .result.error {
+      display: block;
+      background: #fdecea;
+      color: #b3261e;
+      border: 1px solid #f3b7b2;
+    }
+
+    .loading {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #666;
+      display: none;
+    }
+
+    .help {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2 class="title">학생 등록</h2>
+      <p class="desc">
+        학생 기본 정보를 입력한 뒤 등록한다.<br>
+        필수 항목은 학생 이름과 반 ID이다.
+      </p>
+
+      <div class="field">
+        <label class="label" for="studentName">학생 이름<span class="required">*</span></label>
+        <input type="text" id="studentName" placeholder="예: 홍길동">
+      </div>
+
+      <div class="field">
+        <label class="label" for="classId">반 ID<span class="required">*</span></label>
+        <input type="text" id="classId" placeholder="예: CLASS_A">
+        <div class="help">현재는 직접 입력 방식이다. 다음 단계에서 반 선택 구조로 확장한다.</div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="status">학생 상태</label>
+        <select id="status">
+          <option value="재학" selected>재학</option>
+          <option value="보관">보관</option>
+          <option value="삭제대기">삭제대기</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="label" for="parentName">학부모 이름</label>
+        <input type="text" id="parentName" placeholder="예: 홍길동 보호자">
+      </div>
+
+      <div class="field">
+        <label class="label" for="parentPhone">학부모 연락처</label>
+        <input type="text" id="parentPhone" placeholder="예: 010-1234-5678">
+      </div>
+
+      <div class="field">
+        <label class="label" for="notes">메모</label>
+        <textarea id="notes" placeholder="특이사항 또는 상담 메모"></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="submitButton" onclick="V2_StudentForm_submit()">등록</button>
+        <button class="btn btn-secondary" type="button" onclick="google.script.host.close()">닫기</button>
+      </div>
+
+      <div class="loading" id="loadingText">등록 중입니다...</div>
+      <div class="result" id="resultBox"></div>
+    </div>
+  </div>
+
+  <?!= V2_include('V2_Student_Form_JS'); ?>
+</body>
+</html>
