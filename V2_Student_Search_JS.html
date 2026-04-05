@@ -1,0 +1,232 @@
+<script>
+  var V2_STUDENT_SEARCH_POPUP_STATE = {
+    items: [],
+    selectedStudent: null
+  };
+
+  function V2_StudentSearchPopup_handleEnter_(event) {
+    try {
+      if (event && event.key === 'Enter') {
+        V2_StudentSearchPopup_search_();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentSearchPopup_setStatus_(message, type) {
+    try {
+      var box = document.getElementById('statusBox');
+      if (!box) {
+        return;
+      }
+
+      box.className = 'status';
+      box.textContent = '';
+
+      if (!message) {
+        return;
+      }
+
+      box.className = 'status ' + (type || 'info');
+      box.textContent = message;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentSearchPopup_escapeHtml_(value) {
+    try {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_StudentSearchPopup_search_() {
+    try {
+      var keyword = String(document.getElementById('keyword').value || '').trim();
+      var classId = String(document.getElementById('classId').value || '').trim();
+      var status = String(document.getElementById('status').value || '').trim();
+
+      if (!keyword && !classId && !status) {
+        V2_StudentSearchPopup_setStatus_('검색어, 반 ID, 상태 중 하나는 입력해야 한다.', 'error');
+        V2_StudentSearchPopup_renderEmpty_('검색 조건을 먼저 입력해라.');
+        return;
+      }
+
+      V2_StudentSearchPopup_setStatus_('학생을 검색하는 중이다...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (!response || response.success !== true || !response.data) {
+            V2_StudentSearchPopup_setStatus_(
+              response && response.message ? response.message : '학생 검색에 실패했다.',
+              'error'
+            );
+            V2_StudentSearchPopup_renderEmpty_('검색 결과가 없다.');
+            return;
+          }
+
+          var items = response.data.items || [];
+          V2_STUDENT_SEARCH_POPUP_STATE.items = items;
+
+          if (items.length === 0) {
+            V2_StudentSearchPopup_setStatus_('검색 결과가 없다.', 'info');
+            V2_StudentSearchPopup_renderEmpty_('일치하는 학생이 없다.');
+            return;
+          }
+
+          V2_StudentSearchPopup_setStatus_('학생 검색 완료: ' + items.length + '건', 'success');
+          V2_StudentSearchPopup_renderResults_(items);
+        })
+        .withFailureHandler(function(error) {
+          V2_StudentSearchPopup_setStatus_(
+            error && error.message ? error.message : '학생 검색 중 오류가 발생했다.',
+            'error'
+          );
+          V2_StudentSearchPopup_renderEmpty_('검색 결과를 불러오지 못했다.');
+        })
+        .V2_StudentSearchService_searchStudents({
+          keyword: keyword,
+          classId: classId,
+          status: status,
+          limit: 20
+        });
+    } catch (error) {
+      V2_StudentSearchPopup_setStatus_(error.message || '검색 처리 중 오류가 발생했다.', 'error');
+    }
+  }
+
+  function V2_StudentSearchPopup_renderEmpty_(message) {
+    try {
+      var body = document.getElementById('resultBody');
+      if (!body) {
+        return;
+      }
+
+      body.innerHTML = '<tr><td colspan="6" class="empty">' +
+        V2_StudentSearchPopup_escapeHtml_(message || '결과가 없다.') +
+        '</td></tr>';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentSearchPopup_renderResults_(items) {
+    try {
+      var body = document.getElementById('resultBody');
+      if (!body) {
+        return;
+      }
+
+      var html = '';
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+
+        html += '<tr>';
+        html += '<td>' + V2_StudentSearchPopup_escapeHtml_(item.studentId) + '</td>';
+        html += '<td>' + V2_StudentSearchPopup_escapeHtml_(item.studentName) + '</td>';
+        html += '<td>' + V2_StudentSearchPopup_escapeHtml_(item.className || item.classId) + '</td>';
+        html += '<td>' + V2_StudentSearchPopup_escapeHtml_(item.status) + '</td>';
+        html += '<td>' + V2_StudentSearchPopup_escapeHtml_(item.parentName) + '</td>';
+        html += '<td><button class="btn btn-select" type="button" onclick="V2_StudentSearchPopup_selectByIndex_(' + i + ')">선택</button></td>';
+        html += '</tr>';
+      }
+
+      body.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+      V2_StudentSearchPopup_renderEmpty_('결과 화면 생성 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_StudentSearchPopup_selectByIndex_(index) {
+    try {
+      var items = V2_STUDENT_SEARCH_POPUP_STATE.items || [];
+      var selected = items[index];
+
+      if (!selected) {
+        V2_StudentSearchPopup_setStatus_('선택할 학생 정보를 찾지 못했다.', 'error');
+        return;
+      }
+
+      V2_STUDENT_SEARCH_POPUP_STATE.selectedStudent = selected;
+      V2_StudentSearchPopup_showSelected_(selected);
+      V2_StudentSearchPopup_notifyParent_(selected);
+    } catch (error) {
+      V2_StudentSearchPopup_setStatus_(error.message || '학생 선택 중 오류가 발생했다.', 'error');
+    }
+  }
+
+  function V2_StudentSearchPopup_showSelected_(student) {
+    try {
+      var box = document.getElementById('selectedBox');
+      if (!box) {
+        return;
+      }
+
+      box.style.display = 'block';
+      box.textContent =
+        '선택 완료\n' +
+        '학생명: ' + (student.studentName || '') + '\n' +
+        '학생 ID: ' + (student.studentId || '') + '\n' +
+        '반: ' + (student.className || student.classId || '');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_StudentSearchPopup_notifyParent_(student) {
+    try {
+      if (
+        window.parent &&
+        typeof window.parent.V2_ConsultReport_onStudentSelectedFromPopup_ === 'function'
+      ) {
+        window.parent.V2_ConsultReport_onStudentSelectedFromPopup_(student);
+        V2_StudentSearchPopup_setStatus_('부모 화면에 학생 정보를 전달했다.', 'success');
+        return;
+      }
+
+      if (
+        typeof google !== 'undefined' &&
+        google.script &&
+        google.script.host &&
+        typeof google.script.host.close === 'function'
+      ) {
+        V2_StudentSearchPopup_setStatus_('학생 선택 완료. 다음 단계에서 부모 화면 연결 시 자동 입력된다.', 'success');
+        return;
+      }
+
+      V2_StudentSearchPopup_setStatus_('학생 선택 완료. 현재는 팝업 단독 테스트 상태다.', 'success');
+    } catch (error) {
+      V2_StudentSearchPopup_setStatus_(error.message || '부모 화면 전달 중 오류가 발생했다.', 'error');
+    }
+  }
+
+  function V2_StudentSearchPopup_reset_() {
+    try {
+      document.getElementById('keyword').value = '';
+      document.getElementById('classId').value = '';
+      document.getElementById('status').value = '';
+      V2_STUDENT_SEARCH_POPUP_STATE.items = [];
+      V2_STUDENT_SEARCH_POPUP_STATE.selectedStudent = null;
+      V2_StudentSearchPopup_setStatus_('', '');
+      V2_StudentSearchPopup_renderEmpty_('검색어를 입력한 뒤 검색 버튼을 눌러라.');
+
+      var box = document.getElementById('selectedBox');
+      if (box) {
+        box.style.display = 'none';
+        box.textContent = '';
+      }
+    } catch (error) {
+      V2_StudentSearchPopup_setStatus_(error.message || '초기화 중 오류가 발생했다.', 'error');
+    }
+  }
+</script>
