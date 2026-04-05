@@ -1,0 +1,270 @@
+<!-- V2_Teacher_Context_Common_JS.html -->
+<script>
+  var V2_TEACHER_CONTEXT_COMMON_STATE = {
+    loaded: false,
+    found: false,
+    autoDetected: false,
+    teacherId: '',
+    teacherName: '',
+    teacherEmail: '',
+    teacherPhone: '',
+    status: '',
+    displayTeacherName: '',
+    displayLabel: ''
+  };
+
+  function V2_TeacherContextCommon_toText_(value) {
+    try {
+      if (value === null || value === undefined) {
+        return '';
+      }
+
+      return String(value).trim();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContextCommon_escapeHtml_(value) {
+    try {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContextCommon_setTextById_(id, text) {
+    try {
+      var element = document.getElementById(id);
+      if (!element) {
+        return;
+      }
+
+      element.textContent = V2_TeacherContextCommon_toText_(text);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContextCommon_buildStatusText_() {
+    try {
+      if (!V2_TEACHER_CONTEXT_COMMON_STATE.loaded) {
+        return '불러오는 중';
+      }
+
+      if (V2_TEACHER_CONTEXT_COMMON_STATE.found) {
+        return '교사 시트 연결 완료';
+      }
+
+      if (V2_TEACHER_CONTEXT_COMMON_STATE.autoDetected) {
+        return '로그인 정보 기반';
+      }
+
+      return '자동 확인 불가';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContextCommon_buildGuideText_() {
+    try {
+      var lines = [];
+      lines.push('공통 사용 안내');
+      lines.push('1. 현재 로그인 사용자 기준 교사 정보를 자동 확인한다.');
+      lines.push('2. 교사명 입력 칸이 있으면 자동 적용 함수로 채울 수 있다.');
+      lines.push('3. 교사 시트 미연결이어도 로그인 이메일 기준 기본 교사명을 유지한다.');
+
+      if (V2_TEACHER_CONTEXT_COMMON_STATE.found) {
+        lines.push('현재 상태: 교사 시트와 연결된 정보를 사용 중');
+      } else if (V2_TEACHER_CONTEXT_COMMON_STATE.autoDetected) {
+        lines.push('현재 상태: 로그인 이메일 기반 기본값 사용 중');
+      } else {
+        lines.push('현재 상태: 수동 입력 보조가 필요함');
+      }
+
+      return lines.join('\n');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContextCommon_render_() {
+    try {
+      V2_TeacherContextCommon_setTextById_(
+        'V2TeacherContextCommonTeacherName',
+        V2_TEACHER_CONTEXT_COMMON_STATE.displayTeacherName || V2_TEACHER_CONTEXT_COMMON_STATE.teacherName || ''
+      );
+
+      V2_TeacherContextCommon_setTextById_(
+        'V2TeacherContextCommonStatus',
+        V2_TeacherContextCommon_buildStatusText_()
+      );
+
+      V2_TeacherContextCommon_setTextById_(
+        'V2TeacherContextCommonEmail',
+        V2_TEACHER_CONTEXT_COMMON_STATE.teacherEmail || ''
+      );
+
+      V2_TeacherContextCommon_setTextById_(
+        'V2TeacherContextCommonTeacherId',
+        V2_TEACHER_CONTEXT_COMMON_STATE.teacherId || ''
+      );
+
+      V2_TeacherContextCommon_setTextById_(
+        'V2TeacherContextCommonGuide',
+        V2_TeacherContextCommon_buildGuideText_()
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContextCommon_load_(callback) {
+    try {
+      google.script.run
+        .withSuccessHandler(function(response) {
+          try {
+            if (response && response.success && response.data) {
+              V2_TEACHER_CONTEXT_COMMON_STATE.loaded = true;
+              V2_TEACHER_CONTEXT_COMMON_STATE.found = !!response.data.found;
+              V2_TEACHER_CONTEXT_COMMON_STATE.autoDetected = !!response.data.autoDetected;
+              V2_TEACHER_CONTEXT_COMMON_STATE.teacherId = V2_TeacherContextCommon_toText_(response.data.teacherId);
+              V2_TEACHER_CONTEXT_COMMON_STATE.teacherName = V2_TeacherContextCommon_toText_(response.data.teacherName);
+              V2_TEACHER_CONTEXT_COMMON_STATE.teacherEmail = V2_TeacherContextCommon_toText_(response.data.teacherEmail);
+              V2_TEACHER_CONTEXT_COMMON_STATE.teacherPhone = V2_TeacherContextCommon_toText_(response.data.teacherPhone);
+              V2_TEACHER_CONTEXT_COMMON_STATE.status = V2_TeacherContextCommon_toText_(response.data.status);
+              V2_TEACHER_CONTEXT_COMMON_STATE.displayTeacherName = V2_TeacherContextCommon_toText_(response.data.displayTeacherName);
+              V2_TEACHER_CONTEXT_COMMON_STATE.displayLabel = V2_TeacherContextCommon_toText_(response.data.displayLabel);
+            } else {
+              V2_TEACHER_CONTEXT_COMMON_STATE.loaded = true;
+            }
+
+            V2_TeacherContextCommon_render_();
+
+            if (typeof callback === 'function') {
+              callback(V2_TEACHER_CONTEXT_COMMON_STATE);
+            }
+          } catch (innerError) {
+            console.error(innerError);
+          }
+        })
+        .withFailureHandler(function(error) {
+          try {
+            V2_TEACHER_CONTEXT_COMMON_STATE.loaded = true;
+            V2_TeacherContextCommon_render_();
+            console.error(error);
+          } catch (innerError) {
+            console.error(innerError);
+          }
+        })
+        .V2_TeacherContextService_getCurrentTeacherContext({});
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContextCommon_getState_() {
+    try {
+      return {
+        loaded: !!V2_TEACHER_CONTEXT_COMMON_STATE.loaded,
+        found: !!V2_TEACHER_CONTEXT_COMMON_STATE.found,
+        autoDetected: !!V2_TEACHER_CONTEXT_COMMON_STATE.autoDetected,
+        teacherId: V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.teacherId),
+        teacherName: V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.teacherName),
+        teacherEmail: V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.teacherEmail),
+        teacherPhone: V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.teacherPhone),
+        status: V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.status),
+        displayTeacherName: V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.displayTeacherName),
+        displayLabel: V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.displayLabel)
+      };
+    } catch (error) {
+      return {
+        loaded: false,
+        found: false,
+        autoDetected: false,
+        teacherId: '',
+        teacherName: '',
+        teacherEmail: '',
+        teacherPhone: '',
+        status: '',
+        displayTeacherName: '',
+        displayLabel: ''
+      };
+    }
+  }
+
+  function V2_TeacherContextCommon_applyTeacherNameToInput_(inputId) {
+    try {
+      var input = document.getElementById(inputId);
+      if (!input) {
+        return false;
+      }
+
+      input.value = V2_TeacherContextCommon_toText_(
+        V2_TEACHER_CONTEXT_COMMON_STATE.displayTeacherName || V2_TEACHER_CONTEXT_COMMON_STATE.teacherName
+      );
+
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+
+  function V2_TeacherContextCommon_applyTeacherInfoToForm_(mapping) {
+    try {
+      mapping = mapping || {};
+
+      if (mapping.teacherNameId) {
+        V2_TeacherContextCommon_applyTeacherNameToInput_(mapping.teacherNameId);
+      }
+
+      if (mapping.teacherEmailId) {
+        var emailInput = document.getElementById(mapping.teacherEmailId);
+        if (emailInput) {
+          emailInput.value = V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.teacherEmail);
+        }
+      }
+
+      if (mapping.teacherIdId) {
+        var teacherIdInput = document.getElementById(mapping.teacherIdId);
+        if (teacherIdInput) {
+          teacherIdInput.value = V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.teacherId);
+        }
+      }
+
+      if (mapping.teacherPhoneId) {
+        var teacherPhoneInput = document.getElementById(mapping.teacherPhoneId);
+        if (teacherPhoneInput) {
+          teacherPhoneInput.value = V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.teacherPhone);
+        }
+      }
+
+      if (mapping.teacherStatusId) {
+        var teacherStatusInput = document.getElementById(mapping.teacherStatusId);
+        if (teacherStatusInput) {
+          teacherStatusInput.value = V2_TeacherContextCommon_toText_(V2_TEACHER_CONTEXT_COMMON_STATE.status);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_TeacherContextCommon_render_();
+      V2_TeacherContextCommon_load_();
+    } catch (error) {
+      console.error(error);
+    }
+  });
+</script>
