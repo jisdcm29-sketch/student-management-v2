@@ -1,0 +1,391 @@
+<!-- V2_Teacher_Context_JS.html -->
+<script>
+  var V2_TEACHER_CONTEXT_STATE = {
+    original: null,
+    current: {
+      teacherName: '',
+      teacherEmail: '',
+      teacherId: '',
+      teacherPhone: '',
+      status: '',
+      found: false,
+      autoDetected: false
+    }
+  };
+
+  function V2_TeacherContext_setLoading_(isLoading) {
+    try {
+      var loadingBox = document.getElementById('loadingBox');
+      var reloadButton = document.getElementById('reloadButton');
+
+      if (loadingBox) {
+        loadingBox.style.display = isLoading ? 'block' : 'none';
+      }
+
+      if (reloadButton) {
+        reloadButton.disabled = !!isLoading;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_showError_(message) {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'block';
+      errorBox.textContent = message || '오류가 발생했다.';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_clearError_() {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'none';
+      errorBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_showSuccess_(message) {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'block';
+      successBox.textContent = message || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_clearSuccess_() {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'none';
+      successBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_clearNotice_() {
+    try {
+      V2_TeacherContext_clearError_();
+      V2_TeacherContext_clearSuccess_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_toText_(value) {
+    try {
+      if (value === null || value === undefined) {
+        return '';
+      }
+
+      return String(value).trim();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContext_setFieldValue_(id, value) {
+    try {
+      var element = document.getElementById(id);
+      if (!element) {
+        return;
+      }
+
+      element.value = V2_TeacherContext_toText_(value);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_getFieldValue_(id) {
+    try {
+      var element = document.getElementById(id);
+      if (!element) {
+        return '';
+      }
+
+      return V2_TeacherContext_toText_(element.value);
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_TeacherContext_renderTeacherStatusBox_() {
+    try {
+      var box = document.getElementById('teacherStatusBox');
+      if (!box) {
+        return;
+      }
+
+      var state = V2_TEACHER_CONTEXT_STATE.current || {};
+      var lines = [];
+
+      lines.push('교사 연결 상태');
+
+      if (!state.teacherEmail && !state.teacherName) {
+        lines.push('상태: 조회 전');
+        lines.push('로그인 사용자 기준 교사 정보를 아직 불러오지 않았다.');
+        box.textContent = lines.join('\n');
+        return;
+      }
+
+      if (state.found) {
+        lines.push('상태: 교사 시트 연결 완료');
+      } else if (state.autoDetected) {
+        lines.push('상태: 로그인 정보만 확인');
+      } else {
+        lines.push('상태: 자동 확인 불가');
+      }
+
+      lines.push('교사명: ' + V2_TeacherContext_toText_(state.teacherName));
+      lines.push('이메일: ' + V2_TeacherContext_toText_(state.teacherEmail));
+      lines.push('교사 ID: ' + V2_TeacherContext_toText_(state.teacherId));
+      lines.push('연락처: ' + V2_TeacherContext_toText_(state.teacherPhone));
+      lines.push('재직 상태: ' + V2_TeacherContext_toText_(state.status));
+
+      box.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_renderGuideBox_() {
+    try {
+      var box = document.getElementById('guideBox');
+      if (!box) {
+        return;
+      }
+
+      var state = V2_TEACHER_CONTEXT_STATE.current || {};
+      var lines = [];
+
+      lines.push('사용 안내');
+      lines.push('1. 로그인 사용자 기준으로 교사명을 자동 확인한다.');
+      lines.push('2. 교사명은 화면에서 직접 수정 가능하다.');
+      lines.push('3. 이메일 / 교사 ID / 연락처는 참조용으로 고정 표시한다.');
+
+      if (state.found) {
+        lines.push('현재 상태: V2_Teachers 시트와 연결된 교사 정보 사용 중');
+      } else if (state.autoDetected) {
+        lines.push('현재 상태: 시트 미연결, 로그인 이메일 기반 기본 교사명 사용 중');
+      } else {
+        lines.push('현재 상태: 자동 확인 불가, 수동 입력 필요');
+      }
+
+      box.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_renderPreview_() {
+    try {
+      var previewBox = document.getElementById('previewBox');
+      if (!previewBox) {
+        return;
+      }
+
+      var teacherName = V2_TeacherContext_getFieldValue_('teacherName');
+      var teacherEmail = V2_TeacherContext_getFieldValue_('teacherEmail');
+      var teacherId = V2_TeacherContext_getFieldValue_('teacherId');
+      var teacherPhone = V2_TeacherContext_getFieldValue_('teacherPhone');
+      var teacherStatus = V2_TeacherContext_getFieldValue_('teacherStatus');
+      var autoDetectedFlag = V2_TeacherContext_getFieldValue_('autoDetectedFlag');
+
+      var lines = [];
+      lines.push('화면 입력 미리보기');
+      lines.push('교사명: ' + teacherName);
+      lines.push('이메일: ' + teacherEmail);
+      lines.push('교사 ID: ' + teacherId);
+      lines.push('연락처: ' + teacherPhone);
+      lines.push('재직 상태: ' + teacherStatus);
+      lines.push('자동 확인 결과: ' + autoDetectedFlag);
+
+      if (!teacherName) {
+        lines.push('안내: 저장 전 교사명을 확인해라.');
+      }
+
+      previewBox.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_applyCurrentStateToForm_() {
+    try {
+      var state = V2_TEACHER_CONTEXT_STATE.current || {};
+
+      V2_TeacherContext_setFieldValue_('teacherName', state.teacherName || '');
+      V2_TeacherContext_setFieldValue_('teacherEmail', state.teacherEmail || '');
+      V2_TeacherContext_setFieldValue_('teacherId', state.teacherId || '');
+      V2_TeacherContext_setFieldValue_('teacherPhone', state.teacherPhone || '');
+      V2_TeacherContext_setFieldValue_('teacherStatus', state.status || '');
+      V2_TeacherContext_setFieldValue_(
+        'autoDetectedFlag',
+        state.found ? '교사 시트 연결 완료' : (state.autoDetected ? '로그인 정보 기반' : '자동 확인 불가')
+      );
+
+      V2_TeacherContext_renderTeacherStatusBox_();
+      V2_TeacherContext_renderGuideBox_();
+      V2_TeacherContext_renderPreview_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_bindInputEvents_() {
+    try {
+      var teacherName = document.getElementById('teacherName');
+      if (!teacherName) {
+        return;
+      }
+
+      teacherName.addEventListener('input', function() {
+        V2_TEACHER_CONTEXT_STATE.current.teacherName = V2_TeacherContext_getFieldValue_('teacherName');
+        V2_TeacherContext_renderTeacherStatusBox_();
+        V2_TeacherContext_renderPreview_();
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_TeacherContext_applyAutoFillName_() {
+    try {
+      V2_TeacherContext_clearNotice_();
+
+      if (!V2_TEACHER_CONTEXT_STATE.original) {
+        V2_TeacherContext_showError_('먼저 자동 교사 정보를 불러와라.');
+        return;
+      }
+
+      V2_TEACHER_CONTEXT_STATE.current.teacherName = V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherName);
+      V2_TeacherContext_applyCurrentStateToForm_();
+      V2_TeacherContext_showSuccess_('자동 교사명을 다시 적용했다.');
+    } catch (error) {
+      V2_TeacherContext_showError_(error.message || '자동 교사명 적용 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_TeacherContext_resetEditor_() {
+    try {
+      V2_TeacherContext_clearNotice_();
+
+      if (V2_TEACHER_CONTEXT_STATE.original) {
+        V2_TEACHER_CONTEXT_STATE.current = {
+          teacherName: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherName),
+          teacherEmail: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherEmail),
+          teacherId: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherId),
+          teacherPhone: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherPhone),
+          status: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.status),
+          found: !!V2_TEACHER_CONTEXT_STATE.original.found,
+          autoDetected: !!V2_TEACHER_CONTEXT_STATE.original.autoDetected
+        };
+      } else {
+        V2_TEACHER_CONTEXT_STATE.current = {
+          teacherName: '',
+          teacherEmail: '',
+          teacherId: '',
+          teacherPhone: '',
+          status: '',
+          found: false,
+          autoDetected: false
+        };
+      }
+
+      V2_TeacherContext_applyCurrentStateToForm_();
+      V2_TeacherContext_showSuccess_('입력 상태를 초기화했다.');
+    } catch (error) {
+      V2_TeacherContext_showError_(error.message || '입력 초기화 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_TeacherContext_loadCurrentTeacherContext_() {
+    try {
+      V2_TeacherContext_clearNotice_();
+      V2_TeacherContext_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_TeacherContext_setLoading_(false);
+
+          if (!response || response.success !== true || !response.data) {
+            V2_TeacherContext_showError_(
+              response && response.message ? response.message : '교사 정보를 불러오지 못했다.'
+            );
+            return;
+          }
+
+          V2_TEACHER_CONTEXT_STATE.original = {
+            teacherName: V2_TeacherContext_toText_(response.data.displayTeacherName || response.data.teacherName),
+            teacherEmail: V2_TeacherContext_toText_(response.data.teacherEmail),
+            teacherId: V2_TeacherContext_toText_(response.data.teacherId),
+            teacherPhone: V2_TeacherContext_toText_(response.data.teacherPhone),
+            status: V2_TeacherContext_toText_(response.data.status),
+            found: !!response.data.found,
+            autoDetected: !!response.data.autoDetected
+          };
+
+          V2_TEACHER_CONTEXT_STATE.current = {
+            teacherName: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherName),
+            teacherEmail: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherEmail),
+            teacherId: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherId),
+            teacherPhone: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.teacherPhone),
+            status: V2_TeacherContext_toText_(V2_TEACHER_CONTEXT_STATE.original.status),
+            found: !!V2_TEACHER_CONTEXT_STATE.original.found,
+            autoDetected: !!V2_TEACHER_CONTEXT_STATE.original.autoDetected
+          };
+
+          V2_TeacherContext_applyCurrentStateToForm_();
+          V2_TeacherContext_showSuccess_(
+            response.message || '현재 로그인 사용자 기준 교사 정보를 불러왔다.'
+          );
+        })
+        .withFailureHandler(function(error) {
+          V2_TeacherContext_setLoading_(false);
+          V2_TeacherContext_showError_(
+            error && error.message ? error.message : '교사 정보 조회 중 오류가 발생했다.'
+          );
+        })
+        .V2_TeacherContextService_getCurrentTeacherContext({});
+    } catch (error) {
+      V2_TeacherContext_setLoading_(false);
+      V2_TeacherContext_showError_(error.message || '교사 정보 조회 처리 중 오류가 발생했다.');
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_TeacherContext_bindInputEvents_();
+      V2_TeacherContext_renderTeacherStatusBox_();
+      V2_TeacherContext_renderGuideBox_();
+      V2_TeacherContext_renderPreview_();
+      V2_TeacherContext_loadCurrentTeacherContext_();
+    } catch (error) {
+      V2_TeacherContext_showError_(error.message || '초기 로딩 중 오류가 발생했다.');
+    }
+  });
+</script>
