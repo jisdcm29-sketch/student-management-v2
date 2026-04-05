@@ -1,0 +1,834 @@
+<!-- 수정된 전체 파일: V2_Absence_List_JS.html -->
+<script>
+  var V2_ABSENCE_CLASSES = [];
+  var V2_ABSENCE_CURRENT_ITEMS = [];
+  var V2_ABSENCE_SAVE_STATES = {};
+
+  function V2_AbsenceList_setLoading_(isLoading) {
+    try {
+      var loadingBox = document.getElementById('loadingBox');
+      if (loadingBox) {
+        loadingBox.style.display = isLoading ? 'block' : 'none';
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_showError_(message) {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'block';
+      errorBox.textContent = message || '오류가 발생했다.';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_clearError_() {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'none';
+      errorBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_showSuccess_(message) {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'block';
+      successBox.textContent = message || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_clearSuccess_() {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'none';
+      successBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_setNoticeSuccess_(message) {
+    try {
+      V2_AbsenceList_clearError_();
+      V2_AbsenceList_showSuccess_(message || '정상 처리되었다.');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_setNoticeError_(message) {
+    try {
+      V2_AbsenceList_clearSuccess_();
+      V2_AbsenceList_showError_(message || '오류가 발생했다.');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_clearNotice_() {
+    try {
+      V2_AbsenceList_clearError_();
+      V2_AbsenceList_clearSuccess_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_setSummary_(text) {
+    try {
+      var summaryBox = document.getElementById('summaryBox');
+      if (summaryBox) {
+        summaryBox.textContent = text || '';
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_escapeHtml_(value) {
+    try {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_AbsenceList_setEmptyState_(isEmpty) {
+    try {
+      var emptyBox = document.getElementById('emptyBox');
+      var tableWrap = document.getElementById('tableWrap');
+
+      if (emptyBox) {
+        emptyBox.style.display = isEmpty ? 'block' : 'none';
+      }
+
+      if (tableWrap) {
+        tableWrap.style.display = isEmpty ? 'none' : 'block';
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_getToday_() {
+    try {
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = String(now.getMonth() + 1).padStart(2, '0');
+      var day = String(now.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_AbsenceList_getNowText_() {
+    try {
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = String(now.getMonth() + 1).padStart(2, '0');
+      var day = String(now.getDate()).padStart(2, '0');
+      var hour = String(now.getHours()).padStart(2, '0');
+      var minute = String(now.getMinutes()).padStart(2, '0');
+      var second = String(now.getSeconds()).padStart(2, '0');
+
+      return year + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_AbsenceList_updateSaveButton_(index, text, disabled) {
+    try {
+      var button = document.getElementById('saveBtn_' + index);
+      if (!button) {
+        return;
+      }
+
+      button.textContent = text || '저장';
+      button.disabled = !!disabled;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_updateRecordHint_(index, text) {
+    try {
+      var hint = document.getElementById('recordHint_' + index);
+      if (!hint) {
+        return;
+      }
+
+      hint.textContent = text || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_getSaveState_(index) {
+    try {
+      return V2_ABSENCE_SAVE_STATES[index] || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function V2_AbsenceList_setSaveState_(index, state) {
+    try {
+      V2_ABSENCE_SAVE_STATES[index] = state || null;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_isSaving_(index) {
+    try {
+      var state = V2_AbsenceList_getSaveState_(index);
+      return !!(state && state.isSaving === true);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function V2_AbsenceList_buildRequestId_(index) {
+    try {
+      return String(new Date().getTime()) + '_' + String(index);
+    } catch (error) {
+      return String(index);
+    }
+  }
+
+  function V2_AbsenceList_isCurrentRequest_(index, requestId) {
+    try {
+      var state = V2_AbsenceList_getSaveState_(index);
+      return !!(state && state.requestId === requestId);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function V2_AbsenceList_setSavingState_(index, requestId, isSaving) {
+    try {
+      V2_AbsenceList_setSaveState_(index, {
+        requestId: requestId,
+        isSaving: !!isSaving
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_clearResultArea_() {
+    try {
+      var tbody = document.getElementById('absenceTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+      }
+
+      V2_ABSENCE_CURRENT_ITEMS = [];
+      V2_ABSENCE_SAVE_STATES = {};
+      V2_AbsenceList_setEmptyState_(true);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_resetResultByFilterChange_() {
+    try {
+      V2_AbsenceList_clearNotice_();
+      V2_AbsenceList_clearResultArea_();
+      V2_AbsenceList_setSummary_('조회 조건이 변경되었다. 다시 조회를 실행해라.');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_buildLocalSavedRecord_(item, payload) {
+    try {
+      return {
+        contactId: item && item.savedContactRecord ? item.savedContactRecord.contactId || '' : '',
+        attendanceId: payload.attendanceId || '',
+        studentId: payload.studentId || '',
+        classId: payload.classId || '',
+        contactDate: payload.contactDate || '',
+        contactStatus: payload.contactStatus || '미연락',
+        parentPhone: payload.parentPhone || '',
+        memo: payload.memo || '',
+        teacherName: item && item.savedContactRecord && item.savedContactRecord.teacherName
+          ? item.savedContactRecord.teacherName
+          : '',
+        createdAt: item && item.savedContactRecord && item.savedContactRecord.createdAt
+          ? item.savedContactRecord.createdAt
+          : '',
+        updatedAt: V2_AbsenceList_getNowText_()
+      };
+    } catch (error) {
+      return {
+        contactId: '',
+        attendanceId: payload.attendanceId || '',
+        studentId: payload.studentId || '',
+        classId: payload.classId || '',
+        contactDate: payload.contactDate || '',
+        contactStatus: payload.contactStatus || '미연락',
+        parentPhone: payload.parentPhone || '',
+        memo: payload.memo || '',
+        teacherName: '',
+        createdAt: '',
+        updatedAt: ''
+      };
+    }
+  }
+
+  function V2_AbsenceList_extractSavedRecordFromResponse_(response, payload, item) {
+    try {
+      if (response && response.data && response.data.attendanceId) {
+        return response.data;
+      }
+
+      if (response && response.data && response.data.record && response.data.record.attendanceId) {
+        return response.data.record;
+      }
+
+      return V2_AbsenceList_buildLocalSavedRecord_(item, payload);
+    } catch (error) {
+      return V2_AbsenceList_buildLocalSavedRecord_(item, payload);
+    }
+  }
+
+  function V2_AbsenceList_markRowSaved_(index, record, payload) {
+    try {
+      var item = V2_ABSENCE_CURRENT_ITEMS[index];
+      var safeRecord = record || V2_AbsenceList_buildLocalSavedRecord_(item, payload || {});
+
+      V2_AbsenceList_applySavedRecordToRow_(index, safeRecord);
+      V2_AbsenceList_updateSaveButton_(index, '수정저장', false);
+
+      V2_AbsenceList_setNoticeSuccess_(
+        '저장 완료\n학생명: ' + (item && item.studentName ? item.studentName : '') +
+        '\n날짜: ' + (item && item.date ? item.date : '') +
+        '\n상태: ' + (safeRecord.contactStatus || (payload && payload.contactStatus) || '')
+      );
+    } catch (error) {
+      V2_AbsenceList_updateSaveButton_(index, '저장', false);
+      V2_AbsenceList_setNoticeError_(error.message || '저장 완료 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AbsenceList_renderClassOptions_(items) {
+    try {
+      V2_ABSENCE_CLASSES = items || [];
+
+      var select = document.getElementById('classId');
+      if (!select) {
+        return;
+      }
+
+      var html = '';
+      html += '<option value="">반 선택</option>';
+
+      V2_ABSENCE_CLASSES.forEach(function(item) {
+        var label = item.className
+          ? item.className + ' (' + item.classId + ')'
+          : item.classId;
+
+        html += '<option value="' + V2_AbsenceList_escapeHtml_(item.classId) + '">';
+        html += V2_AbsenceList_escapeHtml_(label);
+        html += '</option>';
+      });
+
+      select.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_loadClassOptions_() {
+    try {
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (response && response.success) {
+            V2_AbsenceList_renderClassOptions_(response.data || []);
+            return;
+          }
+
+          V2_AbsenceList_setNoticeError_(
+            response && response.message ? response.message : '반 목록 조회에 실패했다.'
+          );
+        })
+        .withFailureHandler(function(error) {
+          V2_AbsenceList_setNoticeError_(
+            error && error.message ? error.message : '반 목록 조회 중 오류가 발생했다.'
+          );
+        })
+        .V2_AttendanceService_getClassOptions();
+    } catch (error) {
+      V2_AbsenceList_setNoticeError_(error.message || '반 목록 로딩 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AbsenceList_applySavedRecordToRow_(index, record) {
+    try {
+      var item = V2_ABSENCE_CURRENT_ITEMS[index];
+      if (!item || !record) {
+        return;
+      }
+
+      item.savedContactRecord = record;
+
+      var statusEl = document.getElementById('contactStatus_' + index);
+      var memoEl = document.getElementById('contactMemo_' + index);
+
+      if (statusEl) {
+        statusEl.value = record.contactStatus || '미연락';
+      }
+
+      if (memoEl) {
+        memoEl.value = record.memo || '';
+      }
+
+      V2_AbsenceList_updateSaveButton_(index, '수정저장', false);
+      V2_AbsenceList_updateRecordHint_(
+        index,
+        '기존 기록 있음\n최근 수정: ' + (record.updatedAt || '') + '\n담당: ' + (record.teacherName || '')
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_getAttendanceIdsFromCurrentItems_() {
+    try {
+      var result = [];
+      var seen = {};
+
+      V2_ABSENCE_CURRENT_ITEMS.forEach(function(item) {
+        var attendanceId = String(item && item.attendanceId ? item.attendanceId : '').trim();
+        if (!attendanceId) {
+          return;
+        }
+
+        if (seen[attendanceId]) {
+          return;
+        }
+
+        seen[attendanceId] = true;
+        result.push(attendanceId);
+      });
+
+      return result;
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  function V2_AbsenceList_setInitialButtonsForSavedLoad_() {
+    try {
+      V2_ABSENCE_CURRENT_ITEMS.forEach(function(item, index) {
+        if (item && item.attendanceId) {
+          V2_AbsenceList_updateSaveButton_(index, '불러오는중', true);
+          V2_AbsenceList_updateRecordHint_(index, '');
+          return;
+        }
+
+        V2_AbsenceList_updateSaveButton_(index, '저장', false);
+        V2_AbsenceList_updateRecordHint_(index, '');
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_applySavedRecordMap_(recordMap) {
+    try {
+      recordMap = recordMap || {};
+
+      V2_ABSENCE_CURRENT_ITEMS.forEach(function(item, index) {
+        var attendanceId = String(item && item.attendanceId ? item.attendanceId : '').trim();
+        var record = attendanceId ? recordMap[attendanceId] : null;
+
+        if (record) {
+          V2_AbsenceList_applySavedRecordToRow_(index, record);
+          return;
+        }
+
+        V2_AbsenceList_updateSaveButton_(index, '저장', false);
+        V2_AbsenceList_updateRecordHint_(index, '');
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AbsenceList_loadSavedContactsForCurrentRows_() {
+    try {
+      var attendanceIds = V2_AbsenceList_getAttendanceIdsFromCurrentItems_();
+
+      if (!attendanceIds.length) {
+        V2_AbsenceList_applySavedRecordMap_({});
+        return;
+      }
+
+      V2_AbsenceList_setInitialButtonsForSavedLoad_();
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (response && response.success && response.data) {
+            V2_AbsenceList_applySavedRecordMap_(response.data.recordMap || {});
+            return;
+          }
+
+          V2_AbsenceList_applySavedRecordMap_({});
+        })
+        .withFailureHandler(function() {
+          V2_AbsenceList_applySavedRecordMap_({});
+        })
+        .V2_AbsenceContactService_getMapByAttendanceIds(attendanceIds);
+    } catch (error) {
+      console.error(error);
+      V2_AbsenceList_applySavedRecordMap_({});
+    }
+  }
+
+  function V2_AbsenceList_renderRows_(items, summaryText) {
+    try {
+      V2_ABSENCE_CURRENT_ITEMS = items || [];
+      V2_ABSENCE_SAVE_STATES = {};
+      V2_AbsenceList_setSummary_(summaryText || ('조회 건수: ' + V2_ABSENCE_CURRENT_ITEMS.length + '건'));
+
+      if (!V2_ABSENCE_CURRENT_ITEMS.length) {
+        V2_AbsenceList_setEmptyState_(true);
+        document.getElementById('absenceTableBody').innerHTML = '';
+        return;
+      }
+
+      V2_AbsenceList_setEmptyState_(false);
+
+      var html = '';
+
+      V2_ABSENCE_CURRENT_ITEMS.forEach(function(item, index) {
+        html += '<tr>';
+        html += '<td>' + V2_AbsenceList_escapeHtml_(item.date) + '</td>';
+        html += '<td>' + V2_AbsenceList_escapeHtml_(item.studentName) + '</td>';
+        html += '<td>' + V2_AbsenceList_escapeHtml_(item.classId) + '</td>';
+        html += '<td><span class="status-badge">' + V2_AbsenceList_escapeHtml_(item.status) + '</span></td>';
+        html += '<td>' + V2_AbsenceList_escapeHtml_(item.parentName) + '</td>';
+        html += '<td>' + V2_AbsenceList_escapeHtml_(item.parentPhone) + '</td>';
+        html += '<td>' + V2_AbsenceList_escapeHtml_(item.attendanceMemo) + '</td>';
+
+        html += '<td>';
+        html += '  <select class="contact-select" id="contactStatus_' + index + '">';
+        html += '    <option value="미연락">미연락</option>';
+        html += '    <option value="연락완료">연락완료</option>';
+        html += '    <option value="부재중">부재중</option>';
+        html += '    <option value="재연락필요">재연락필요</option>';
+        html += '  </select>';
+        html += '</td>';
+
+        html += '<td>';
+        html += '  <textarea class="memo-input" id="contactMemo_' + index + '" placeholder="연락 내용 메모"></textarea>';
+        html += '</td>';
+
+        html += '<td>';
+        html += '  <button class="save-btn" id="saveBtn_' + index + '" type="button" onclick="V2_AbsenceList_saveContact_(' + index + ')">저장</button>';
+        html += '  <div class="record-hint" id="recordHint_' + index + '"></div>';
+        html += '</td>';
+        html += '</tr>';
+      });
+
+      document.getElementById('absenceTableBody').innerHTML = html;
+      V2_AbsenceList_loadSavedContactsForCurrentRows_();
+    } catch (error) {
+      V2_AbsenceList_setNoticeError_(error.message || '목록 렌더링 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AbsenceList_search_() {
+    try {
+      V2_AbsenceList_clearNotice_();
+
+      var classId = document.getElementById('classId').value;
+      var baseDate = document.getElementById('baseDate').value;
+      var viewType = document.getElementById('viewType').value;
+
+      if (!classId) {
+        throw new Error('반을 선택해라.');
+      }
+
+      if (!baseDate) {
+        throw new Error('기준 날짜를 입력해라.');
+      }
+
+      V2_AbsenceList_setLoading_(true);
+
+      if (viewType === 'weekly') {
+        google.script.run
+          .withSuccessHandler(function(response) {
+            V2_AbsenceList_setLoading_(false);
+
+            if (response && response.success) {
+              var data = response.data || {};
+              var items = data.items || [];
+              var summary = '조회 방식: 주별\n기간: ' + (data.dateFrom || '') + ' ~ ' + (data.dateTo || '') + '\n조회 건수: ' + items.length + '건';
+              V2_AbsenceList_renderRows_(items, summary);
+              return;
+            }
+
+            V2_AbsenceList_setNoticeError_(
+              response && response.message ? response.message : '주별 결석 조회에 실패했다.'
+            );
+          })
+          .withFailureHandler(function(error) {
+            V2_AbsenceList_setLoading_(false);
+            V2_AbsenceList_setNoticeError_(
+              error && error.message ? error.message : '주별 결석 조회 중 오류가 발생했다.'
+            );
+          })
+          .V2_AttendanceService_getAbsentStudentsByWeekAndClass(baseDate, classId);
+
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_AbsenceList_setLoading_(false);
+
+          if (response && response.success) {
+            var items = response.data || [];
+            var summary = '조회 방식: 일별\n날짜: ' + baseDate + '\n조회 건수: ' + items.length + '건';
+            V2_AbsenceList_renderRows_(items, summary);
+            return;
+          }
+
+          V2_AbsenceList_setNoticeError_(
+            response && response.message ? response.message : '일별 결석 조회에 실패했다.'
+          );
+        })
+        .withFailureHandler(function(error) {
+          V2_AbsenceList_setLoading_(false);
+          V2_AbsenceList_setNoticeError_(
+            error && error.message ? error.message : '일별 결석 조회 중 오류가 발생했다.'
+          );
+        })
+        .V2_AttendanceService_getAbsentStudentsByDateAndClass(baseDate, classId);
+
+    } catch (error) {
+      V2_AbsenceList_setLoading_(false);
+      V2_AbsenceList_setNoticeError_(error.message || '조회 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AbsenceList_confirmSavedOnce_(index, payload, requestId, failMessage) {
+    try {
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (!V2_AbsenceList_isCurrentRequest_(index, requestId)) {
+            return;
+          }
+
+          V2_AbsenceList_setSavingState_(index, requestId, false);
+
+          if (response && response.success && response.data &&
+              String(response.data.attendanceId || '').trim() === String(payload.attendanceId || '').trim()) {
+            V2_AbsenceList_markRowSaved_(index, response.data, payload);
+            return;
+          }
+
+          V2_AbsenceList_updateSaveButton_(index, '저장', false);
+          V2_AbsenceList_setNoticeError_(failMessage || '연락 기록 저장에 실패했다.');
+        })
+        .withFailureHandler(function(error) {
+          if (!V2_AbsenceList_isCurrentRequest_(index, requestId)) {
+            return;
+          }
+
+          V2_AbsenceList_setSavingState_(index, requestId, false);
+          V2_AbsenceList_updateSaveButton_(index, '저장', false);
+          V2_AbsenceList_setNoticeError_(
+            error && error.message ? error.message : (failMessage || '연락 기록 저장 확인 중 오류가 발생했다.')
+          );
+        })
+        .V2_AbsenceContactService_getByAttendanceId(payload.attendanceId);
+    } catch (error) {
+      if (!V2_AbsenceList_isCurrentRequest_(index, requestId)) {
+        return;
+      }
+
+      V2_AbsenceList_setSavingState_(index, requestId, false);
+      V2_AbsenceList_updateSaveButton_(index, '저장', false);
+      V2_AbsenceList_setNoticeError_(error.message || '저장 확인 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AbsenceList_saveContact_(index) {
+    try {
+      V2_AbsenceList_clearNotice_();
+
+      var item = V2_ABSENCE_CURRENT_ITEMS[index];
+      if (!item) {
+        throw new Error('저장 대상 데이터를 찾을 수 없다.');
+      }
+
+      if (V2_AbsenceList_isSaving_(index)) {
+        return;
+      }
+
+      var statusEl = document.getElementById('contactStatus_' + index);
+      var memoEl = document.getElementById('contactMemo_' + index);
+
+      if (!statusEl || !memoEl) {
+        throw new Error('입력 요소를 찾을 수 없다.');
+      }
+
+      var payload = {
+        attendanceId: item.attendanceId || '',
+        studentId: item.studentId || '',
+        classId: item.classId || '',
+        contactDate: item.date || '',
+        contactStatus: statusEl.value || '미연락',
+        parentPhone: item.parentPhone || '',
+        memo: memoEl.value || ''
+      };
+
+      var requestId = V2_AbsenceList_buildRequestId_(index);
+
+      V2_AbsenceList_setSavingState_(index, requestId, true);
+      V2_AbsenceList_updateSaveButton_(index, '저장중', true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          try {
+            if (!V2_AbsenceList_isCurrentRequest_(index, requestId)) {
+              return;
+            }
+
+            if (response && response.success === true) {
+              V2_AbsenceList_setSavingState_(index, requestId, false);
+              V2_AbsenceList_markRowSaved_(
+                index,
+                V2_AbsenceList_extractSavedRecordFromResponse_(response, payload, item),
+                payload
+              );
+              return;
+            }
+
+            setTimeout(function() {
+              V2_AbsenceList_confirmSavedOnce_(
+                index,
+                payload,
+                requestId,
+                response && response.message ? response.message : '연락 기록 저장에 실패했다.'
+              );
+            }, 300);
+          } catch (innerError) {
+            if (!V2_AbsenceList_isCurrentRequest_(index, requestId)) {
+              return;
+            }
+
+            V2_AbsenceList_setSavingState_(index, requestId, false);
+            V2_AbsenceList_updateSaveButton_(index, '저장', false);
+            V2_AbsenceList_setNoticeError_(innerError.message || '저장 완료 처리 중 오류가 발생했다.');
+          }
+        })
+        .withFailureHandler(function(error) {
+          if (!V2_AbsenceList_isCurrentRequest_(index, requestId)) {
+            return;
+          }
+
+          setTimeout(function() {
+            V2_AbsenceList_confirmSavedOnce_(
+              index,
+              payload,
+              requestId,
+              error && error.message ? error.message : '연락 기록 저장 중 오류가 발생했다.'
+            );
+          }, 300);
+        })
+        .V2_AbsenceContactService_create(payload);
+
+    } catch (error) {
+      V2_AbsenceList_setSaveState_(index, {
+        isSaving: false
+      });
+      V2_AbsenceList_updateSaveButton_(index, '저장', false);
+      V2_AbsenceList_setNoticeError_(error.message || '연락 기록 저장 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AbsenceList_reset_() {
+    try {
+      document.getElementById('viewType').value = 'daily';
+      document.getElementById('baseDate').value = V2_AbsenceList_getToday_();
+      document.getElementById('classId').value = '';
+      document.getElementById('absenceTableBody').innerHTML = '';
+      V2_ABSENCE_CURRENT_ITEMS = [];
+      V2_ABSENCE_SAVE_STATES = {};
+      V2_AbsenceList_setEmptyState_(true);
+      V2_AbsenceList_clearNotice_();
+      V2_AbsenceList_setSummary_('조회 조건을 선택한 뒤 조회를 실행해라.');
+    } catch (error) {
+      V2_AbsenceList_setNoticeError_(error.message || '초기화 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AbsenceList_bindFilterEvents_() {
+    try {
+      var classIdEl = document.getElementById('classId');
+      var baseDateEl = document.getElementById('baseDate');
+      var viewTypeEl = document.getElementById('viewType');
+
+      [classIdEl, baseDateEl, viewTypeEl].forEach(function(el) {
+        if (!el) {
+          return;
+        }
+
+        el.addEventListener('change', function() {
+          V2_AbsenceList_resetResultByFilterChange_();
+        });
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      document.getElementById('baseDate').value = V2_AbsenceList_getToday_();
+      V2_AbsenceList_setEmptyState_(true);
+      V2_AbsenceList_bindFilterEvents_();
+      V2_AbsenceList_loadClassOptions_();
+      V2_AbsenceList_setSummary_('조회 조건을 선택한 뒤 조회를 실행해라.');
+    } catch (error) {
+      V2_AbsenceList_setNoticeError_(error.message || '초기 로딩 중 오류가 발생했다.');
+    }
+  });
+</script>
