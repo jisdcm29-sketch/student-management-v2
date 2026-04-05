@@ -1,0 +1,506 @@
+<!-- V2_Dashboard_JS.html -->
+<script>
+  var V2_DASHBOARD_STATE = {
+    snapshot: null,
+    periodDays: 7
+  };
+
+  function V2_Dashboard_setLoading_(isLoading) {
+    try {
+      var loadingBox = document.getElementById('loadingBox');
+      var refreshButton = document.getElementById('refreshButton');
+      var periodDays = document.getElementById('periodDays');
+
+      if (loadingBox) {
+        loadingBox.style.display = isLoading ? 'block' : 'none';
+      }
+
+      if (refreshButton) {
+        refreshButton.disabled = !!isLoading;
+      }
+
+      if (periodDays) {
+        periodDays.disabled = !!isLoading;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_showError_(message) {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'block';
+      errorBox.textContent = message || '오류가 발생했다.';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_clearError_() {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'none';
+      errorBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_showSuccess_(message) {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'block';
+      successBox.textContent = message || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_clearSuccess_() {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'none';
+      successBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_clearNotice_() {
+    try {
+      V2_Dashboard_clearError_();
+      V2_Dashboard_clearSuccess_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_escapeHtml_(value) {
+    try {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_Dashboard_toNumber_(value) {
+    try {
+      var numberValue = Number(value);
+      return isNaN(numberValue) ? 0 : numberValue;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function V2_Dashboard_getSelectedDays_() {
+    try {
+      var periodDays = document.getElementById('periodDays');
+      var value = periodDays ? Number(periodDays.value) : 7;
+
+      if (isNaN(value) || value < 1) {
+        return 7;
+      }
+
+      if (value > 30) {
+        return 30;
+      }
+
+      return Math.floor(value);
+    } catch (error) {
+      return 7;
+    }
+  }
+
+  function V2_Dashboard_resetView_() {
+    try {
+      var periodDays = document.getElementById('periodDays');
+      if (periodDays) {
+        periodDays.value = '7';
+      }
+
+      V2_DASHBOARD_STATE.periodDays = 7;
+      V2_DASHBOARD_STATE.snapshot = null;
+      V2_Dashboard_clearNotice_();
+      V2_Dashboard_renderEmptySummary_();
+      V2_Dashboard_renderStatusBox_();
+      V2_Dashboard_renderGuideBox_();
+      V2_Dashboard_renderTableEmpty_('대시보드 데이터를 다시 불러와라.');
+    } catch (error) {
+      V2_Dashboard_showError_(error.message || '초기화 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_Dashboard_renderEmptySummary_() {
+    try {
+      var summaryGrid = document.getElementById('summaryGrid');
+      if (!summaryGrid) {
+        return;
+      }
+
+      var html = '';
+      html += V2_Dashboard_buildSummaryCard_('반 수', '0', '표시할 반이 없다.');
+      html += V2_Dashboard_buildSummaryCard_('재학 학생 수', '0', '집계 대상 학생이 없다.');
+      html += V2_Dashboard_buildSummaryCard_('평균 출석률', '0%', '최근 집계 데이터가 없다.');
+      html += V2_Dashboard_buildSummaryCard_('평균 점수', '-', '성적 데이터가 없다.');
+      summaryGrid.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_buildSummaryCard_(label, value, subText) {
+    try {
+      var html = '';
+      html += '<div class="summary-card">';
+      html += '<div class="summary-label">' + V2_Dashboard_escapeHtml_(label) + '</div>';
+      html += '<div class="summary-value">' + V2_Dashboard_escapeHtml_(value) + '</div>';
+      html += '<div class="summary-sub">' + V2_Dashboard_escapeHtml_(subText || '') + '</div>';
+      html += '</div>';
+      return html;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_Dashboard_calculateAverageAttendanceRate_(items) {
+    try {
+      if (!items || items.length < 1) {
+        return '0%';
+      }
+
+      var totalRate = 0;
+      var validCount = 0;
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var rateText = String(item.attendanceRate7Days || '0').replace('%', '');
+        var rateValue = Number(rateText);
+
+        if (isNaN(rateValue)) {
+          continue;
+        }
+
+        totalRate += rateValue;
+        validCount += 1;
+      }
+
+      if (validCount < 1) {
+        return '0%';
+      }
+
+      return (Math.round((totalRate / validCount) * 10) / 10) + '%';
+    } catch (error) {
+      return '0%';
+    }
+  }
+
+  function V2_Dashboard_calculateAverageScore_(items) {
+    try {
+      if (!items || items.length < 1) {
+        return '-';
+      }
+
+      var totalScore = 0;
+      var validCount = 0;
+
+      for (var i = 0; i < items.length; i++) {
+        var averageScore = items[i].averageScore;
+
+        if (averageScore === '' || averageScore === null || averageScore === undefined) {
+          continue;
+        }
+
+        var numberValue = Number(averageScore);
+        if (isNaN(numberValue)) {
+          continue;
+        }
+
+        totalScore += numberValue;
+        validCount += 1;
+      }
+
+      if (validCount < 1) {
+        return '-';
+      }
+
+      return String(Math.round((totalScore / validCount) * 10) / 10);
+    } catch (error) {
+      return '-';
+    }
+  }
+
+  function V2_Dashboard_renderSummary_(snapshot) {
+    try {
+      var summaryGrid = document.getElementById('summaryGrid');
+      if (!summaryGrid) {
+        return;
+      }
+
+      snapshot = snapshot || {};
+      var items = snapshot.items || [];
+      var averageAttendanceRate = V2_Dashboard_calculateAverageAttendanceRate_(items);
+      var averageScore = V2_Dashboard_calculateAverageScore_(items);
+
+      var html = '';
+      html += V2_Dashboard_buildSummaryCard_(
+        '반 수',
+        String(snapshot.totalClassCount || 0),
+        '대시보드에 표시된 반 기준'
+      );
+      html += V2_Dashboard_buildSummaryCard_(
+        '재학 학생 수',
+        String(snapshot.totalStudentCount || 0),
+        '재학 상태 학생만 포함'
+      );
+      html += V2_Dashboard_buildSummaryCard_(
+        '평균 출석률',
+        averageAttendanceRate,
+        '최근 ' + String(snapshot.periodDays || 7) + '일 반별 평균'
+      );
+      html += V2_Dashboard_buildSummaryCard_(
+        '평균 점수',
+        averageScore,
+        averageScore === '-' ? '성적 데이터가 없다.' : '반별 평균 점수 기준'
+      );
+
+      summaryGrid.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_renderStatusBox_() {
+    try {
+      var statusBox = document.getElementById('statusBox');
+      if (!statusBox) {
+        return;
+      }
+
+      var snapshot = V2_DASHBOARD_STATE.snapshot;
+      var days = V2_DASHBOARD_STATE.periodDays || 7;
+      var lines = [];
+
+      if (!snapshot) {
+        lines.push('대시보드 상태');
+        lines.push('상태: 조회 전');
+        lines.push('집계 기간: 최근 ' + days + '일');
+        lines.push('새로고침 버튼으로 대시보드를 불러와라.');
+        statusBox.textContent = lines.join('\n');
+        return;
+      }
+
+      lines.push('대시보드 상태');
+      lines.push('상태: 조회 완료');
+      lines.push('집계 기간: 최근 ' + (snapshot.periodDays || days) + '일');
+      lines.push('생성 시각: ' + (snapshot.generatedAt || ''));
+      lines.push('반 수: ' + String(snapshot.totalClassCount || 0));
+      lines.push('재학 학생 수: ' + String(snapshot.totalStudentCount || 0));
+
+      statusBox.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_renderGuideBox_() {
+    try {
+      var guideBox = document.getElementById('guideBox');
+      if (!guideBox) {
+        return;
+      }
+
+      var snapshot = V2_DASHBOARD_STATE.snapshot;
+      var days = V2_DASHBOARD_STATE.periodDays || 7;
+      var lines = [];
+
+      lines.push('사용 안내');
+      lines.push('1. 집계 기간을 선택한 뒤 새로고침을 눌러라.');
+      lines.push('2. 학생 수는 재학 상태만 포함된다.');
+      lines.push('3. 출석률은 최근 ' + days + '일 출석 데이터 기준이다.');
+      lines.push('4. 점수는 반별 평균 점수 기준이다.');
+
+      if (snapshot && snapshot.items && snapshot.items.length > 0) {
+        lines.push('현재 상태: 반별 현황 ' + snapshot.items.length + '건 표시 중');
+      } else {
+        lines.push('현재 상태: 표시할 데이터가 아직 없다.');
+      }
+
+      guideBox.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_getRateClass_(rateText) {
+    try {
+      var rateValue = Number(String(rateText || '0').replace('%', ''));
+
+      if (isNaN(rateValue)) {
+        return '';
+      }
+
+      if (rateValue >= 90) {
+        return 'rate-good';
+      }
+
+      if (rateValue >= 75) {
+        return 'rate-normal';
+      }
+
+      return 'rate-low';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_Dashboard_renderTableEmpty_(message) {
+    try {
+      var tableWrap = document.getElementById('tableWrap');
+      if (!tableWrap) {
+        return;
+      }
+
+      tableWrap.innerHTML = '<div class="empty-box">' + V2_Dashboard_escapeHtml_(message || '표시할 데이터가 없다.') + '</div>';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_Dashboard_renderTable_(items) {
+    try {
+      var tableWrap = document.getElementById('tableWrap');
+      if (!tableWrap) {
+        return;
+      }
+
+      if (!items || items.length < 1) {
+        V2_Dashboard_renderTableEmpty_('표시할 반별 현황 데이터가 없다.');
+        return;
+      }
+
+      var html = '';
+      html += '<table>';
+      html += '<thead><tr>';
+      html += '<th style="width: 120px;">반 ID</th>';
+      html += '<th style="width: 140px;">반명</th>';
+      html += '<th style="width: 110px;">학생 수</th>';
+      html += '<th style="width: 130px;">출석률</th>';
+      html += '<th style="width: 110px;">출석 건수</th>';
+      html += '<th style="width: 220px;">출석 상세</th>';
+      html += '<th style="width: 110px;">평균 점수</th>';
+      html += '</tr></thead><tbody>';
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var rateClass = V2_Dashboard_getRateClass_(item.attendanceRate7Days || '0%');
+        var attendanceDetail =
+          '출석 ' + String(item.presentCount7Days || 0) + ' / ' +
+          '지각 ' + String(item.lateCount7Days || 0) + ' / ' +
+          '인정 ' + String(item.excusedCount7Days || 0) + ' / ' +
+          '결석 ' + String(item.absentCount7Days || 0);
+
+        html += '<tr>';
+        html += '<td>' + V2_Dashboard_escapeHtml_(item.classId || '') + '</td>';
+        html += '<td>' + V2_Dashboard_escapeHtml_(item.className || '') + '</td>';
+        html += '<td>' + V2_Dashboard_escapeHtml_(String(item.studentCount || 0)) + '</td>';
+        html += '<td class="' + V2_Dashboard_escapeHtml_(rateClass) + '">' + V2_Dashboard_escapeHtml_(item.attendanceRate7Days || '0%') + '</td>';
+        html += '<td>' + V2_Dashboard_escapeHtml_(String(item.attendanceCount7Days || 0)) + '</td>';
+        html += '<td>' + V2_Dashboard_escapeHtml_(attendanceDetail) + '</td>';
+        html += '<td>' + V2_Dashboard_escapeHtml_(item.averageScoreText || '-') + '</td>';
+        html += '</tr>';
+      }
+
+      html += '</tbody></table>';
+      tableWrap.innerHTML = html;
+    } catch (error) {
+      V2_Dashboard_renderTableEmpty_('반별 현황 표 생성 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_Dashboard_loadSnapshot_() {
+    try {
+      V2_Dashboard_clearNotice_();
+
+      var days = V2_Dashboard_getSelectedDays_();
+      V2_DASHBOARD_STATE.periodDays = days;
+      V2_Dashboard_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_Dashboard_setLoading_(false);
+
+          if (!response || response.success !== true || !response.data) {
+            V2_DASHBOARD_STATE.snapshot = null;
+            V2_Dashboard_renderEmptySummary_();
+            V2_Dashboard_renderStatusBox_();
+            V2_Dashboard_renderGuideBox_();
+            V2_Dashboard_renderTableEmpty_(
+              response && response.message ? response.message : '대시보드 데이터를 불러오지 못했다.'
+            );
+            V2_Dashboard_showError_(
+              response && response.message ? response.message : '대시보드 조회에 실패했다.'
+            );
+            return;
+          }
+
+          V2_DASHBOARD_STATE.snapshot = response.data;
+          V2_Dashboard_renderSummary_(response.data);
+          V2_Dashboard_renderStatusBox_();
+          V2_Dashboard_renderGuideBox_();
+          V2_Dashboard_renderTable_(response.data.items || []);
+          V2_Dashboard_showSuccess_(response.message || '홈 대시보드 데이터를 불러왔다.');
+        })
+        .withFailureHandler(function(error) {
+          V2_Dashboard_setLoading_(false);
+          V2_DASHBOARD_STATE.snapshot = null;
+          V2_Dashboard_renderEmptySummary_();
+          V2_Dashboard_renderStatusBox_();
+          V2_Dashboard_renderGuideBox_();
+          V2_Dashboard_renderTableEmpty_('대시보드 데이터를 불러오지 못했다.');
+          V2_Dashboard_showError_(
+            error && error.message ? error.message : '대시보드 조회 중 오류가 발생했다.'
+          );
+        })
+        .V2_DashboardService_getDashboardSnapshot({
+          days: days
+        });
+    } catch (error) {
+      V2_Dashboard_setLoading_(false);
+      V2_Dashboard_showError_(error.message || '대시보드 조회 처리 중 오류가 발생했다.');
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_Dashboard_renderEmptySummary_();
+      V2_Dashboard_renderStatusBox_();
+      V2_Dashboard_renderGuideBox_();
+      V2_Dashboard_renderTableEmpty_('대시보드 데이터를 불러오는 중이다.');
+      V2_Dashboard_loadSnapshot_();
+    } catch (error) {
+      V2_Dashboard_showError_(error.message || '초기 로딩 중 오류가 발생했다.');
+    }
+  });
+</script>
