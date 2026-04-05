@@ -1,0 +1,290 @@
+<!-- V2_Teacher_Context.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f7fb;
+        color: #1f2937;
+      }
+
+      .page {
+        padding: 20px;
+      }
+
+      .title-area {
+        margin-bottom: 16px;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: bold;
+        color: #1f4e78;
+      }
+
+      .desc {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #5b6470;
+      }
+
+      .panel {
+        background: #ffffff;
+        border: 1px solid #d8e2ee;
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        margin-bottom: 16px;
+      }
+
+      .loading-box {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        background: #eef4ff;
+        border: 1px solid #d5e3ff;
+        color: #274c77;
+        font-size: 13px;
+      }
+
+      .notice {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        white-space: pre-line;
+      }
+
+      .notice.error {
+        background: #fdecec;
+        border: 1px solid #f5c2c7;
+        color: #a61b1b;
+      }
+
+      .notice.success {
+        background: #eaf7ee;
+        border: 1px solid #b7e1c1;
+        color: #1f6b3b;
+      }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #1f4e78;
+        margin-bottom: 10px;
+        padding-left: 10px;
+        border-left: 4px solid #1f4e78;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .status-box {
+        border: 1px solid #d8e2ee;
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 13px;
+        white-space: pre-line;
+        min-height: 120px;
+      }
+
+      .status-box.info {
+        background: #f8fbff;
+        border-color: #d9e6f5;
+        color: #334155;
+      }
+
+      .status-box.guide {
+        background: #fffaf2;
+        border-color: #f3dfb7;
+        color: #6c4d10;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .field label {
+        font-size: 13px;
+        font-weight: bold;
+        color: #344054;
+      }
+
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 9px 10px;
+        border: 1px solid #cdd6e1;
+        border-radius: 8px;
+        font-size: 13px;
+        background: #fff;
+      }
+
+      .field input {
+        height: 38px;
+      }
+
+      .field textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      .field input:focus,
+      .field textarea:focus {
+        outline: none;
+        border-color: #1f4e78;
+        box-shadow: 0 0 0 2px rgba(31, 78, 120, 0.12);
+      }
+
+      .readonly {
+        background: #f8fafc !important;
+        color: #667085;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .btn-primary {
+        background: #1f4e78;
+        color: #ffffff;
+      }
+
+      .btn-secondary {
+        background: #e7eef7;
+        color: #1f3347;
+      }
+
+      .btn-light {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .preview-box {
+        border: 1px solid #d8e2ee;
+        border-radius: 12px;
+        background: #f8fbff;
+        padding: 14px;
+        font-size: 13px;
+        white-space: pre-line;
+        min-height: 140px;
+        color: #334155;
+      }
+
+      @media (max-width: 900px) {
+        .status-grid,
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="title-area">
+        <h1 class="title">교사 정보 자동 입력</h1>
+        <div class="desc">로그인 사용자 기준 교사 정보를 자동 확인하고, 화면 입력용 교사명을 안정적으로 관리할 수 있다.</div>
+      </div>
+
+      <div class="panel">
+        <div id="loadingBox" class="loading-box">교사 정보를 불러오는 중이다.</div>
+        <div id="errorBox" class="notice error"></div>
+        <div id="successBox" class="notice success"></div>
+
+        <div class="status-grid">
+          <div id="teacherStatusBox" class="status-box info"></div>
+          <div id="guideBox" class="status-box guide"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">자동 입력 정보</div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="teacherName">교사명</label>
+            <input type="text" id="teacherName" placeholder="교사명 자동 입력">
+          </div>
+
+          <div class="field">
+            <label for="teacherEmail">이메일</label>
+            <input type="text" id="teacherEmail" class="readonly" readonly>
+          </div>
+
+          <div class="field">
+            <label for="teacherId">교사 ID</label>
+            <input type="text" id="teacherId" class="readonly" readonly>
+          </div>
+
+          <div class="field">
+            <label for="teacherPhone">연락처</label>
+            <input type="text" id="teacherPhone" class="readonly" readonly>
+          </div>
+
+          <div class="field">
+            <label for="teacherStatus">재직 상태</label>
+            <input type="text" id="teacherStatus" class="readonly" readonly>
+          </div>
+
+          <div class="field">
+            <label for="autoDetectedFlag">자동 확인 결과</label>
+            <input type="text" id="autoDetectedFlag" class="readonly" readonly>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="reloadButton" class="btn btn-primary" onclick="V2_TeacherContext_loadCurrentTeacherContext_()">자동 다시 불러오기</button>
+          <button type="button" class="btn btn-secondary" onclick="V2_TeacherContext_applyAutoFillName_()">자동 교사명 다시 적용</button>
+          <button type="button" class="btn btn-light" onclick="V2_TeacherContext_resetEditor_()">입력 초기화</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">입력 미리보기</div>
+        <div id="previewBox" class="preview-box"></div>
+      </div>
+    </div>
+
+    <?!= V2_include('V2_Teacher_Context_JS'); ?>
+  </body>
+</html>
