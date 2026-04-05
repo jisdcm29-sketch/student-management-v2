@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f7fb;
+        color: #1f2937;
+      }
+
+      .page {
+        padding: 20px;
+      }
+
+      .title-area {
+        margin-bottom: 18px;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 800;
+        color: #163e68;
+        letter-spacing: -0.2px;
+      }
+
+      .desc {
+        margin-top: 8px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #5b6470;
+      }
+
+      .panel {
+        background: #ffffff;
+        border: 1px solid #d8e2ee;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        margin-bottom: 16px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 180px;
+      }
+
+      .field.wide {
+        min-width: 260px;
+      }
+
+      .field label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #344054;
+      }
+
+      .field input[type="text"],
+      .field input[type="date"] {
+        width: 100%;
+        height: 40px;
+        padding: 8px 10px;
+        border: 1px solid #cdd6e1;
+        border-radius: 10px;
+        font-size: 13px;
+        background: #fff;
+      }
+
+      .field input[type="text"]:focus,
+      .field input[type="date"]:focus {
+        outline: none;
+        border-color: #1f4e78;
+        box-shadow: 0 0 0 2px rgba(31, 78, 120, 0.12);
+      }
+
+      .checkbox-field {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        padding-top: 20px;
+      }
+
+      .checkbox-field label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #344054;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .btn-primary {
+        background: #1f4e78;
+        color: #ffffff;
+      }
+
+      .btn-light {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .btn-success {
+        background: #1f7a4d;
+        color: #ffffff;
+      }
+
+      .btn-warning {
+        background: #b26b00;
+        color: #ffffff;
+      }
+
+      .loading-box {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        background: #eef4ff;
+        border: 1px solid #d5e3ff;
+        color: #274c77;
+        font-size: 13px;
+      }
+
+      .notice {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        white-space: pre-line;
+      }
+
+      .notice.error {
+        background: #fdecec;
+        border: 1px solid #f5c2c7;
+        color: #a61b1b;
+      }
+
+      .notice.success {
+        background: #eaf7ee;
+        border: 1px solid #b7e1c1;
+        color: #1f6b3b;
+      }
+
+      .notice.warning {
+        background: #fff8e8;
+        border: 1px solid #f3d28b;
+        color: #8a5a00;
+      }
+
+      .section-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #163e68;
+        margin-bottom: 14px;
+        padding-left: 10px;
+        border-left: 5px solid #1f4e78;
+        letter-spacing: -0.1px;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .status-box {
+        border: 1px solid #d8e2ee;
+        border-radius: 14px;
+        padding: 16px;
+        font-size: 13px;
+        white-space: pre-line;
+        min-height: 118px;
+        line-height: 1.65;
+      }
+
+      .status-box.info {
+        background: #f8fbff;
+        border-color: #d9e6f5;
+        color: #334155;
+      }
+
+      .status-box.guide {
+        background: #fffaf2;
+        border-color: #f3dfb7;
+        color: #6c4d10;
+      }
+
+      .status-box.validation {
+        background: #f7fbf8;
+        border-color: #cfe5d8;
+        color: #1f4f38;
+      }
+
+      .status-box.log {
+        background: #f8f8ff;
+        border-color: #ddd9ff;
+        color: #413a78;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .summary-card {
+        border: 1px solid #d8e2ee;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fbfdff 0%, #f4f8fd 100%);
+        padding: 16px;
+      }
+
+      .summary-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #667085;
+        margin-bottom: 10px;
+      }
+
+      .summary-value {
+        font-size: 28px;
+        font-weight: 800;
+        color: #1f3b5c;
+        line-height: 1.2;
+      }
+
+      .summary-sub {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #667085;
+        white-space: pre-line;
+        line-height: 1.5;
+      }
+
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+      }
+
+      th,
+      td {
+        border: 1px solid #dbe5f0;
+        padding: 9px 10px;
+        font-size: 13px;
+        text-align: center;
+        vertical-align: middle;
+        word-break: break-word;
+        white-space: nowrap;
+      }
+
+      th {
+        background: #edf4fb;
+        color: #1f3b5c;
+        font-weight: 700;
+      }
+
+      th.sticky-col,
+      td.sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #ffffff;
+      }
+
+      th.sticky-col {
+        z-index: 3;
+        background: #edf4fb;
+      }
+
+      th.sticky-col-2,
+      td.sticky-col-2 {
+        position: sticky;
+        left: 110px;
+        z-index: 2;
+        background: #ffffff;
+      }
+
+      th.sticky-col-2 {
+        z-index: 3;
+        background: #edf4fb;
+      }
+
+      .student-id-col {
+        min-width: 110px;
+        text-align: left;
+      }
+
+      .student-name-col {
+        min-width: 120px;
+        text-align: left;
+      }
+
+      .date-col {
+        min-width: 110px;
+      }
+
+      .status-cell {
+        font-weight: 700;
+      }
+
+      .status-present {
+        color: #1f7a4d;
+      }
+
+      .status-late {
+        color: #b26b00;
+      }
+
+      .status-absent {
+        color: #b42318;
+      }
+
+      .status-excused {
+        color: #2563eb;
+      }
+
+      .status-empty {
+        color: #98a2b3;
+      }
+
+      .empty-box {
+        padding: 24px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        background: #fcfdff;
+        color: #667085;
+        text-align: center;
+        font-size: 13px;
+      }
+
+      .mini-note {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #667085;
+        line-height: 1.5;
+      }
+
+      .class-search-wrap {
+        position: relative;
+      }
+
+      .class-search-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        border: 1px solid #cdd6e1;
+        border-radius: 10px;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 20;
+      }
+
+      .class-search-item {
+        padding: 10px 12px;
+        border-bottom: 1px solid #edf2f7;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .class-search-item:last-child {
+        border-bottom: none;
+      }
+
+      .class-search-item:hover,
+      .class-search-item.active {
+        background: #eef4ff;
+      }
+
+      .class-search-name {
+        font-weight: 700;
+        color: #1f3b5c;
+      }
+
+      .class-search-meta {
+        margin-top: 2px;
+        font-size: 12px;
+        color: #667085;
+      }
+
+      .selected-class-chip {
+        display: none;
+        margin-top: 6px;
+        padding: 8px 10px;
+        background: #eef4ff;
+        border: 1px solid #d5e3ff;
+        border-radius: 10px;
+        font-size: 12px;
+        color: #1f4e78;
+      }
+
+      @media (max-width: 960px) {
+        .status-grid,
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .field,
+        .field.wide {
+          min-width: 100%;
+        }
+
+        .title {
+          font-size: 24px;
+        }
+
+        .section-title {
+          font-size: 18px;
+        }
+
+        .summary-value {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="title-area">
+        <h1 class="title">반별 기간 출석부</h1>
+        <div class="desc">
+          반을 검색해 선택하고 조회 기간을 입력하면 학생 행 / 날짜 열 기준의 출석부를 조회할 수 있다.
+          이 화면은 엑셀 출력 / 업로드 검증 / 업로드 반영의 기준 화면으로 사용된다.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div id="loadingBox" class="loading-box">반별 기간 출석부 데이터를 불러오는 중이다.</div>
+        <div id="errorBox" class="notice error"></div>
+        <div id="successBox" class="notice success"></div>
+        <div id="warningBox" class="notice warning"></div>
+
+        <div class="toolbar">
+          <div class="field wide class-search-wrap">
+            <label for="classSearchInput">반 검색</label>
+            <input type="text" id="classSearchInput" placeholder="반명 또는 반ID 검색">
+            <input type="hidden" id="classId">
+            <div id="classSearchDropdown" class="class-search-dropdown"></div>
+            <div id="selectedClassChip" class="selected-class-chip"></div>
+          </div>
+
+          <div class="field">
+            <label for="startDate">시작일</label>
+            <input type="date" id="startDate">
+          </div>
+
+          <div class="field">
+            <label for="endDate">종료일</label>
+            <input type="date" id="endDate">
+          </div>
+
+          <div class="checkbox-field">
+            <input type="checkbox" id="includeInactive">
+            <label for="includeInactive">재학 외 학생 포함</label>
+          </div>
+
+          <div class="btn-row">
+            <button type="button" id="searchButton" class="btn btn-primary" onclick="V2_AttendanceSheet_loadSheet_()">출석부 조회</button>
+            <button type="button" id="downloadExcelButton" class="btn btn-success" onclick="V2_AttendanceSheet_downloadExcel_()">엑셀 출력</button>
+            <button type="button" id="validateUploadButton" class="btn btn-warning" onclick="V2_AttendanceSheet_openUploadFileSelector_()">업로드 검증</button>
+            <button type="button" id="applyUploadButton" class="btn btn-success" onclick="V2_AttendanceSheet_openApplyUploadFileSelector_()">업로드 반영</button>
+            <button type="button" class="btn btn-light" onclick="V2_AttendanceSheet_resetView_()">초기화</button>
+          </div>
+        </div>
+
+        <input type="file" id="attendanceUploadFileInput" accept=".csv,.xls,.xlsx" style="display:none;">
+      </div>
+
+      <div class="panel">
+        <div class="status-grid">
+          <div id="statusBox" class="status-box info"></div>
+          <div id="guideBox" class="status-box guide"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">업로드 검증 / 오류 로그 안내</div>
+        <div class="status-grid">
+          <div id="uploadValidationGuideBox" class="status-box validation">
+업로드 처리 기준
+1. 반드시 현재 화면의 반 ID / 기간 조건과 일치해야 한다.
+2. 엑셀 출력으로 받은 표준 양식 기준 파일만 검증 또는 반영한다.
+3. 업로드 검증은 저장 없이 검사만 수행한다.
+4. 업로드 반영은 먼저 검증을 통과한 뒤 실제 저장을 수행한다.
+5. 오류 또는 경고 발생 시 상단 알림 박스에 결과가 표시된다.
+          </div>
+          <div id="uploadLogGuideBox" class="status-box log">
+로그 저장 기준
+1. 업로드 검증 실패 / 경고 / 반영 결과는 V2_Logs에 기록된다.
+2. detail 원문과 detailJson 구조를 함께 보관한다.
+3. 검증과 반영 단계 모두 같은 로그 구조를 재사용한다.
+4. source / level / createdAt 기준으로 추적 가능하다.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">출석부 요약</div>
+        <div id="summaryGrid" class="summary-grid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">출석부 표</div>
+        <div id="tableWrap" class="table-wrap">
+          <div class="empty-box">반을 선택하고 기간을 입력한 뒤 출석부 조회를 실행해라.</div>
+        </div>
+        <div class="mini-note">
+          안내: 출석 상태는 출석 / 지각 / 결석 / 공결 기준으로 표시된다.
+          날짜 열은 선택한 기간 전체가 고정 순서로 생성된다.
+          엑셀 출력은 현재 조회 조건 기준 표준 양식으로 다운로드된다.
+        </div>
+      </div>
+    </div>
+
+    <?!= V2_include('V2_Attendance_Sheet_JS'); ?>
+  </body>
+</html>
