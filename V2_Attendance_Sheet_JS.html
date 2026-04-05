@@ -1,0 +1,1587 @@
+<script>
+  var V2_ATTENDANCE_SHEET_STATE = {
+    sheetData: null,
+    exportData: null,
+    validationResult: null,
+    uploadMode: 'validate',
+    classSearchItems: [],
+    selectedClass: null,
+    request: {
+      classId: '',
+      startDate: '',
+      endDate: '',
+      includeInactive: false
+    }
+  };
+
+  function V2_AttendanceSheet_setLoading_(isLoading) {
+    try {
+      var loadingBox = document.getElementById('loadingBox');
+      var searchButton = document.getElementById('searchButton');
+      var downloadExcelButton = document.getElementById('downloadExcelButton');
+      var validateUploadButton = document.getElementById('validateUploadButton');
+      var applyUploadButton = document.getElementById('applyUploadButton');
+      var classId = document.getElementById('classId');
+      var classSearchInput = document.getElementById('classSearchInput');
+      var startDate = document.getElementById('startDate');
+      var endDate = document.getElementById('endDate');
+      var includeInactive = document.getElementById('includeInactive');
+
+      if (loadingBox) {
+        loadingBox.style.display = isLoading ? 'block' : 'none';
+      }
+
+      if (searchButton) {
+        searchButton.disabled = !!isLoading;
+      }
+
+      if (downloadExcelButton) {
+        downloadExcelButton.disabled = !!isLoading;
+      }
+
+      if (validateUploadButton) {
+        validateUploadButton.disabled = !!isLoading;
+      }
+
+      if (applyUploadButton) {
+        applyUploadButton.disabled = !!isLoading;
+      }
+
+      if (classId) {
+        classId.disabled = !!isLoading;
+      }
+
+      if (classSearchInput) {
+        classSearchInput.disabled = !!isLoading;
+      }
+
+      if (startDate) {
+        startDate.disabled = !!isLoading;
+      }
+
+      if (endDate) {
+        endDate.disabled = !!isLoading;
+      }
+
+      if (includeInactive) {
+        includeInactive.disabled = !!isLoading;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_showError_(message) {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'block';
+      errorBox.textContent = message || '오류가 발생했다.';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_clearError_() {
+    try {
+      var errorBox = document.getElementById('errorBox');
+      if (!errorBox) {
+        return;
+      }
+
+      errorBox.style.display = 'none';
+      errorBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_showSuccess_(message) {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'block';
+      successBox.textContent = message || '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_clearSuccess_() {
+    try {
+      var successBox = document.getElementById('successBox');
+      if (!successBox) {
+        return;
+      }
+
+      successBox.style.display = 'none';
+      successBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_showWarning_(message) {
+    try {
+      var warningBox = document.getElementById('warningBox');
+      if (!warningBox) {
+        return;
+      }
+
+      warningBox.style.display = 'block';
+      warningBox.textContent = message || '경고가 있다.';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_clearWarning_() {
+    try {
+      var warningBox = document.getElementById('warningBox');
+      if (!warningBox) {
+        return;
+      }
+
+      warningBox.style.display = 'none';
+      warningBox.textContent = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_clearNotice_() {
+    try {
+      V2_AttendanceSheet_clearError_();
+      V2_AttendanceSheet_clearSuccess_();
+      V2_AttendanceSheet_clearWarning_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_escapeHtml_(value) {
+    try {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_AttendanceSheet_toNumber_(value) {
+    try {
+      var numberValue = Number(value);
+      return isNaN(numberValue) ? 0 : numberValue;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function V2_AttendanceSheet_normalizeText_(value) {
+    try {
+      return String(value || '').trim();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_AttendanceSheet_getRequest_() {
+    try {
+      return {
+        classId: V2_AttendanceSheet_normalizeText_(document.getElementById('classId').value),
+        startDate: V2_AttendanceSheet_normalizeText_(document.getElementById('startDate').value),
+        endDate: V2_AttendanceSheet_normalizeText_(document.getElementById('endDate').value),
+        includeInactive: !!document.getElementById('includeInactive').checked
+      };
+    } catch (error) {
+      return {
+        classId: '',
+        startDate: '',
+        endDate: '',
+        includeInactive: false
+      };
+    }
+  }
+
+  function V2_AttendanceSheet_validateRequest_(request) {
+    try {
+      request = request || V2_AttendanceSheet_getRequest_();
+
+      if (!request.classId) {
+        throw new Error('반을 클릭해서 먼저 선택해라.');
+      }
+
+      if (!request.startDate || !request.endDate) {
+        throw new Error('시작일과 종료일을 모두 입력해라.');
+      }
+
+      if (request.startDate > request.endDate) {
+        throw new Error('조회 기간이 올바르지 않다. 시작일이 종료일보다 늦다.');
+      }
+
+      return request;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_AttendanceSheet_buildSummaryCard_(label, value, subText) {
+    try {
+      var html = '';
+      html += '<div class="summary-card">';
+      html += '<div class="summary-label">' + V2_AttendanceSheet_escapeHtml_(label) + '</div>';
+      html += '<div class="summary-value">' + V2_AttendanceSheet_escapeHtml_(value) + '</div>';
+      html += '<div class="summary-sub">' + V2_AttendanceSheet_escapeHtml_(subText || '') + '</div>';
+      html += '</div>';
+      return html;
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function V2_AttendanceSheet_renderEmptySummary_() {
+    try {
+      var summaryGrid = document.getElementById('summaryGrid');
+      if (!summaryGrid) {
+        return;
+      }
+
+      var html = '';
+      html += V2_AttendanceSheet_buildSummaryCard_('학생 수', '0', '표시할 학생이 없다.');
+      html += V2_AttendanceSheet_buildSummaryCard_('출석 입력 건수', '0', '기간 내 입력된 출석이 없다.');
+      html += V2_AttendanceSheet_buildSummaryCard_('출석', '0', '출석 상태 건수');
+      html += V2_AttendanceSheet_buildSummaryCard_('지각 / 결석 / 공결', '0 / 0 / 0', '기간 내 상태 요약');
+      summaryGrid.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_renderSummary_(sheetData) {
+    try {
+      var summaryGrid = document.getElementById('summaryGrid');
+      if (!summaryGrid) {
+        return;
+      }
+
+      sheetData = sheetData || {};
+      var summary = sheetData.summary || {};
+      var period = sheetData.period || {};
+      var html = '';
+
+      html += V2_AttendanceSheet_buildSummaryCard_(
+        '학생 수',
+        String(summary.totalStudentCount || 0),
+        '조회 반 학생 기준'
+      );
+
+      html += V2_AttendanceSheet_buildSummaryCard_(
+        '출석 입력 건수',
+        String(summary.totalAttendanceCount || 0),
+        '기간 내 상태 입력 건수'
+      );
+
+      html += V2_AttendanceSheet_buildSummaryCard_(
+        '출석',
+        String(summary.presentCount || 0),
+        '정상 출석 처리 건수'
+      );
+
+      html += V2_AttendanceSheet_buildSummaryCard_(
+        '지각 / 결석 / 공결',
+        String(summary.lateCount || 0) + ' / ' + String(summary.absentCount || 0) + ' / ' + String(summary.excusedCount || 0),
+        '조회 기간: ' + (period.startDate || '') + ' ~ ' + (period.endDate || '')
+      );
+
+      summaryGrid.innerHTML = html;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_renderStatusBox_() {
+    try {
+      var statusBox = document.getElementById('statusBox');
+      if (!statusBox) {
+        return;
+      }
+
+      var sheetData = V2_ATTENDANCE_SHEET_STATE.sheetData;
+      var request = V2_ATTENDANCE_SHEET_STATE.request || {};
+      var lines = [];
+
+      if (!sheetData) {
+        lines.push('출석부 상태');
+        lines.push('상태: 조회 전');
+        lines.push('반을 선택하고 기간 조건을 입력한 뒤 출석부 조회를 실행해라.');
+        statusBox.textContent = lines.join('\n');
+        return;
+      }
+
+      lines.push('출석부 상태');
+      lines.push('상태: 조회 완료');
+      lines.push('반 ID: ' + (sheetData.classInfo && sheetData.classInfo.classId ? sheetData.classInfo.classId : ''));
+      lines.push('반명: ' + (sheetData.classInfo && sheetData.classInfo.className ? sheetData.classInfo.className : ''));
+      lines.push('조회 기간: ' + (sheetData.period && sheetData.period.startDate ? sheetData.period.startDate : '') + ' ~ ' + (sheetData.period && sheetData.period.endDate ? sheetData.period.endDate : ''));
+      lines.push('표시 학생 수: ' + String(sheetData.summary && sheetData.summary.totalStudentCount ? sheetData.summary.totalStudentCount : 0));
+      lines.push('재학 외 포함: ' + (request.includeInactive ? '예' : '아니오'));
+      lines.push('생성 시각: ' + (sheetData.generatedAt || ''));
+
+      statusBox.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_renderGuideBox_() {
+    try {
+      var guideBox = document.getElementById('guideBox');
+      if (!guideBox) {
+        return;
+      }
+
+      var sheetData = V2_ATTENDANCE_SHEET_STATE.sheetData;
+      var lines = [];
+
+      lines.push('사용 안내');
+      lines.push('1. 반 선택 칸을 클릭해 목록을 열어라.');
+      lines.push('2. 목록에서 원하는 반을 클릭해 선택해라.');
+      lines.push('3. 시작일 / 종료일을 입력한 뒤 출석부 조회를 눌러라.');
+      lines.push('4. 학생은 기본적으로 재학 상태만 포함된다.');
+      lines.push('5. PDF 출력은 현재 조회 조건 기준 A4 표 형태로 저장된다.');
+      lines.push('6. 업로드는 별도 CSV 표준 양식 파일만 검증 또는 반영한다.');
+
+      if (sheetData && sheetData.dateColumns && sheetData.dateColumns.length > 0) {
+        lines.push('현재 상태: 날짜 열 ' + sheetData.dateColumns.length + '개 표시 중');
+      } else {
+        lines.push('현재 상태: 아직 표시된 출석부 표가 없다.');
+      }
+
+      guideBox.textContent = lines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_getStatusClass_(status) {
+    try {
+      var text = V2_AttendanceSheet_normalizeText_(status).toLowerCase();
+
+      if (!text) {
+        return 'status-empty';
+      }
+
+      if (text === '출석' || text === '재석' || text === 'present') {
+        return 'status-present';
+      }
+
+      if (text === '지각' || text === 'late') {
+        return 'status-late';
+      }
+
+      if (text === '공결' || text === '인정결석' || text === 'excused') {
+        return 'status-excused';
+      }
+
+      return 'status-absent';
+    } catch (error) {
+      return 'status-empty';
+    }
+  }
+
+  function V2_AttendanceSheet_renderTableEmpty_(message) {
+    try {
+      var tableWrap = document.getElementById('tableWrap');
+      if (!tableWrap) {
+        return;
+      }
+
+      tableWrap.innerHTML = '<div class="empty-box">' + V2_AttendanceSheet_escapeHtml_(message || '표시할 출석부 데이터가 없다.') + '</div>';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_renderTable_(sheetData) {
+    try {
+      var tableWrap = document.getElementById('tableWrap');
+      if (!tableWrap) {
+        return;
+      }
+
+      var dateColumns = (sheetData && sheetData.dateColumns) ? sheetData.dateColumns : [];
+      var studentRows = (sheetData && sheetData.studentRows) ? sheetData.studentRows : [];
+
+      if (studentRows.length < 1) {
+        V2_AttendanceSheet_renderTableEmpty_('표시할 학생별 출석부 데이터가 없다.');
+        return;
+      }
+
+      var html = '';
+      html += '<table>';
+      html += '<thead>';
+      html += '<tr>';
+      html += '<th class="sticky-col student-id-col">학생 ID</th>';
+      html += '<th class="sticky-col-2 student-name-col">학생명</th>';
+
+      for (var i = 0; i < dateColumns.length; i++) {
+        html += '<th class="date-col">' + V2_AttendanceSheet_escapeHtml_(dateColumns[i].displayLabel || dateColumns[i].date || '') + '</th>';
+      }
+
+      html += '</tr>';
+      html += '</thead>';
+      html += '<tbody>';
+
+      for (var j = 0; j < studentRows.length; j++) {
+        var row = studentRows[j];
+        html += '<tr>';
+        html += '<td class="sticky-col student-id-col">' + V2_AttendanceSheet_escapeHtml_(row.studentId || '') + '</td>';
+        html += '<td class="sticky-col-2 student-name-col">' + V2_AttendanceSheet_escapeHtml_(row.studentName || '') + '</td>';
+
+        var dateStatuses = row.dateStatuses || [];
+        for (var k = 0; k < dateStatuses.length; k++) {
+          var statusItem = dateStatuses[k];
+          var statusText = statusItem.status || '-';
+          var statusClass = V2_AttendanceSheet_getStatusClass_(statusItem.status || '');
+          var titleText =
+            '날짜: ' + (statusItem.date || '') + '\n' +
+            '상태: ' + (statusItem.status || '미입력') + '\n' +
+            '교사명: ' + (statusItem.teacherName || '') + '\n' +
+            '메모: ' + (statusItem.memo || '') + '\n' +
+            '수정일: ' + (statusItem.updatedAt || '');
+
+          html += '<td class="status-cell ' + V2_AttendanceSheet_escapeHtml_(statusClass) + '" title="' + V2_AttendanceSheet_escapeHtml_(titleText) + '">';
+          html += V2_AttendanceSheet_escapeHtml_(statusText);
+          html += '</td>';
+        }
+
+        html += '</tr>';
+      }
+
+      html += '</tbody>';
+      html += '</table>';
+
+      tableWrap.innerHTML = html;
+    } catch (error) {
+      V2_AttendanceSheet_renderTableEmpty_('출석부 표 생성 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_downloadBlobFile_(fileName, blob, mimeType) {
+    try {
+      var downloadBlob = blob;
+
+      if (!(downloadBlob instanceof Blob)) {
+        downloadBlob = new Blob([blob], { type: mimeType || 'application/octet-stream' });
+      }
+
+      var objectUrl = URL.createObjectURL(downloadBlob);
+      var link = document.createElement('a');
+
+      link.href = objectUrl;
+      link.download = fileName || 'download.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(function() {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch (revokeError) {
+          console.error(revokeError);
+        }
+      }, 1000);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_AttendanceSheet_base64ToUint8Array_(base64) {
+    try {
+      var normalized = String(base64 || '').replace(/\s/g, '');
+      var binaryString = window.atob(normalized);
+      var length = binaryString.length;
+      var bytes = new Uint8Array(length);
+
+      for (var i = 0; i < length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      return bytes;
+    } catch (error) {
+      throw new Error('PDF base64 변환 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_downloadBase64File_(fileName, base64, mimeType) {
+    try {
+      if (!base64) {
+        throw new Error('다운로드할 파일 데이터가 없다.');
+      }
+
+      var bytes = V2_AttendanceSheet_base64ToUint8Array_(base64);
+      var blob = new Blob([bytes], {
+        type: mimeType || 'application/pdf'
+      });
+
+      V2_AttendanceSheet_downloadBlobFile_(fileName || 'attendance.pdf', blob, mimeType || 'application/pdf');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_AttendanceSheet_createUploadUi_() {
+    try {
+      var warningBox = document.getElementById('warningBox');
+      if (!warningBox) {
+        var successBox = document.getElementById('successBox');
+        if (successBox) {
+          warningBox = document.createElement('div');
+          warningBox.id = 'warningBox';
+          warningBox.className = 'notice warning';
+          warningBox.style.display = 'none';
+          successBox.parentNode.insertBefore(warningBox, successBox.nextSibling);
+        }
+      }
+
+      var buttonRow = document.querySelector('.btn-row');
+      if (!buttonRow) {
+        return;
+      }
+
+      if (!document.getElementById('validateUploadButton')) {
+        var validateButton = document.createElement('button');
+        validateButton.type = 'button';
+        validateButton.id = 'validateUploadButton';
+        validateButton.className = 'btn btn-warning';
+        validateButton.textContent = '업로드 검증';
+        validateButton.addEventListener('click', V2_AttendanceSheet_openUploadFileSelector_);
+        buttonRow.appendChild(validateButton);
+      }
+
+      if (!document.getElementById('applyUploadButton')) {
+        var applyButton = document.createElement('button');
+        applyButton.type = 'button';
+        applyButton.id = 'applyUploadButton';
+        applyButton.className = 'btn btn-success';
+        applyButton.textContent = '업로드 반영';
+        applyButton.addEventListener('click', V2_AttendanceSheet_openApplyUploadFileSelector_);
+        buttonRow.appendChild(applyButton);
+      }
+
+      var fileInput = document.getElementById('attendanceUploadFileInput');
+      if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'attendanceUploadFileInput';
+        fileInput.accept = '.csv,.xls,.xlsx';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+      }
+
+      if (!fileInput.getAttribute('data-v2-upload-bound')) {
+        fileInput.addEventListener('change', V2_AttendanceSheet_handleUploadFileChange_);
+        fileInput.setAttribute('data-v2-upload-bound', 'true');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_openUploadFileSelector_() {
+    try {
+      V2_AttendanceSheet_openUploadFileSelectorByMode_('validate');
+    } catch (error) {
+      V2_AttendanceSheet_showError_(error.message || '업로드 파일 선택 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_openApplyUploadFileSelector_() {
+    try {
+      V2_AttendanceSheet_openUploadFileSelectorByMode_('apply');
+    } catch (error) {
+      V2_AttendanceSheet_showError_(error.message || '업로드 반영 파일 선택 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_openUploadFileSelectorByMode_(mode) {
+    try {
+      V2_AttendanceSheet_clearNotice_();
+
+      var request = V2_AttendanceSheet_validateRequest_(V2_AttendanceSheet_getRequest_());
+      V2_ATTENDANCE_SHEET_STATE.request = request;
+      V2_ATTENDANCE_SHEET_STATE.uploadMode = mode === 'apply' ? 'apply' : 'validate';
+
+      var fileInput = document.getElementById('attendanceUploadFileInput');
+      if (!fileInput) {
+        throw new Error('업로드 파일 선택기를 준비하지 못했다.');
+      }
+
+      fileInput.value = '';
+      fileInput.click();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_AttendanceSheet_handleUploadFileChange_(event) {
+    try {
+      var file = event && event.target && event.target.files ? event.target.files[0] : null;
+
+      if (!file) {
+        return;
+      }
+
+      var lowerFileName = V2_AttendanceSheet_normalizeText_(file.name).toLowerCase();
+      if (lowerFileName.indexOf('.csv') === -1 && lowerFileName.indexOf('.xls') === -1 && lowerFileName.indexOf('.xlsx') === -1) {
+        V2_AttendanceSheet_showError_('CSV 또는 엑셀 확장자 파일만 처리할 수 있다.');
+        return;
+      }
+
+      if (lowerFileName.indexOf('.xlsx') > -1) {
+        V2_AttendanceSheet_showError_('현재 단계에서는 CSV 또는 엑셀에서 CSV로 저장한 파일만 지원한다.');
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = function(loadEvent) {
+        try {
+          var text = loadEvent && loadEvent.target ? loadEvent.target.result : '';
+          var rows = V2_AttendanceSheet_parseCsvText_(text);
+
+          if (V2_ATTENDANCE_SHEET_STATE.uploadMode === 'apply') {
+            V2_AttendanceSheet_runUploadApply_(file.name, rows);
+          } else {
+            V2_AttendanceSheet_runUploadValidation_(file.name, rows);
+          }
+        } catch (parseError) {
+          V2_AttendanceSheet_showError_(parseError.message || '업로드 파일 읽기 중 오류가 발생했다.');
+        }
+      };
+      reader.onerror = function() {
+        V2_AttendanceSheet_showError_('업로드 파일을 읽지 못했다.');
+      };
+      reader.readAsText(file, 'utf-8');
+    } catch (error) {
+      V2_AttendanceSheet_showError_(error.message || '업로드 파일 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_parseCsvText_(text) {
+    try {
+      text = String(text || '');
+
+      if (!text) {
+        return [];
+      }
+
+      text = text.replace(/^\ufeff/, '');
+
+      var rows = [];
+      var currentRow = [];
+      var currentCell = '';
+      var inQuotes = false;
+
+      for (var i = 0; i < text.length; i++) {
+        var char = text[i];
+        var nextChar = text[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            currentCell += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+
+        if (char === ',' && !inQuotes) {
+          currentRow.push(currentCell);
+          currentCell = '';
+          continue;
+        }
+
+        if ((char === '\n' || char === '\r') && !inQuotes) {
+          if (char === '\r' && nextChar === '\n') {
+            i++;
+          }
+
+          currentRow.push(currentCell);
+          rows.push(currentRow);
+          currentRow = [];
+          currentCell = '';
+          continue;
+        }
+
+        currentCell += char;
+      }
+
+      currentRow.push(currentCell);
+      rows.push(currentRow);
+
+      return rows;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  function V2_AttendanceSheet_getValidationSeverity_(responseData) {
+    try {
+      responseData = responseData || {};
+      var summary = responseData.summary || {};
+      var errorCount = V2_AttendanceSheet_toNumber_(summary.errorCount);
+      var warningCount = V2_AttendanceSheet_toNumber_(summary.warningCount);
+
+      if (errorCount > 0 || responseData.isValid === false) {
+        return 'error';
+      }
+
+      if (warningCount > 0) {
+        return 'warning';
+      }
+
+      return 'success';
+    } catch (error) {
+      return 'error';
+    }
+  }
+
+  function V2_AttendanceSheet_buildValidationMessage_(responseData, responseMessage) {
+    try {
+      responseData = responseData || {};
+      var summary = responseData.summary || {};
+      var errors = Array.isArray(responseData.errors) ? responseData.errors : [];
+      var warnings = Array.isArray(responseData.warnings) ? responseData.warnings : [];
+      var lines = [];
+
+      lines.push(responseMessage || '업로드 검증이 완료되었다.');
+      lines.push('총 행 수: ' + String(summary.totalRowCount || 0));
+      lines.push('데이터 행 수: ' + String(summary.dataRowCount || 0));
+      lines.push('유효 학생 행 수: ' + String(summary.validStudentRowCount || 0));
+      lines.push('오류 수: ' + String(summary.errorCount || 0));
+      lines.push('경고 수: ' + String(summary.warningCount || 0));
+
+      if (errors.length > 0) {
+        lines.push('');
+        lines.push('[오류]');
+        errors.slice(0, 10).forEach(function(item) {
+          var rowText = item && item.rowNumber ? '행 ' + item.rowNumber + ' / ' : '';
+          var fieldText = item && item.fieldName ? item.fieldName + ' / ' : '';
+          lines.push('- ' + rowText + fieldText + (item && item.message ? item.message : '오류'));
+        });
+
+        if (errors.length > 10) {
+          lines.push('- 추가 오류 ' + String(errors.length - 10) + '건');
+        }
+      }
+
+      if (warnings.length > 0) {
+        lines.push('');
+        lines.push('[경고]');
+        warnings.slice(0, 10).forEach(function(item) {
+          var warningRowText = item && item.rowNumber ? '행 ' + item.rowNumber + ' / ' : '';
+          var warningFieldText = item && item.fieldName ? item.fieldName + ' / ' : '';
+          lines.push('- ' + warningRowText + warningFieldText + (item && item.message ? item.message : '경고'));
+        });
+
+        if (warnings.length > 10) {
+          lines.push('- 추가 경고 ' + String(warnings.length - 10) + '건');
+        }
+      }
+
+      return lines.join('\n');
+    } catch (error) {
+      return responseMessage || '업로드 검증이 완료되었다.';
+    }
+  }
+
+  function V2_AttendanceSheet_buildApplyMessage_(responseData, responseMessage, validationData) {
+    try {
+      responseData = responseData || {};
+      validationData = validationData || {};
+      var summary = responseData.summary || {};
+      var validationSummary = validationData.summary || {};
+      var lines = [];
+
+      lines.push(responseMessage || '업로드 반영이 완료되었다.');
+
+      if (summary.appliedCount !== undefined) {
+        lines.push('반영 건수: ' + String(summary.appliedCount || 0));
+      }
+
+      if (summary.insertedCount !== undefined || summary.updatedCount !== undefined) {
+        lines.push(
+          '신규 추가 / 수정: ' +
+          String(summary.insertedCount || 0) + ' / ' +
+          String(summary.updatedCount || 0)
+        );
+      }
+
+      if (validationSummary.warningCount !== undefined) {
+        lines.push('검증 경고 수: ' + String(validationSummary.warningCount || 0));
+      }
+
+      return lines.join('\n');
+    } catch (error) {
+      return responseMessage || '업로드 반영이 완료되었다.';
+    }
+  }
+
+  function V2_AttendanceSheet_renderValidationResultEmpty_() {
+    try {
+      var validationBox = document.getElementById('uploadValidationGuideBox');
+      var logBox = document.getElementById('uploadLogGuideBox');
+
+      if (validationBox) {
+        validationBox.textContent =
+          '업로드 처리 기준\n' +
+          '1. 반드시 현재 화면의 반 ID / 기간 조건과 일치해야 한다.\n' +
+          '2. CSV 표준 양식 파일만 검증 또는 반영한다.\n' +
+          '3. 업로드 검증은 저장 없이 검사만 수행한다.\n' +
+          '4. 업로드 반영은 먼저 검증을 통과한 뒤 실제 저장을 수행한다.\n' +
+          '5. 오류 또는 경고 발생 시 상단 알림 박스에 결과가 표시된다.';
+      }
+
+      if (logBox) {
+        logBox.textContent =
+          '로그 저장 기준\n' +
+          '1. 업로드 검증 실패 / 경고 / 반영 결과는 V2_Logs에 기록된다.\n' +
+          '2. detail 원문과 detailJson 구조를 함께 보관한다.\n' +
+          '3. 검증과 반영 단계 모두 같은 로그 구조를 재사용한다.\n' +
+          '4. source / level / createdAt 기준으로 추적 가능하다.';
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_renderValidationResult_(responseData, responseMessage) {
+    try {
+      responseData = responseData || {};
+      var validationBox = document.getElementById('uploadValidationGuideBox');
+      var logBox = document.getElementById('uploadLogGuideBox');
+
+      if (!validationBox || !logBox) {
+        return;
+      }
+
+      var request = responseData.request || {};
+      var summary = responseData.summary || {};
+      var errors = Array.isArray(responseData.errors) ? responseData.errors : [];
+      var warnings = Array.isArray(responseData.warnings) ? responseData.warnings : [];
+      var header = responseData.header || {};
+      var severity = V2_AttendanceSheet_getValidationSeverity_(responseData);
+      var statusLabel = severity === 'success' ? '정상' : (severity === 'warning' ? '경고' : '오류');
+      var validationLines = [];
+      var logLines = [];
+
+      validationLines.push('업로드 검증 결과');
+      validationLines.push('상태: ' + statusLabel);
+      validationLines.push('메시지: ' + (responseMessage || '업로드 검증이 완료되었다.'));
+      validationLines.push('파일명: ' + (responseData.fileName || ''));
+      validationLines.push('반 ID: ' + (request.classId || ''));
+      validationLines.push('조회 기간: ' + (request.startDate || '') + ' ~ ' + (request.endDate || ''));
+      validationLines.push('총 행 수: ' + String(summary.totalRowCount || 0));
+      validationLines.push('데이터 행 수: ' + String(summary.dataRowCount || 0));
+      validationLines.push('유효 학생 행 수: ' + String(summary.validStudentRowCount || 0));
+      validationLines.push('오류 수: ' + String(summary.errorCount || 0));
+      validationLines.push('경고 수: ' + String(summary.warningCount || 0));
+
+      if (errors.length > 0) {
+        validationLines.push('');
+        validationLines.push('[오류 미리보기]');
+        errors.slice(0, 5).forEach(function(item) {
+          var rowText = item && item.rowNumber ? '행 ' + item.rowNumber + ' / ' : '';
+          var fieldText = item && item.fieldName ? item.fieldName + ' / ' : '';
+          validationLines.push('- ' + rowText + fieldText + (item && item.message ? item.message : '오류'));
+        });
+      }
+
+      if (warnings.length > 0) {
+        validationLines.push('');
+        validationLines.push('[경고 미리보기]');
+        warnings.slice(0, 5).forEach(function(item) {
+          var warningRowText = item && item.rowNumber ? '행 ' + item.rowNumber + ' / ' : '';
+          var warningFieldText = item && item.fieldName ? item.fieldName + ' / ' : '';
+          validationLines.push('- ' + warningRowText + warningFieldText + (item && item.message ? item.message : '경고'));
+        });
+      }
+
+      logLines.push('로그 기록 미리보기');
+      logLines.push('저장 레벨: ' + (severity === 'success' ? 'INFO' : 'WARN'));
+      logLines.push('저장 source: V2_AttendanceSheetService_validateAttendanceSheetUpload');
+      logLines.push('파일명: ' + (responseData.fileName || ''));
+      logLines.push('반 ID: ' + (request.classId || ''));
+      logLines.push('기간: ' + (request.startDate || '') + ' ~ ' + (request.endDate || ''));
+      logLines.push('헤더 행 위치: ' + String(header.detectedRowIndex === undefined ? '' : header.detectedRowIndex));
+      logLines.push('실제 컬럼 수: ' + String((header.actualColumns || []).length || 0));
+      logLines.push('기대 컬럼 수: ' + String((header.expectedColumns || []).length || 0));
+      logLines.push('오류 수: ' + String(summary.errorCount || 0));
+      logLines.push('경고 수: ' + String(summary.warningCount || 0));
+      logLines.push('상태값: ' + statusLabel);
+      logLines.push('다음 단계: 검증 정상 시 업로드 반영으로 실제 저장 가능');
+
+      validationBox.textContent = validationLines.join('\n');
+      logBox.textContent = logLines.join('\n');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_showValidationNoticeBySeverity_(severity, message) {
+    try {
+      severity = V2_AttendanceSheet_normalizeText_(severity);
+
+      if (severity === 'success') {
+        V2_AttendanceSheet_showSuccess_(message);
+        return;
+      }
+
+      if (severity === 'warning') {
+        V2_AttendanceSheet_showWarning_(message);
+        return;
+      }
+
+      V2_AttendanceSheet_showError_(message);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_requestUploadValidation_(fileName, rows, callback) {
+    try {
+      V2_AttendanceSheet_clearNotice_();
+
+      var request = V2_AttendanceSheet_validateRequest_(V2_AttendanceSheet_getRequest_());
+      V2_ATTENDANCE_SHEET_STATE.request = request;
+      V2_AttendanceSheet_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_AttendanceSheet_setLoading_(false);
+
+          if (!response || response.success !== true || !response.data) {
+            V2_ATTENDANCE_SHEET_STATE.validationResult = null;
+            V2_AttendanceSheet_renderValidationResultEmpty_();
+            V2_AttendanceSheet_showError_(
+              response && response.message ? response.message : '업로드 검증 결과를 불러오지 못했다.'
+            );
+            return;
+          }
+
+          V2_ATTENDANCE_SHEET_STATE.validationResult = response.data;
+
+          var severity = V2_AttendanceSheet_getValidationSeverity_(response.data);
+          var message = V2_AttendanceSheet_buildValidationMessage_(response.data, response.message);
+
+          V2_AttendanceSheet_renderValidationResult_(response.data, response.message);
+
+          if (typeof callback === 'function') {
+            callback({
+              response: response,
+              severity: severity,
+              message: message
+            });
+            return;
+          }
+
+          V2_AttendanceSheet_showValidationNoticeBySeverity_(severity, message);
+        })
+        .withFailureHandler(function(error) {
+          V2_AttendanceSheet_setLoading_(false);
+          V2_ATTENDANCE_SHEET_STATE.validationResult = null;
+          V2_AttendanceSheet_renderValidationResultEmpty_();
+          V2_AttendanceSheet_showError_(
+            error && error.message ? error.message : '업로드 검증 중 오류가 발생했다.'
+          );
+        })
+        .V2_AttendanceSheetService_validateAttendanceSheetUpload({
+          classId: request.classId,
+          startDate: request.startDate,
+          endDate: request.endDate,
+          includeInactive: request.includeInactive,
+          fileName: fileName,
+          rows: rows
+        });
+    } catch (error) {
+      V2_AttendanceSheet_setLoading_(false);
+      V2_AttendanceSheet_showError_(error.message || '업로드 검증 실행 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_runUploadValidation_(fileName, rows) {
+    try {
+      V2_AttendanceSheet_requestUploadValidation_(fileName, rows, function(result) {
+        try {
+          V2_AttendanceSheet_showValidationNoticeBySeverity_(result.severity, result.message);
+        } catch (innerError) {
+          V2_AttendanceSheet_showError_(innerError.message || '업로드 검증 결과 표시 중 오류가 발생했다.');
+        }
+      });
+    } catch (error) {
+      V2_AttendanceSheet_setLoading_(false);
+      V2_AttendanceSheet_showError_(error.message || '업로드 검증 실행 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_runUploadApply_(fileName, rows) {
+    try {
+      V2_AttendanceSheet_requestUploadValidation_(fileName, rows, function(result) {
+        try {
+          var response = result.response || {};
+          var validationData = response.data || {};
+          var severity = result.severity;
+          var message = result.message;
+
+          if (severity === 'error') {
+            V2_AttendanceSheet_showError_(message || '업로드 반영 전 검증에서 오류가 발생했다.');
+            return;
+          }
+
+          if (severity === 'warning') {
+            V2_AttendanceSheet_showWarning_(message || '검증 경고가 있다.');
+          } else {
+            V2_AttendanceSheet_showSuccess_('업로드 반영 전 검증을 통과했다. 실제 저장을 진행한다.');
+          }
+
+          V2_AttendanceSheet_requestUploadApply_(fileName, rows, validationData);
+        } catch (innerError) {
+          V2_AttendanceSheet_showError_(innerError.message || '업로드 반영 전 검증 처리 중 오류가 발생했다.');
+        }
+      });
+    } catch (error) {
+      V2_AttendanceSheet_setLoading_(false);
+      V2_AttendanceSheet_showError_(error.message || '업로드 반영 실행 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_requestUploadApply_(fileName, rows, validationData) {
+    try {
+      var request = V2_AttendanceSheet_validateRequest_(V2_AttendanceSheet_getRequest_());
+      V2_ATTENDANCE_SHEET_STATE.request = request;
+      V2_AttendanceSheet_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_AttendanceSheet_setLoading_(false);
+
+          if (!response || response.success !== true) {
+            V2_AttendanceSheet_showError_(
+              response && response.message ? response.message : '업로드 반영에 실패했다.'
+            );
+            return;
+          }
+
+          var applyMessage = V2_AttendanceSheet_buildApplyMessage_(
+            response.data || {},
+            response.message || '업로드 반영이 완료되었다.',
+            validationData || {}
+          );
+
+          var validationSummary = validationData && validationData.summary ? validationData.summary : {};
+          var warningCount = V2_AttendanceSheet_toNumber_(validationSummary.warningCount);
+
+          V2_AttendanceSheet_reloadSheetAfterApply_(applyMessage, warningCount);
+        })
+        .withFailureHandler(function(error) {
+          V2_AttendanceSheet_setLoading_(false);
+          V2_AttendanceSheet_showError_(
+            error && error.message ? error.message : '업로드 반영 중 오류가 발생했다.'
+          );
+        })
+        .V2_AttendanceSheetService_applyAttendanceSheetUpload({
+          classId: request.classId,
+          startDate: request.startDate,
+          endDate: request.endDate,
+          includeInactive: request.includeInactive,
+          fileName: fileName,
+          rows: rows
+        });
+    } catch (error) {
+      V2_AttendanceSheet_setLoading_(false);
+      V2_AttendanceSheet_showError_(error.message || '업로드 반영 요청 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_reloadSheetAfterApply_(successMessage, warningCount) {
+    try {
+      var request = V2_ATTENDANCE_SHEET_STATE.request || V2_AttendanceSheet_validateRequest_(V2_AttendanceSheet_getRequest_());
+      V2_AttendanceSheet_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_AttendanceSheet_setLoading_(false);
+
+          if (!response || response.success !== true || !response.data) {
+            V2_AttendanceSheet_showWarning_(
+              '업로드 반영은 완료되었지만 화면 재조회에 실패했다.\n' +
+              (response && response.message ? response.message : '출석부 데이터를 다시 불러오지 못했다.')
+            );
+            V2_AttendanceSheet_showSuccess_(successMessage || '업로드 반영이 완료되었다.');
+            return;
+          }
+
+          V2_ATTENDANCE_SHEET_STATE.sheetData = response.data;
+          V2_AttendanceSheet_renderSummary_(response.data);
+          V2_AttendanceSheet_renderStatusBox_();
+          V2_AttendanceSheet_renderGuideBox_();
+          V2_AttendanceSheet_renderTable_(response.data);
+          V2_AttendanceSheet_showSuccess_(successMessage || '업로드 반영이 완료되었다.');
+
+          if (warningCount > 0) {
+            V2_AttendanceSheet_showWarning_(
+              '검증 경고 ' + String(warningCount) + '건이 있었지만 업로드 반영은 완료되었다.'
+            );
+          }
+        })
+        .withFailureHandler(function(error) {
+          V2_AttendanceSheet_setLoading_(false);
+          V2_AttendanceSheet_showWarning_(
+            '업로드 반영은 완료되었지만 화면 재조회 중 오류가 발생했다.\n' +
+            (error && error.message ? error.message : '재조회 오류')
+          );
+          V2_AttendanceSheet_showSuccess_(successMessage || '업로드 반영이 완료되었다.');
+        })
+        .V2_AttendanceSheetService_getClassAttendanceSheet(request);
+    } catch (error) {
+      V2_AttendanceSheet_setLoading_(false);
+      V2_AttendanceSheet_showWarning_(
+        '업로드 반영은 완료되었지만 화면 재조회 준비 중 오류가 발생했다.\n' +
+        (error.message || '재조회 준비 오류')
+      );
+      V2_AttendanceSheet_showSuccess_(successMessage || '업로드 반영이 완료되었다.');
+    }
+  }
+
+  function V2_AttendanceSheet_loadSheet_() {
+    try {
+      V2_AttendanceSheet_clearNotice_();
+
+      var request = V2_AttendanceSheet_validateRequest_(V2_AttendanceSheet_getRequest_());
+      V2_ATTENDANCE_SHEET_STATE.request = request;
+      V2_ATTENDANCE_SHEET_STATE.exportData = null;
+      V2_ATTENDANCE_SHEET_STATE.validationResult = null;
+      V2_ATTENDANCE_SHEET_STATE.uploadMode = 'validate';
+      V2_AttendanceSheet_renderValidationResultEmpty_();
+      V2_AttendanceSheet_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          V2_AttendanceSheet_setLoading_(false);
+
+          if (!response || response.success !== true || !response.data) {
+            V2_ATTENDANCE_SHEET_STATE.sheetData = null;
+            V2_ATTENDANCE_SHEET_STATE.exportData = null;
+            V2_AttendanceSheet_renderEmptySummary_();
+            V2_AttendanceSheet_renderStatusBox_();
+            V2_AttendanceSheet_renderGuideBox_();
+            V2_AttendanceSheet_renderTableEmpty_(
+              response && response.message ? response.message : '반별 기간 출석부 데이터를 불러오지 못했다.'
+            );
+            V2_AttendanceSheet_showError_(
+              response && response.message ? response.message : '반별 기간 출석부 조회에 실패했다.'
+            );
+            return;
+          }
+
+          V2_ATTENDANCE_SHEET_STATE.sheetData = response.data;
+          V2_AttendanceSheet_renderSummary_(response.data);
+          V2_AttendanceSheet_renderStatusBox_();
+          V2_AttendanceSheet_renderGuideBox_();
+          V2_AttendanceSheet_renderTable_(response.data);
+          V2_AttendanceSheet_showSuccess_(response.message || '반별 기간 출석부 데이터를 불러왔다.');
+        })
+        .withFailureHandler(function(error) {
+          V2_AttendanceSheet_setLoading_(false);
+          V2_ATTENDANCE_SHEET_STATE.sheetData = null;
+          V2_ATTENDANCE_SHEET_STATE.exportData = null;
+          V2_AttendanceSheet_renderEmptySummary_();
+          V2_AttendanceSheet_renderStatusBox_();
+          V2_AttendanceSheet_renderGuideBox_();
+          V2_AttendanceSheet_renderTableEmpty_('반별 기간 출석부 데이터를 불러오지 못했다.');
+          V2_AttendanceSheet_showError_(
+            error && error.message ? error.message : '반별 기간 출석부 조회 중 오류가 발생했다.'
+          );
+        })
+        .V2_AttendanceSheetService_getClassAttendanceSheet(request);
+    } catch (error) {
+      V2_AttendanceSheet_setLoading_(false);
+      V2_AttendanceSheet_showError_(error.message || '출석부 조회 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_downloadExcel_() {
+    try {
+      V2_AttendanceSheet_clearNotice_();
+
+      var request = V2_AttendanceSheet_validateRequest_(V2_AttendanceSheet_getRequest_());
+      V2_ATTENDANCE_SHEET_STATE.request = request;
+      V2_AttendanceSheet_setLoading_(true);
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          try {
+            V2_AttendanceSheet_setLoading_(false);
+
+            if (!response || response.success !== true || !response.data) {
+              V2_AttendanceSheet_showError_(
+                response && response.message ? response.message : '출석부 PDF 출력 데이터를 생성하지 못했다.'
+              );
+              return;
+            }
+
+            var exportData = response.data || {};
+            var base64 = exportData.base64 || '';
+
+            if (!base64) {
+              V2_AttendanceSheet_showError_('출력할 PDF 데이터가 없다.');
+              return;
+            }
+
+            V2_AttendanceSheet_downloadBase64File_(
+              exportData.fileName || 'attendance.pdf',
+              base64,
+              exportData.mimeType || 'application/pdf'
+            );
+
+            V2_ATTENDANCE_SHEET_STATE.exportData = exportData;
+            V2_AttendanceSheet_showSuccess_('PDF 파일 다운로드가 완료되었다.');
+          } catch (innerError) {
+            V2_AttendanceSheet_showError_(innerError.message || 'PDF 생성 중 오류가 발생했다.');
+          }
+        })
+        .withFailureHandler(function(error) {
+          V2_AttendanceSheet_setLoading_(false);
+          V2_AttendanceSheet_showError_(
+            error && error.message ? error.message : 'PDF 출력 중 오류가 발생했다.'
+          );
+        })
+        .V2_AttendanceSheetService_getAttendanceSheetExportData(request);
+    } catch (error) {
+      V2_AttendanceSheet_setLoading_(false);
+      V2_AttendanceSheet_showError_(error.message || 'PDF 출력 처리 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_resetView_() {
+    try {
+      document.getElementById('classId').value = '';
+      document.getElementById('classSearchInput').value = '';
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      document.getElementById('includeInactive').checked = false;
+
+      V2_ATTENDANCE_SHEET_STATE.sheetData = null;
+      V2_ATTENDANCE_SHEET_STATE.exportData = null;
+      V2_ATTENDANCE_SHEET_STATE.validationResult = null;
+      V2_ATTENDANCE_SHEET_STATE.uploadMode = 'validate';
+      V2_ATTENDANCE_SHEET_STATE.classSearchItems = [];
+      V2_ATTENDANCE_SHEET_STATE.selectedClass = null;
+      V2_ATTENDANCE_SHEET_STATE.request = {
+        classId: '',
+        startDate: '',
+        endDate: '',
+        includeInactive: false
+      };
+
+      V2_AttendanceSheet_hideClassDropdown_();
+      V2_AttendanceSheet_renderSelectedClassChip_();
+
+      V2_AttendanceSheet_clearNotice_();
+      V2_AttendanceSheet_renderValidationResultEmpty_();
+      V2_AttendanceSheet_renderEmptySummary_();
+      V2_AttendanceSheet_renderStatusBox_();
+      V2_AttendanceSheet_renderGuideBox_();
+      V2_AttendanceSheet_renderTableEmpty_('반을 선택하고 기간을 입력한 뒤 출석부 조회를 실행해라.');
+    } catch (error) {
+      V2_AttendanceSheet_showError_(error.message || '초기화 중 오류가 발생했다.');
+    }
+  }
+
+  function V2_AttendanceSheet_setDefaultDates_() {
+    try {
+      var today = new Date();
+      var start = new Date();
+      start.setDate(today.getDate() - 6);
+
+      var startText = [
+        start.getFullYear(),
+        ('0' + (start.getMonth() + 1)).slice(-2),
+        ('0' + start.getDate()).slice(-2)
+      ].join('-');
+
+      var endText = [
+        today.getFullYear(),
+        ('0' + (today.getMonth() + 1)).slice(-2),
+        ('0' + today.getDate()).slice(-2)
+      ].join('-');
+
+      document.getElementById('startDate').value = startText;
+      document.getElementById('endDate').value = endText;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_requestClassSearch_(searchText) {
+    try {
+      google.script.run
+        .withSuccessHandler(function(response) {
+          try {
+            if (!response || response.success !== true || !response.data) {
+              V2_ATTENDANCE_SHEET_STATE.classSearchItems = [];
+              V2_AttendanceSheet_renderClassDropdown_([]);
+              return;
+            }
+
+            var items = Array.isArray(response.data.items) ? response.data.items : [];
+            V2_ATTENDANCE_SHEET_STATE.classSearchItems = items;
+            V2_AttendanceSheet_renderClassDropdown_(items);
+          } catch (innerError) {
+            console.error(innerError);
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error(error);
+          V2_ATTENDANCE_SHEET_STATE.classSearchItems = [];
+          V2_AttendanceSheet_renderClassDropdown_([]);
+        })
+        .V2_AttendanceSheetService_getClassSearchList(searchText || '');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_renderClassDropdown_(items) {
+    try {
+      var dropdown = document.getElementById('classSearchDropdown');
+      if (!dropdown) {
+        return;
+      }
+
+      items = Array.isArray(items) ? items : [];
+      dropdown.innerHTML = '';
+
+      if (items.length < 1) {
+        dropdown.style.display = 'none';
+        return;
+      }
+
+      for (var i = 0; i < items.length; i++) {
+        (function(item) {
+          var div = document.createElement('div');
+          div.className = 'class-search-item';
+
+          var nameDiv = document.createElement('div');
+          nameDiv.className = 'class-search-name';
+          nameDiv.textContent = item.className || item.classId || '';
+
+          var metaDiv = document.createElement('div');
+          metaDiv.className = 'class-search-meta';
+          metaDiv.textContent = (item.classId || '') + (item.teacherId ? ' / 담당교사: ' + item.teacherId : '');
+
+          div.appendChild(nameDiv);
+          div.appendChild(metaDiv);
+
+          div.addEventListener('click', function() {
+            V2_AttendanceSheet_selectClass_(item);
+          });
+
+          dropdown.appendChild(div);
+        })(items[i]);
+      }
+
+      dropdown.style.display = 'block';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_hideClassDropdown_() {
+    try {
+      var dropdown = document.getElementById('classSearchDropdown');
+      if (!dropdown) {
+        return;
+      }
+
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_toggleClassDropdown_() {
+    try {
+      var dropdown = document.getElementById('classSearchDropdown');
+      if (!dropdown) {
+        return;
+      }
+
+      if (dropdown.style.display === 'block') {
+        V2_AttendanceSheet_hideClassDropdown_();
+        return;
+      }
+
+      V2_AttendanceSheet_requestClassSearch_('');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_selectClass_(item) {
+    try {
+      item = item || {};
+
+      V2_ATTENDANCE_SHEET_STATE.selectedClass = item;
+
+      var classIdInput = document.getElementById('classId');
+      var classSearchInput = document.getElementById('classSearchInput');
+
+      if (classIdInput) {
+        classIdInput.value = item.classId || '';
+      }
+
+      if (classSearchInput) {
+        classSearchInput.value = item.className || item.classId || '';
+      }
+
+      V2_AttendanceSheet_renderSelectedClassChip_();
+      V2_AttendanceSheet_hideClassDropdown_();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_renderSelectedClassChip_() {
+    try {
+      var chip = document.getElementById('selectedClassChip');
+      if (!chip) {
+        return;
+      }
+
+      var selected = V2_ATTENDANCE_SHEET_STATE.selectedClass;
+
+      if (!selected || !selected.classId) {
+        chip.style.display = 'none';
+        chip.textContent = '';
+        return;
+      }
+
+      chip.style.display = 'block';
+      chip.textContent = '선택된 반: ' + (selected.className || '') + ' (' + (selected.classId || '') + ')';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_bindClassSearch_() {
+    try {
+      var input = document.getElementById('classSearchInput');
+      if (!input) {
+        return;
+      }
+
+      input.readOnly = true;
+      input.setAttribute('placeholder', '클릭해서 반을 선택해라.');
+
+      if (!input.getAttribute('data-v2-bound')) {
+        input.addEventListener('click', function(event) {
+          try {
+            event.stopPropagation();
+            V2_AttendanceSheet_toggleClassDropdown_();
+          } catch (innerError) {
+            console.error(innerError);
+          }
+        });
+
+        input.addEventListener('keydown', function(event) {
+          try {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+              event.preventDefault();
+              V2_AttendanceSheet_toggleClassDropdown_();
+            }
+          } catch (innerError) {
+            console.error(innerError);
+          }
+        });
+
+        input.setAttribute('data-v2-bound', 'true');
+      }
+
+      document.addEventListener('click', function(event) {
+        try {
+          var wrap = document.querySelector('.class-search-wrap');
+          if (!wrap) {
+            return;
+          }
+
+          if (!wrap.contains(event.target)) {
+            V2_AttendanceSheet_hideClassDropdown_();
+          }
+        } catch (innerError) {
+          console.error(innerError);
+        }
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function V2_AttendanceSheet_bindActionButtons_() {
+    try {
+      var searchButton = document.getElementById('searchButton');
+      var downloadExcelButton = document.getElementById('downloadExcelButton');
+      var resetButton = document.getElementById('resetButton');
+
+      if (searchButton && !searchButton.getAttribute('data-v2-bound')) {
+        searchButton.addEventListener('click', V2_AttendanceSheet_loadSheet_);
+        searchButton.setAttribute('data-v2-bound', 'true');
+      }
+
+      if (downloadExcelButton) {
+        downloadExcelButton.textContent = 'PDF 출력';
+
+        if (!downloadExcelButton.getAttribute('data-v2-bound')) {
+          downloadExcelButton.addEventListener('click', V2_AttendanceSheet_downloadExcel_);
+          downloadExcelButton.setAttribute('data-v2-bound', 'true');
+        }
+      }
+
+      if (resetButton && !resetButton.getAttribute('data-v2-bound')) {
+        resetButton.addEventListener('click', V2_AttendanceSheet_resetView_);
+        resetButton.setAttribute('data-v2-bound', 'true');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  window.addEventListener('load', function() {
+    try {
+      V2_AttendanceSheet_setDefaultDates_();
+      V2_AttendanceSheet_createUploadUi_();
+      V2_AttendanceSheet_bindClassSearch_();
+      V2_AttendanceSheet_bindActionButtons_();
+      V2_AttendanceSheet_renderSelectedClassChip_();
+      V2_AttendanceSheet_renderValidationResultEmpty_();
+      V2_AttendanceSheet_renderEmptySummary_();
+      V2_AttendanceSheet_renderStatusBox_();
+      V2_AttendanceSheet_renderGuideBox_();
+      V2_AttendanceSheet_renderTableEmpty_('반을 선택하고 기간을 입력한 뒤 출석부 조회를 실행해라.');
+    } catch (error) {
+      V2_AttendanceSheet_showError_(error.message || '초기 로딩 중 오류가 발생했다.');
+    }
+  });
+</script>
