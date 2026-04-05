@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학생 검색</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+
+    .wrap {
+      padding: 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #1f4e78;
+      margin-bottom: 6px;
+    }
+
+    .desc {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 150px 120px auto auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      border-color: #1f4e78;
+      box-shadow: 0 0 0 2px rgba(31, 78, 120, 0.15);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      height: 40px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: #1f4e78;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e9eef3;
+      color: #333;
+    }
+
+    .btn-select {
+      background: #2e7d32;
+      color: #fff;
+      height: 32px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .status {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      white-space: pre-line;
+    }
+
+    .status.info {
+      display: block;
+      background: #eef4ff;
+      color: #1f4e78;
+      border: 1px solid #c9d9f6;
+    }
+
+    .status.error {
+      display: block;
+      background: #fdecea;
+      color: #b3261e;
+      border: 1px solid #f3b7b2;
+    }
+
+    .status.success {
+      display: block;
+      background: #e8f5e9;
+      color: #196127;
+      border: 1px solid #b7dfb9;
+    }
+
+    .table-wrap {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #f1f5f9;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      font-size: 13px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+      white-space: pre-line;
+      word-break: break-word;
+    }
+
+    .empty {
+      padding: 24px 12px;
+      text-align: center;
+      color: #666;
+      font-size: 13px;
+      background: #fafafa;
+    }
+
+    .selected-box {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid #b7dfb9;
+      border-radius: 8px;
+      background: #e8f5e9;
+      font-size: 13px;
+      color: #196127;
+      white-space: pre-line;
+    }
+
+    @media (max-width: 900px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="title">학생 검색</div>
+      <div class="desc">
+        학생명, 학생 ID, 반 정보를 기준으로 학생을 검색하고 선택할 수 있다.
+      </div>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="keyword">검색어</label>
+          <input type="text" id="keyword" placeholder="예: 홍길동 / STU_TEST_001 / CLASS_A" onkeydown="V2_StudentSearchPopup_handleEnter_(event)">
+        </div>
+
+        <div class="field">
+          <label for="classId">반 ID</label>
+          <input type="text" id="classId" placeholder="예: CLASS_A" onkeydown="V2_StudentSearchPopup_handleEnter_(event)">
+        </div>
+
+        <div class="field">
+          <label for="status">상태</label>
+          <select id="status">
+            <option value="">전체</option>
+            <option value="재학">재학</option>
+            <option value="보관">보관</option>
+            <option value="삭제대기">삭제대기</option>
+            <option value="완전삭제">완전삭제</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" type="button" onclick="V2_StudentSearchPopup_search_()">검색</button>
+        <button class="btn btn-secondary" type="button" onclick="V2_StudentSearchPopup_reset_()">초기화</button>
+      </div>
+
+      <div id="statusBox" class="status"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 120px;">학생 ID</th>
+              <th style="width: 120px;">학생명</th>
+              <th style="width: 100px;">반</th>
+              <th style="width: 80px;">상태</th>
+              <th>학부모명</th>
+              <th style="width: 90px;">선택</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody">
+            <tr>
+              <td colspan="6" class="empty">검색어를 입력한 뒤 검색 버튼을 눌러라.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="selectedBox" class="selected-box"></div>
+    </div>
+  </div>
+
+  <?!= V2_include('V2_Student_Search_JS'); ?>
+</body>
+</html>
