@@ -1,0 +1,1 @@
+Score management module placeholder.
