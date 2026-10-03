@@ -749,7 +749,24 @@ function renderScoreHub(data){
   ];
   $('scoreHubCardGrid').innerHTML=cards.join('');
 
-  const masteryRows=data.snu?.mastery||[];
+  let masteryRows=data.snu?.mastery||[];
+  if(!masteryRows.length){
+    const m={};
+    (data.snu?.rows||[]).forEach(r=>{
+      const type=String(r.testType||'');
+      if(!['vocab','grammar','mixed'].includes(type))return;
+      const key=String(r.book||'')+'|'+String(r.lesson||'');
+      if(!m[key])m[key]={book:r.book||'',lesson:r.lesson||'',vocab:{bestScore:null,attempts:0},grammar:{bestScore:null,attempts:0},mixed:{bestScore:null,attempts:0}};
+      const item=m[key][type],score=Number(r.bestScore),attempts=Number(r.attemptsToday||0);
+      if(Number.isFinite(score)&&(item.bestScore===null||score>item.bestScore))item.bestScore=score;
+      if(Number.isFinite(attempts))item.attempts+=attempts;
+    });
+    masteryRows=Object.values(m).map(r=>{
+      r.totalAttempts=r.vocab.attempts+r.grammar.attempts+r.mixed.attempts;
+      r.status=['vocab','grammar','mixed'].every(t=>Number(r[t].bestScore)>=90)?'PASS':'RETRY';
+      return r;
+    }).sort((a,b)=>String(a.book).localeCompare(String(b.book))||Number(a.lesson)-Number(b.lesson));
+  }
   $('scoreHubSnuMasteryTable').innerHTML=masteryRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>교재</th><th>과</th><th>어휘 최고</th><th>문법 최고</th><th>종합 최고</th><th>총 응시</th><th>누적 상태</th></tr></thead><tbody>'+
     masteryRows.map(r=>'<tr><td>'+esc(r.book||'')+'</td><td>'+esc(r.lesson||'')+'</td><td><strong>'+esc(scoreFmt(r.vocab?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.vocab?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.grammar?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.grammar?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.mixed?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.mixed?.attempts||0))+'회)</span></td><td>'+esc(scoreFmt(r.totalAttempts||0))+'회</td><td>'+scoreStatusPill(r.status)+'</td></tr>').join('')+
     '</tbody></table></div>':'<div class="score-empty">서울대 누적 통과 기록이 없습니다.</div>';
