@@ -935,14 +935,14 @@ function renderQrRulePreview(data){
   const startMin=qrClientTimeToMinutes(start);
   const open=(data&&data.openTime)||(startMin>=0?qrClientMinutesToTime(startMin-30):'-');
   const lateFrom=(data&&data.lateFrom)||(startMin>=0?qrClientMinutesToTime(startMin+20):'-');
-  const lateUntil=(data&&data.lateUntil)||(startMin>=0?qrClientMinutesToTime(startMin+60):'-');
+  const lateUntil=(data&&data.lateUntil)||$('attendanceQrEndTime').value||'-';
   const source=data&&data.scheduleFound?'등록된 시간표 자동 적용':'등록 시간 없음 또는 직접 수정';
   const configNote=data&&data.publicAppConfigured===false
     ? '<div style="margin-top:6px;color:#a12c2c;font-weight:700">학생용 V2 QR 공개 웹앱 URL 등록이 필요합니다.</div>'
     : '';
   box.innerHTML='<strong>QR 출석 규칙</strong><br>'+
     '수업 '+esc(start)+' ~ '+esc(end)+' · '+esc(source)+'<br>'+
-    '<span class="muted">QR 오픈 '+esc(open)+' · 정상 출석: 시작 후 20분 미만 · 지각 '+esc(lateFrom)+' ~ '+esc(lateUntil)+'</span>'+
+    '<span class="muted">QR 오픈 '+esc(open)+' · 정상 출석: 시작 후 20분 미만 · 지각 '+esc(lateFrom)+' ~ 수업 종료 전 '+esc(lateUntil)+' · 종료 후 미체크 학생 결석</span>'+
     configNote;
 }
 function hideQrAttendanceSession(){
