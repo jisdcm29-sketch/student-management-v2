@@ -39,6 +39,27 @@
     .simple-page+.simple-page{margin-top:16px}
     h1,h2,h3{margin:0 0 12px} p{margin:0}.muted{color:var(--muted);font-size:13px}.hidden{display:none!important}
     .auth-page{max-width:900px;margin:70px auto 0}
+    .login-screen-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(255,255,255,.55),transparent 28%),radial-gradient(circle at bottom right,rgba(255,255,255,.42),transparent 24%),linear-gradient(135deg,#eef2f7 0%,#e7edf5 52%,#dde6f0 100%)}
+    .login-card-v2{position:relative;width:100%;max-width:460px;background:rgba(255,255,255,.97);border:1px solid #d8e1ec;border-radius:24px;padding:34px 32px 28px;box-shadow:0 18px 40px rgba(18,56,91,.10),0 2px 8px rgba(18,56,91,.06)}
+    .login-card-v2::before{content:"";position:absolute;top:0;left:28px;right:28px;height:4px;border-radius:0 0 8px 8px;background:linear-gradient(90deg,#12385b 0%,#446a96 55%,#7a9abf 100%)}
+    .login-mark-v2{display:flex;align-items:center;justify-content:center;width:max-content;min-width:104px;height:34px;padding:0 14px;margin:0 auto 16px;border-radius:999px;background:#eff4f9;color:#12385b;font-size:13px;font-weight:700;border:1px solid #d7e2ee}
+    .login-card-v2 h1{margin:0;text-align:center;color:#12385b;font-size:34px;font-weight:800;letter-spacing:-.5px}
+    .login-subtitle-v2{margin:10px 0 0;text-align:center;color:#6b7b8f;font-size:17px;font-weight:600}
+    .login-form-stack{margin-top:20px;display:grid;gap:12px}
+    .login-form-stack .form-row label{color:#12385b;font-weight:700;font-size:14px}
+    .login-form-stack input{height:46px;border-radius:14px;border:1px solid #cfd9e5;background:#fcfdff;padding:10px 12px}
+    .login-form-stack input:focus{outline:none;border-color:#7b9dc0;background:#fff;box-shadow:0 0 0 4px rgba(28,93,147,.08)}
+    .login-remember-row-v2{display:flex;align-items:center;gap:8px;margin-top:12px;color:#425466;font-size:14px}
+    .login-remember-row-v2 input{width:auto}
+    .login-result-v2{min-height:42px;margin-top:12px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa;color:#64748b;font-size:13px;text-align:center;display:flex;align-items:center;justify-content:center}
+    .login-result-v2.is-loading{color:#12385b;background:#f4f8fc;border-color:#cddceb;font-weight:700}
+    .login-action-v2{display:flex;justify-content:center;margin-top:20px}
+    .login-btn-v2{min-width:130px;height:48px;border-radius:14px;font-size:16px;font-weight:700;background:linear-gradient(135deg,#234f83 0%,#12385b 100%);color:#fff;box-shadow:0 8px 18px rgba(18,56,91,.18);transition:transform .12s ease,opacity .12s ease}
+    .login-btn-v2:hover:not(:disabled){background:linear-gradient(135deg,#2b5c96 0%,#16446f 100%);transform:translateY(-1px)}
+    .login-btn-v2:disabled{cursor:wait;opacity:.72}
+    .login-spinner{display:inline-block;width:14px;height:14px;margin-right:7px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;vertical-align:-2px;animation:loginSpin .75s linear infinite}
+    @keyframes loginSpin{to{transform:rotate(360deg)}}
+    @media(max-width:640px){.login-screen-wrap{padding:16px}.login-card-v2{border-radius:20px;padding:28px 22px 24px}.login-card-v2 h1{font-size:28px}.login-subtitle-v2{font-size:15px}.login-btn-v2{width:100%}}
     .auth-grid,.student-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px}
     .form-row{display:flex;flex-direction:column;gap:8px;min-width:0}.form-row-full{grid-column:1/-1}.form-row label{font-weight:600}
     input,select,textarea{width:100%;min-width:0;padding:10px 11px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font:inherit}
@@ -116,15 +137,28 @@
 </head>
 <body>
 <main>
-  <section class="simple-page auth-page" id="loginCard">
-    <h1>학생관리시스템 V2</h1>
-    <p class="muted">V2 교사 인증 후 반 관리와 학생 관리 기능을 사용합니다.</p>
-    <div class="auth-grid" style="margin-top:18px">
-      <div class="form-row"><label for="teacherId">교사 ID</label><input id="teacherId" value="T-ADMIN-001"></div>
-      <div class="form-row"><label for="password">V2 비밀번호</label><input id="password" type="password"></div>
+  <section class="login-screen-wrap" id="loginCard">
+    <div class="login-card-v2">
+      <div class="login-mark-v2">한국어학당</div>
+      <h1>한국어학당</h1>
+      <p class="login-subtitle-v2">학생 관리 시스템 V2 로그인</p>
+
+      <div class="login-form-stack">
+        <div class="form-row"><label for="teacherId">교사 ID</label><input id="teacherId" value="T-ADMIN-001" autocomplete="username"></div>
+        <div class="form-row"><label for="password">V2 비밀번호</label><input id="password" type="password" autocomplete="current-password"></div>
+      </div>
+
+      <div class="login-remember-row-v2">
+        <input type="checkbox" id="rememberTeacherId">
+        <label for="rememberTeacherId">교사 ID 저장</label>
+      </div>
+
+      <div id="loginResult" class="login-result-v2">아직 로그인하지 않았습니다.</div>
+
+      <div class="login-action-v2">
+        <button id="loginBtn" class="login-btn-v2" type="button">로그인</button>
+      </div>
     </div>
-    <div class="toolbar"><button id="loginBtn" class="btn-primary">로그인</button></div>
-    <div id="loginResult" class="result-box">아직 로그인하지 않았습니다.</div>
   </section>
 
   <div id="appArea" class="hidden app-shell">
@@ -430,6 +464,22 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&
 const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2);
 
 function setLoggedIn(on){$('loginCard').classList.toggle('hidden',on);$('appArea').classList.toggle('hidden',!on)}
+const V2_REMEMBER_TEACHER_KEY='v2RememberTeacherId';
+function restoreRememberedTeacherId(){
+  const saved=localStorage.getItem(V2_REMEMBER_TEACHER_KEY)||'';
+  if(saved){$('teacherId').value=saved;$('rememberTeacherId').checked=true}
+}
+function setLoginBusy(busy,message){
+  const btn=$('loginBtn');
+  const result=$('loginResult');
+  $('teacherId').disabled=busy;
+  $('password').disabled=busy;
+  $('rememberTeacherId').disabled=busy;
+  btn.disabled=busy;
+  btn.innerHTML=busy?'<span class="login-spinner"></span>인증 중...':'로그인';
+  result.classList.toggle('is-loading',busy);
+  if(message)result.textContent=message;
+}
 function updateAuthLabel(){
   $('topbarUserName').textContent=currentTeacher?(currentTeacher.displayName||currentTeacher.teacherId||'사용자'):'사용자';
   $('topbarUserRole').textContent=currentTeacher?(currentTeacher.role||'TEACHER'):'권한';
@@ -1183,7 +1233,37 @@ function resetArchivedFilters(){
   $('archivedStudentListBox').textContent='보관 학생 조회 버튼을 눌러 목록을 확인합니다.';
 }
 
-$('loginBtn').onclick=async()=>{try{const a=await login($('teacherId').value.trim(),$('password').value);token=a.sessionToken;currentTeacher=a.teacher;sessionStorage.setItem('v2SessionToken',token);updateAuthLabel();setLoggedIn(true);switchPage('home');resetClassForm();resetStudentForm();await refreshClasses();await refreshStudents()}catch(e){show('loginResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}};
+async function submitV2Login(){
+  if($('loginBtn').disabled)return;
+  const teacherId=$('teacherId').value.trim();
+  const password=$('password').value;
+  if(!teacherId){show('loginResult','교사 ID를 입력해 주세요.');$('teacherId').focus();return}
+  if(!password){show('loginResult','V2 비밀번호를 입력해 주세요.');$('password').focus();return}
+  setLoginBusy(true,'교사 인증을 확인하고 있습니다...');
+  try{
+    const a=await login(teacherId,password);
+    if($('rememberTeacherId').checked)localStorage.setItem(V2_REMEMBER_TEACHER_KEY,teacherId);
+    else localStorage.removeItem(V2_REMEMBER_TEACHER_KEY);
+    token=a.sessionToken;
+    currentTeacher=a.teacher;
+    sessionStorage.setItem('v2SessionToken',token);
+    updateAuthLabel();
+    show('loginResult','인증되었습니다. 관리 화면을 불러오는 중입니다...');
+    setLoggedIn(true);
+    switchPage('home');
+    resetClassForm();
+    resetStudentForm();
+    await refreshClasses();
+    await refreshStudents();
+  }catch(e){
+    setLoginBusy(false,'오류: '+e.message+(e.code?' ['+e.code+']':''));
+    return;
+  }
+  setLoginBusy(false,'인증되었습니다.');
+}
+$('loginBtn').onclick=submitV2Login;
+$('password').addEventListener('keydown',e=>{if(e.key==='Enter')submitV2Login()});
+restoreRememberedTeacherId();
 $('logoutBtn').onclick=async()=>{try{if(token)await logout(token)}catch(e){}token='';currentTeacher=null;classRows=[];studentRows=[];sessionStorage.removeItem('v2SessionToken');setLoggedIn(false);show('loginResult','로그아웃되었습니다.')};
 $('navHomeBtn').onclick=()=>switchPage('home');
 $('navClassBtn').onclick=()=>switchPage('class');
