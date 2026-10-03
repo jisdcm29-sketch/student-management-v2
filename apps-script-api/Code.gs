@@ -56,6 +56,10 @@ function doPost(e) {
     if (action === 'dailyRecords.get') return okResponse_(requestId, getDailyRecordV2_(auth, body.recordId));
     if (action === 'dailyRecords.save') return okResponse_(requestId, saveDailyRecordV2_(auth, body.recordData || {}));
     if (action === 'dailyRecords.delete') return okResponse_(requestId, deleteDailyRecordV2_(auth, body.recordId));
+    if (action === 'attendance.load') return okResponse_(requestId, loadAttendanceV2_(auth, body.options || {}));
+    if (action === 'attendance.save') return okResponse_(requestId, saveAttendanceV2_(auth, body.attendanceData || {}));
+    if (action === 'attendance.holiday.save') return okResponse_(requestId, saveAttendanceHolidayV2_(auth, body.holidayData || {}));
+    if (action === 'attendance.holiday.clear') return okResponse_(requestId, clearAttendanceHolidayV2_(auth, body.holidayData || {}));
 
     return errorResponse_(requestId, 'NOT_FOUND', '지원하지 않는 API action입니다.');
   } catch (err) {
