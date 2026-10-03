@@ -79,6 +79,20 @@ function scoreHubLatestScoreV2_(rows, scoreField) {
   };
 }
 
+function scoreHubTestResultSummaryV2_(rows) {
+  const base = scoreHubLatestScoreV2_(rows, 'bestScore');
+  base.attempts = rows.reduce(function(sum, row) {
+    return sum + (scoreHubNumberV2_(row.attemptsToday) || 0);
+  }, 0);
+  base.passRows = rows.filter(function(row) {
+    return String(row.status || '').trim().toUpperCase() === 'PASS';
+  }).length;
+  base.retryRows = rows.filter(function(row) {
+    return String(row.status || '').trim().toUpperCase() === 'RETRY';
+  }).length;
+  return base;
+}
+
 function getScoreHubSourcesV2_(auth) {
   return {
     version: 'phase1-20261003',
@@ -170,21 +184,35 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
     progress:progress ? {
       firstLoginAt:String(progress['최초접속'] || ''),
       recentLoginAt:String(progress['최근접속'] || ''),
+      elapsedText:String(progress['접속경과'] || ''),
       startBook:String(progress['시작교재'] || ''),
       startLesson:String(progress['시작과'] || ''),
-      currentBook:String(progress['현재교재'] || '')
+      currentBook:String(progress['현재교재'] || ''),
+      currentLesson:String(progress['현재과'] || ''),
+      passProgress:String(progress['통과현황'] || ''),
+      vocabBest:scoreHubNumberV2_(progress['어휘최고']),
+      grammarBest:scoreHubNumberV2_(progress['문법최고']),
+      mixedBest:scoreHubNumberV2_(progress['종합최고']),
+      currentState:String(progress['현재상태'] || ''),
+      nextStep:String(progress['다음단계'] || ''),
+      topikCollocationState:String(progress['TOPIK연어'] || ''),
+      topikGrammarState:String(progress['TOPIK문법'] || ''),
+      recentActivityAt:String(progress['최근활동'] || ''),
+      recentTest:String(progress['최근시험'] || ''),
+      recentScore:scoreHubNumberV2_(progress['최근점수']),
+      totalAttempts:scoreHubNumberV2_(progress['총응시']) || 0
     } : null,
     snu:{
       vocab:{
-        summary:scoreHubLatestScoreV2_(snuVocabRows, 'bestScore'),
+        summary:scoreHubTestResultSummaryV2_(snuVocabRows),
         rows:snuVocabRows.slice(-30)
       },
       grammar:{
-        summary:scoreHubLatestScoreV2_(snuGrammarRows, 'bestScore'),
+        summary:scoreHubTestResultSummaryV2_(snuGrammarRows),
         rows:snuGrammarRows.slice(-30)
       },
       mixed:{
-        summary:scoreHubLatestScoreV2_(snuMixedRows, 'bestScore'),
+        summary:scoreHubTestResultSummaryV2_(snuMixedRows),
         rows:snuMixedRows.slice(-30)
       },
       rows:snuRows.slice(-60)
@@ -199,11 +227,11 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
       rows:wbListening.slice(-30)
     },
     topik1Collocation:{
-      summary:scoreHubLatestScoreV2_(topik1CollocationRows, 'bestScore'),
+      summary:scoreHubTestResultSummaryV2_(topik1CollocationRows),
       rows:topik1CollocationRows.slice(-30)
     },
     topik1Grammar:{
-      summary:scoreHubLatestScoreV2_(topik1GrammarRows, 'bestScore'),
+      summary:scoreHubTestResultSummaryV2_(topik1GrammarRows),
       rows:topik1GrammarRows.slice(-30)
     },
     topik1Reading:splitTopik(topik1Reading),
