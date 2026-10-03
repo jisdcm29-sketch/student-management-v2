@@ -165,16 +165,22 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
   const progress = progressRows.length ? progressRows[0] : null;
 
   function splitTopik(rows) {
+    function pack(items) {
+      return {
+        summary: scoreHubLatestScoreV2_(items, 'section_score_100'),
+        rows: items.slice(-30)
+      };
+    }
     return {
-      exam: rows.filter(function(r) {
+      exam: pack(rows.filter(function(r) {
         return ['QUESTION_PRACTICE','WRONG_REVIEW'].indexOf(String(r.result_type || '').toUpperCase()) < 0;
-      }),
-      practice: rows.filter(function(r) {
+      })),
+      practice: pack(rows.filter(function(r) {
         return String(r.result_type || '').toUpperCase() === 'QUESTION_PRACTICE';
-      }),
-      review: rows.filter(function(r) {
+      })),
+      review: pack(rows.filter(function(r) {
         return String(r.result_type || '').toUpperCase() === 'WRONG_REVIEW';
-      })
+      }))
     };
   }
 
