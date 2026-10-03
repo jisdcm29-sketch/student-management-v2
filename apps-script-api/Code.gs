@@ -23,19 +23,11 @@ function doPost(e) {
 
   try {
     let body = {};
-    if (e && e.postData && e.postData.contents) {
-      body = JSON.parse(e.postData.contents);
-    }
-
+    if (e && e.postData && e.postData.contents) body = JSON.parse(e.postData.contents);
     const action = String(body.action || '').trim();
 
-    if (action === 'login') {
-      return okResponse_(requestId, loginTeacher_(body.teacherId, body.password));
-    }
-
-    if (action === 'logout') {
-      return okResponse_(requestId, logoutTeacher_(body.sessionToken));
-    }
+    if (action === 'login') return okResponse_(requestId, loginTeacher_(body.teacherId, body.password));
+    if (action === 'logout') return okResponse_(requestId, logoutTeacher_(body.sessionToken));
 
     const auth = requireSession_(body.sessionToken);
 
@@ -49,21 +41,15 @@ function doPost(e) {
         }
       });
     }
-
-    if (action === 'bootstrap') {
-      return okResponse_(requestId, getBootstrapData_(auth));
-    }
-
-    if (action === 'classes.list') {
-      return okResponse_(requestId, listClasses_(auth));
-    }
+    if (action === 'bootstrap') return okResponse_(requestId, getBootstrapData_(auth));
+    if (action === 'classes.list') return okResponse_(requestId, listClassesV2_(auth, body.options || {}));
+    if (action === 'classes.get') return okResponse_(requestId, getClassV2_(auth, body.classId));
+    if (action === 'classes.save') return okResponse_(requestId, saveClassV2_(auth, body.classData || {}));
+    if (action === 'classes.close') return okResponse_(requestId, closeClassV2_(auth, body.classId));
+    if (action === 'classes.delete') return okResponse_(requestId, deleteClassV2_(auth, body.classId));
 
     return errorResponse_(requestId, 'NOT_FOUND', '지원하지 않는 API action입니다.');
   } catch (err) {
-    return errorResponse_(
-      requestId,
-      err && err.code ? err.code : 'INTERNAL_ERROR',
-      err && err.message ? err.message : String(err)
-    );
+    return errorResponse_(requestId, err && err.code ? err.code : 'INTERNAL_ERROR', err && err.message ? err.message : String(err));
   }
 }
