@@ -1,5 +1,4 @@
 const SCORE_HUB_SOURCE_V2_ = {
-  MOBILE_ID: '1y4xaZD8SQUVLztDhBSytvi-_naVCGYX5gTOyZqmhMUE',
   TOPIK1_READING_ID: '18HXty992Riii2-csrB2aHpQ7vVt8qD2NOWFMp1yG63M'
 };
 
@@ -13,17 +12,20 @@ function scoreHubNumberV2_(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-function scoreHubRowsByPhoneV2_(spreadsheetId, sheetName, phoneHeaders, phone) {
+function scoreHubBooleanV2_(value) {
+  if (value === true || value === false) return value;
+  return String(value || '').trim().toUpperCase() === 'TRUE';
+}
+
+function scoreHubRowsByPhoneFromSpreadsheetV2_(ss, sheetName, phoneHeaders, phone) {
   const targetPhone = scoreHubPhoneV2_(phone);
   if (!targetPhone) return [];
 
-  const ss = SpreadsheetApp.openById(spreadsheetId);
   const sheet = ss.getSheetByName(sheetName);
-  if (!sheet || sheet.getLastRow() < 2) return [];
+  if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 1) return [];
 
-  const lastColumn = sheet.getLastColumn();
-  const headers = sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0]
-    .map(function(v) { return String(v || '').trim(); });
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getDisplayValues();
+  const headers = values[0].map(function(v) { return String(v || '').trim(); });
 
   let phoneIndex = -1;
   for (let i = 0; i < phoneHeaders.length; i++) {
@@ -31,22 +33,21 @@ function scoreHubRowsByPhoneV2_(spreadsheetId, sheetName, phoneHeaders, phone) {
     if (phoneIndex >= 0) break;
   }
   if (phoneIndex < 0) {
-    throw new Error(sheetName + ' 전화번호 열을 찾을 수 없습니다.');
+    const error = new Error(sheetName + ' 전화번호 열을 찾을 수 없습니다.');
+    error.code = 'SCORE_SOURCE_PHONE_HEADER_NOT_FOUND';
+    throw error;
   }
 
-  const cells = sheet.getRange(2, phoneIndex + 1, sheet.getLastRow() - 1, 1)
-    .createTextFinder(targetPhone)
-    .matchEntireCell(true)
-    .findAll();
-
-  return cells.map(function(cell) {
-    const values = sheet.getRange(cell.getRow(), 1, 1, lastColumn).getDisplayValues()[0];
+  const rows = [];
+  for (let r = 1; r < values.length; r++) {
+    if (scoreHubPhoneV2_(values[r][phoneIndex]) !== targetPhone) continue;
     const row = {};
     headers.forEach(function(header, index) {
-      if (header) row[header] = values[index];
+      if (header) row[header] = values[r][index];
     });
-    return row;
-  });
+    rows.push(row);
+  }
+  return rows;
 }
 
 function scoreHubStudentV2_(auth, studentId) {
@@ -93,9 +94,107 @@ function scoreHubTestResultSummaryV2_(rows) {
   return base;
 }
 
+function scoreHubReadLocalStudentRowsV2_(ss, sheetName, student) {
+  const rows = readSheetObjects_(ss, sheetName);
+  const sid = String(student.studentId || '').trim();
+  const phone = scoreHubPhoneV2_(student.phone);
+  return rows.filter(function(row) {
+    const rowSid = String(row.studentId || '').trim();
+    const rowPhone = scoreHubPhoneV2_(row.normalizedPhone);
+    return (sid && rowSid === sid) || (phone && rowPhone === phone);
+  });
+}
+
+function scoreHubMapWorkbookReadingRowV2_(row) {
+  return {
+    '제출시각': String(row.submittedAt || ''),
+    '응시ID': String(row.attemptId || ''),
+    '전화번호': String(row.normalizedPhone || ''),
+    '학생이름': String(row.sourceName || ''),
+    '반': String(row.sourceClass || ''),
+    '교재': String(row.book || ''),
+    '복습': String(row.review || ''),
+    '평가영역': String(row.area || ''),
+    '점수(100)': String(row.score || ''),
+    '정답수': String(row.correct || ''),
+    '전체문항': String(row.total || ''),
+    '미응답': String(row.unanswered || ''),
+    '응시시간(초)': String(row.durationSec || ''),
+    '시간초과': String(row.timeout || ''),
+    '답안JSON': String(row.answersJson || ''),
+    'userAgent': String(row.userAgent || '')
+  };
+}
+
+function scoreHubMapWorkbookListeningRowV2_(row) {
+  return {
+    '시작시각': String(row.startedAt || ''),
+    '제출시각': String(row.submittedAt || ''),
+    '응시ID': String(row.attemptId || ''),
+    '전화번호': String(row.normalizedPhone || ''),
+    '학생이름': String(row.sourceName || ''),
+    '반': String(row.sourceClass || ''),
+    '교재': String(row.book || ''),
+    '복습': String(row.review || ''),
+    '상태': String(row.status || ''),
+    '점수(100)': String(row.score || ''),
+    '정답수': String(row.correct || ''),
+    '전체문항': String(row.total || ''),
+    '답안JSON': String(row.answersJson || ''),
+    '응시시간(초)': String(row.durationSec || ''),
+    '기기ID': String(row.deviceId || ''),
+    '정답버전': String(row.answerVersion || ''),
+    'userAgent': String(row.userAgent || '')
+  };
+}
+
+function scoreHubMasteryFromLocalV2_(rows) {
+  return rows.map(function(row) {
+    const passed = scoreHubBooleanV2_(row.passed);
+    return {
+      book: String(row.book || ''),
+      lesson: String(row.lesson || ''),
+      vocab: {
+        bestScore: scoreHubNumberV2_(row.vocabBest),
+        attempts: scoreHubNumberV2_(row.vocabAttempts) || 0
+      },
+      grammar: {
+        bestScore: scoreHubNumberV2_(row.grammarBest),
+        attempts: scoreHubNumberV2_(row.grammarAttempts) || 0
+      },
+      mixed: {
+        bestScore: scoreHubNumberV2_(row.mixedBest),
+        attempts: scoreHubNumberV2_(row.mixedAttempts) || 0
+      },
+      totalAttempts: scoreHubNumberV2_(row.totalAttempts) || 0,
+      passed: passed,
+      status: passed ? 'PASS' : 'RETRY'
+    };
+  }).sort(function(a, b) {
+    const bookCmp = String(a.book).localeCompare(String(b.book));
+    if (bookCmp !== 0) return bookCmp;
+    return Number(a.lesson || 0) - Number(b.lesson || 0);
+  });
+}
+
+function scoreHubSyncInfoV2_(ss) {
+  const rows = readSheetObjects_(ss, 'SyncState');
+  const out = {};
+  rows.forEach(function(row) {
+    const key = String(row.sourceType || '').trim();
+    if (!key) return;
+    out[key] = {
+      status: String(row.status || ''),
+      lastSuccessAt: String(row.lastSuccessAt || ''),
+      lastRunAt: String(row.lastRunAt || '')
+    };
+  });
+  return out;
+}
+
 function getScoreHubSourcesV2_(auth) {
   return {
-    version: 'phase1-20261003',
+    version: 'phase2-local-sync-20261003',
     sources: [
       {key:'SNU_VOCAB', label:'서울대 각 과 어휘 테스트', enabled:true},
       {key:'SNU_GRAMMAR', label:'서울대 각 과 문법 테스트', enabled:true},
@@ -119,9 +218,10 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
     throw error;
   }
 
-  const tests = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, 'TestResults', ['phone'], student.phone
-  );
+  // 핵심 변경: 모바일 원본이 아니라 V2 전용 교사 데이터 Spreadsheet를 우선 조회한다.
+  const localSs = getTeacherDataSpreadsheet_(auth.teacher);
+
+  const tests = scoreHubReadLocalStudentRowsV2_(localSs, 'LearningTestResults', student);
   const snuRows = tests.filter(function(row) {
     return /^SNU-/.test(String(row.book || '')) &&
       ['vocab','grammar','mixed'].indexOf(String(row.testType || '')) >= 0;
@@ -137,32 +237,32 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
   });
 
   const topik1CollocationRows = tests.filter(function(row) {
-    return String(row.book || '') === 'TOPIK1' &&
-      String(row.testType || '') === 'collocation';
+    return String(row.book || '') === 'TOPIK1' && String(row.testType || '') === 'collocation';
   });
   const topik1GrammarRows = tests.filter(function(row) {
-    return String(row.book || '') === 'TOPIK1' &&
-      String(row.testType || '') === 'grammar';
+    return String(row.book || '') === 'TOPIK1' && String(row.testType || '') === 'grammar';
   });
 
-  const wbReading = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, '워크북읽기평가', ['전화번호'], student.phone
-  );
-  const wbListeningAll = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, '워크북듣기평가', ['전화번호'], student.phone
-  );
+  const wbReading = scoreHubReadLocalStudentRowsV2_(localSs, 'WorkbookReadingResults', student)
+    .map(scoreHubMapWorkbookReadingRowV2_);
+  const wbListeningAll = scoreHubReadLocalStudentRowsV2_(localSs, 'WorkbookListeningResults', student)
+    .map(scoreHubMapWorkbookListeningRowV2_);
   const wbListening = wbListeningAll.filter(function(row) {
     return String(row['상태'] || '') === 'SUBMITTED';
   });
 
-  const topik1Reading = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.TOPIK1_READING_ID, 'All_Results', ['student_phone'], student.phone
+  const progressRows = scoreHubReadLocalStudentRowsV2_(localSs, 'StudentLearningProgress', student);
+  const progress = progressRows.length ? progressRows[0] : null;
+
+  const masteryRows = scoreHubMasteryFromLocalV2_(
+    scoreHubReadLocalStudentRowsV2_(localSs, 'ScoreHubMastery', student)
   );
 
-  const progressRows = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, '진도현황', ['전화번호'], student.phone
+  // TOPIK I 읽기 결과는 아직 V2 동기화 대상이 아니므로 기존 원본을 유지한다.
+  const topik1ReadingSs = SpreadsheetApp.openById(SCORE_HUB_SOURCE_V2_.TOPIK1_READING_ID);
+  const topik1Reading = scoreHubRowsByPhoneFromSpreadsheetV2_(
+    topik1ReadingSs, 'All_Results', ['student_phone'], student.phone
   );
-  const progress = progressRows.length ? progressRows[0] : null;
 
   function splitTopik(rows) {
     function pack(items) {
@@ -185,28 +285,30 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
   }
 
   return {
-    version:'phase1-20261003',
+    version:'phase2-local-sync-20261003',
+    sourceMode:'V2_LOCAL_SYNC',
+    syncInfo:scoreHubSyncInfoV2_(localSs),
     student:student,
     progress:progress ? {
-      firstLoginAt:String(progress['최초접속'] || ''),
-      recentLoginAt:String(progress['최근접속'] || ''),
-      elapsedText:String(progress['접속경과'] || ''),
-      startBook:String(progress['시작교재'] || ''),
-      startLesson:String(progress['시작과'] || ''),
-      currentBook:String(progress['현재교재'] || ''),
-      currentLesson:String(progress['현재과'] || ''),
-      passProgress:String(progress['통과현황'] || ''),
-      vocabBest:scoreHubNumberV2_(progress['어휘최고']),
-      grammarBest:scoreHubNumberV2_(progress['문법최고']),
-      mixedBest:scoreHubNumberV2_(progress['종합최고']),
-      currentState:String(progress['현재상태'] || ''),
-      nextStep:String(progress['다음단계'] || ''),
-      topikCollocationState:String(progress['TOPIK연어'] || ''),
-      topikGrammarState:String(progress['TOPIK문법'] || ''),
-      recentActivityAt:String(progress['최근활동'] || ''),
-      recentTest:String(progress['최근시험'] || ''),
-      recentScore:scoreHubNumberV2_(progress['최근점수']),
-      totalAttempts:scoreHubNumberV2_(progress['총응시']) || 0
+      firstLoginAt:String(progress.firstLoginAt || ''),
+      recentLoginAt:String(progress.recentLoginAt || ''),
+      elapsedText:String(progress.elapsedText || ''),
+      startBook:String(progress.startBook || ''),
+      startLesson:String(progress.startLesson || ''),
+      currentBook:String(progress.currentBook || ''),
+      currentLesson:String(progress.currentLesson || ''),
+      passProgress:String(progress.passProgress || ''),
+      vocabBest:scoreHubNumberV2_(progress.currentVocabBest),
+      grammarBest:scoreHubNumberV2_(progress.currentGrammarBest),
+      mixedBest:scoreHubNumberV2_(progress.currentMixedBest),
+      currentState:String(progress.currentState || ''),
+      nextStep:String(progress.nextStep || ''),
+      topikCollocationState:String(progress.topikCollocationState || ''),
+      topikGrammarState:String(progress.topikGrammarState || ''),
+      recentActivityAt:String(progress.recentActivityAt || ''),
+      recentTest:String(progress.recentTest || ''),
+      recentScore:scoreHubNumberV2_(progress.recentScore),
+      totalAttempts:scoreHubNumberV2_(progress.totalAttempts) || 0
     } : null,
     snu:{
       vocab:{
@@ -221,7 +323,8 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
         summary:scoreHubTestResultSummaryV2_(snuMixedRows),
         rows:snuMixedRows.slice(-30)
       },
-      rows:snuRows.slice(-60)
+      rows:snuRows.slice(-60),
+      mastery:masteryRows
     },
     workbookReading:{
       summary:scoreHubLatestScoreV2_(wbReading, '점수(100)'),
