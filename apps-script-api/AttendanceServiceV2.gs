@@ -207,11 +207,65 @@ function saveAttendanceV2_(auth, payload) {
     throw error;
   }
 
-  const holidayRows = getAttendanceRowsV2_(ss, classId, date).filter(function(row) {
-    return String(row.studentId || '').trim() === ATTENDANCE_HOLIDAY_STUDENT_ID_V2_ ||
-      String(row.status || '').trim() === ATTENDANCE_HOLIDAY_STATUS_V2_;
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastColumn < 1) {
+    const error = new Error('Attendance 시트의 열 구성을 확인해 주세요.');
+    error.code = 'SHEET_HEADER_ERROR';
+    throw error;
+  }
+
+  const values = lastRow >= 1
+    ? sheet.getRange(1, 1, lastRow, lastColumn).getDisplayValues()
+    : [];
+  const headers = values.length
+    ? values[0].map(function(v) { return String(v || '').trim(); })
+    : [];
+  const headerMap = {};
+  headers.forEach(function(header, index) {
+    if (header) headerMap[header] = index;
   });
-  if (holidayRows.length) {
+
+  ['attendanceId','date','classId','studentId','status','memo','updatedAt'].forEach(function(header) {
+    if (headerMap[header] == null) {
+      const error = new Error('Attendance 시트에 필요한 열이 없습니다: ' + header);
+      error.code = 'SHEET_HEADER_ERROR';
+      throw error;
+    }
+  });
+
+  const existingRowMap = {};
+  let maxAttendanceNumber = 0;
+  let holidayExists = false;
+
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const attendanceId = String(row[headerMap.attendanceId] || '').trim();
+    if (attendanceId.indexOf('ATT-') === 0) {
+      const tail = attendanceId.slice(4);
+      if (/^\d+$/.test(tail)) maxAttendanceNumber = Math.max(maxAttendanceNumber, Number(tail));
+    }
+
+    const rowClassId = String(row[headerMap.classId] || '').trim();
+    const rowDate = normalizeAttendanceDateV2_(row[headerMap.date]);
+    if (rowClassId !== classId || rowDate !== date) continue;
+
+    const rowStudentId = String(row[headerMap.studentId] || '').trim();
+    const rowStatus = String(row[headerMap.status] || '').trim();
+    if (rowStudentId === ATTENDANCE_HOLIDAY_STUDENT_ID_V2_ ||
+        rowStatus === ATTENDANCE_HOLIDAY_STATUS_V2_) {
+      holidayExists = true;
+    }
+
+    if (rowStudentId && existingRowMap[rowStudentId] == null) {
+      existingRowMap[rowStudentId] = {
+        rowNumber: i + 1,
+        values: row.slice()
+      };
+    }
+  }
+
+  if (holidayExists) {
     const error = new Error('현재 날짜는 휴무일입니다. 휴무 해제 후 출석을 저장해 주세요.');
     error.code = 'ATTENDANCE_HOLIDAY';
     throw error;
@@ -225,6 +279,12 @@ function saveAttendanceV2_(auth, payload) {
 
   const now = new Date();
   const saved = [];
+  const newRows = [];
+
+  function nextAttendanceId_() {
+    maxAttendanceNumber += 1;
+    return 'ATT-' + String(maxAttendanceNumber).padStart(4, '0');
+  }
 
   records.forEach(function(item) {
     const studentId = String(item.studentId || '').trim();
@@ -234,8 +294,11 @@ function saveAttendanceV2_(auth, payload) {
       throw error;
     }
 
+    const existing = existingRowMap[studentId] || null;
     const obj = {
-      attendanceId: '',
+      attendanceId: existing
+        ? String(existing.values[headerMap.attendanceId] || '').trim()
+        : '',
       date: date,
       classId: classId,
       studentId: studentId,
@@ -244,21 +307,27 @@ function saveAttendanceV2_(auth, payload) {
       updatedAt: now
     };
 
-    const rowNumber = findAttendanceRowNumberV2_(sheet, classId, date, studentId);
-    if (rowNumber >= 2) {
-      const headers = getSheetHeaderMapV2_(sheet);
-      if (headers.attendanceId != null) {
-        obj.attendanceId = String(sheet.getRange(rowNumber, headers.attendanceId + 1).getDisplayValue() || '').trim();
-      }
-      if (!obj.attendanceId) obj.attendanceId = makeNextPrefixedIdV2_(sheet, 'attendanceId', 'ATT-', 4);
-      writeObjectToRowV2_(sheet, rowNumber, obj);
+    if (!obj.attendanceId) obj.attendanceId = nextAttendanceId_();
+
+    if (existing) {
+      const outputRow = existing.values.slice();
+      Object.keys(obj).forEach(function(key) {
+        if (headerMap[key] != null) outputRow[headerMap[key]] = obj[key];
+      });
+      sheet.getRange(existing.rowNumber, 1, 1, lastColumn).setValues([outputRow]);
     } else {
-      obj.attendanceId = makeNextPrefixedIdV2_(sheet, 'attendanceId', 'ATT-', 4);
-      appendObjectRowV2_(sheet, obj);
+      const outputRow = headers.map(function(header) {
+        return Object.prototype.hasOwnProperty.call(obj, header) ? obj[header] : '';
+      });
+      newRows.push(outputRow);
     }
 
     saved.push(obj);
   });
+
+  if (newRows.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, lastColumn).setValues(newRows);
+  }
 
   SpreadsheetApp.flush();
   appendAuditLog_(
