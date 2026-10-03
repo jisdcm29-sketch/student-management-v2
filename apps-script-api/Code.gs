@@ -52,6 +52,10 @@ function doPost(e) {
     if (action === 'students.save') return okResponse_(requestId, saveStudentV2_(auth, body.studentData || {}));
     if (action === 'students.archived.list') return okResponse_(requestId, listArchivedStudentsV2_(auth, body.options || {}));
     if (action === 'students.restore') return okResponse_(requestId, restoreStudentV2_(auth, body.studentId));
+    if (action === 'dailyRecords.list') return okResponse_(requestId, listDailyRecordsV2_(auth, body.options || {}));
+    if (action === 'dailyRecords.get') return okResponse_(requestId, getDailyRecordV2_(auth, body.recordId));
+    if (action === 'dailyRecords.save') return okResponse_(requestId, saveDailyRecordV2_(auth, body.recordData || {}));
+    if (action === 'dailyRecords.delete') return okResponse_(requestId, deleteDailyRecordV2_(auth, body.recordId));
 
     return errorResponse_(requestId, 'NOT_FOUND', '지원하지 않는 API action입니다.');
   } catch (err) {
