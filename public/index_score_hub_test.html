@@ -523,8 +523,10 @@
         </section>
 
         <section id="scoreHubCardsPanel" class="simple-page hidden">
-          <div class="score-section-title"><h3>핵심 성취 요약</h3><span>현재 진도 · 누적 통과 · 최근 학습 · 복습 평가 · TOPIK I</span></div>
-          <div id="scoreHubCardGrid" class="score-card-grid"></div>
+          <div class="score-section-title"><h3>현재 학습 상태</h3><span>지금 무엇을 하고 있고, 다음에 무엇을 해야 하는지</span></div>
+          <div id="scoreHubCurrentGrid" class="score-card-grid"></div>
+          <div class="score-section-title" style="margin-top:20px"><h3>누적 성취 요약</h3><span>지금까지의 통과·복습·TOPIK I 성취</span></div>
+          <div id="scoreHubAchievementGrid" class="score-card-grid"></div>
         </section>
 
         <section id="scoreHubSnuPanel" class="simple-page hidden">
@@ -764,6 +766,8 @@ function renderScoreHub(data){
   ];
   const currentPassed=currentTests.filter(x=>Number(x.score)>=90).length;
   const currentScoreText=currentTests.map(x=>x.label+' '+scoreFmt(x.score)).join(' · ');
+  const currentStateText=currentPassed===3?'현재 과 통과 완료':(currentPassed===0?'현재 과 시험 미통과':'현재 과 일부 통과');
+  const nextStepText=p.nextStep||'다음 단계 정보 없음';
 
   const wbRead=data.workbookReading?.summary||{};
   const wbListen=data.workbookListening?.summary||{};
@@ -783,39 +787,57 @@ function renderScoreHub(data){
     '</div>';
   }
 
-  const coreCards=[
+  const currentCards=[
     specificCard(
-      '현재 과 성취',
+      '현재 진도',
       currentLessonText,
-      currentPassed+'/3 통과',
+      currentStateText,
       '<span>'+esc(currentScoreText)+'</span>',
       currentPassed===3?'PASS':(currentPassed>0?'RETRY':'')
     ),
     specificCard(
-      '서울대 누적 진도',
-      passedLessons+'개 과 통과',
-      '현재 '+currentLessonText,
-      '<span>총 응시 '+esc(scoreFmt(p.totalAttempts))+'회</span>',
+      '다음 학습 단계',
+      currentPassed+'/3 통과',
+      nextStepText,
+      '<span>통과 기준: 어휘·문법·종합 각각 90점 이상</span>',
       ''
     ),
     specificCard(
       '최근 서울대 학습',
-      (p.recentTest||'기록 없음')+(p.recentScore!==null&&p.recentScore!==undefined&&p.recentScore!==''?' '+p.recentScore+'점':''),
-      p.recentActivityAt||p.recentLoginAt||'최근 활동 없음',
-      '<span>'+(p.nextStep?esc(p.nextStep):'다음 단계 정보 없음')+'</span>',
+      p.recentTest?String(p.recentTest):'기록 없음',
+      p.recentScore!==null&&p.recentScore!==undefined&&p.recentScore!==''?('최근 점수 '+p.recentScore+'점'):'최근 점수 기록 없음',
+      '<span>'+(p.recentActivityAt||p.recentLoginAt?esc(p.recentActivityAt||p.recentLoginAt):'최근 활동 없음')+'</span>',
+      ''
+    ),
+    specificCard(
+      '전체 응시',
+      scoreFmt(p.totalAttempts)+'회',
+      '서울대·TOPIK I 연어·문법 포함 진도현황 기준',
+      '<span>현재 통과 '+passedLessons+'개 과</span>',
+      ''
+    )
+  ];
+  $('scoreHubCurrentGrid').innerHTML=currentCards.join('');
+
+  const achievementCards=[
+    specificCard(
+      '서울대 누적 통과',
+      passedLessons+'개 과',
+      '어휘·문법·종합 모두 90점 이상인 과',
+      '<span>현재 '+esc(currentLessonText)+'</span>',
       ''
     ),
     specificCard(
       '복습 읽기 평가',
-      wbRead.attempts?('최근 '+scoreFmt(wbRead.latestScore)+'점'):'기록 없음',
-      wbRead.attempts?('최고 '+scoreFmt(wbRead.bestScore)+'점'):'응시 기록 없음',
+      wbRead.attempts?('최고 '+scoreFmt(wbRead.bestScore)+'점'):'기록 없음',
+      wbRead.attempts?('최근 '+scoreFmt(wbRead.latestScore)+'점'):'응시 기록 없음',
       '<span>응시 '+esc(scoreFmt(wbRead.attempts||0))+'회</span>',
       ''
     ),
     specificCard(
       '복습 듣기 평가',
-      wbListen.attempts?('최근 '+scoreFmt(wbListen.latestScore)+'점'):'기록 없음',
-      wbListen.attempts?('최고 '+scoreFmt(wbListen.bestScore)+'점'):'응시 기록 없음',
+      wbListen.attempts?('최고 '+scoreFmt(wbListen.bestScore)+'점'):'기록 없음',
+      wbListen.attempts?('최근 '+scoreFmt(wbListen.latestScore)+'점'):'응시 기록 없음',
       '<span>완료 '+esc(scoreFmt(wbListen.attempts||0))+'회</span>'+(data.workbookListening?.inProgressCount?'<span>진행중 '+esc(data.workbookListening.inProgressCount)+'회</span>':''),
       ''
     ),
@@ -835,13 +857,13 @@ function renderScoreHub(data){
     ),
     specificCard(
       'TOPIK I 읽기',
-      topikReadExam.attempts?('실전 '+scoreFmt(topikReadExam.bestScore)+'점'):'실전 기록 없음',
+      topikReadExam.attempts?('실전 최고 '+scoreFmt(topikReadExam.bestScore)+'점'):'실전 기록 없음',
       '연습 '+esc(scoreFmt(topikReadPractice.attempts||0))+'회 · 오답복습 '+esc(scoreFmt(topikReadReview.attempts||0))+'회',
       '<span>실전 응시 '+esc(scoreFmt(topikReadExam.attempts||0))+'회</span>',
       ''
     )
   ];
-  $('scoreHubCardGrid').innerHTML=coreCards.join('');
+  $('scoreHubAchievementGrid').innerHTML=achievementCards.join('');
 
   $('scoreHubSnuMasteryTable').innerHTML=masteryRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>교재</th><th>과</th><th>어휘 최고</th><th>문법 최고</th><th>종합 최고</th><th>총 응시</th><th>누적 상태</th></tr></thead><tbody>'+
     masteryRows.map(r=>'<tr><td>'+esc(r.book||'')+'</td><td>'+esc(r.lesson||'')+'</td><td><strong>'+esc(scoreFmt(r.vocab?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.vocab?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.grammar?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.grammar?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.mixed?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.mixed?.attempts||0))+'회)</span></td><td>'+esc(scoreFmt(r.totalAttempts||0))+'회</td><td>'+scoreStatusPill(r.status)+'</td></tr>').join('')+
