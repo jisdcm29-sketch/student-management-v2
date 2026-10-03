@@ -500,7 +500,7 @@
         <section class="simple-page">
           <div class="page-title">
             <h2>통합 성적 관리</h2>
-            <p class="muted">서울대 각 과 어휘·문법·종합, 복습 읽기·듣기, TOPIK I 연어·문법·읽기평가와 학생 진도를 한 화면에서 확인합니다.</p>
+            <p class="muted">서울대 각 과 어휘·문법·종합, 복습 읽기·듣기, TOPIK I 연어·문법·읽기평가와 학생 진도를 한 화면에서 확인합니다. <span style="white-space:nowrap">테스트 버전 2026-10-03.2</span></p>
           </div>
           <div class="score-toolbar">
             <div class="form-row"><label>반</label><select id="scoreClassId"><option value="">반 선택</option></select></div>
@@ -893,7 +893,12 @@ async function loadScoreHubStudent(){
     $('scoreHubStatus').textContent='최신 학습 기록을 불러왔습니다.';
   }catch(e){
     $('scoreHubStatus').className='score-status error';
-    $('scoreHubStatus').textContent='성적 불러오기 오류: '+e.message+(e.code?' ['+e.code+']':'');
+    const msg=String(e&&e.message||'');
+    if(msg.includes('API HTTP 오류: 404')){
+      $('scoreHubStatus').textContent='성적 API 연결 오류(404): 현재 Apps Script 웹앱 배포 주소와 프로그램의 API 주소가 일치하는지 확인해 주세요. 기존에 불러온 화면 데이터는 유지합니다.';
+    }else{
+      $('scoreHubStatus').textContent='성적 불러오기 오류: '+msg+(e.code?' ['+e.code+']':'');
+    }
   }finally{btn.disabled=false}
 }
 function timeOptions(selected=''){
