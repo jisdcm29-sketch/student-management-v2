@@ -1,6 +1,5 @@
 const V2_QR_OPEN_BEFORE_MINUTES = 30;
 const V2_QR_LATE_FROM_MINUTES = 20;
-const V2_QR_LATE_LIMIT_MINUTES = 60;
 const V2_QR_SESSION_SHEET = 'QrAttendanceSessions';
 const V2_QR_PUBLIC_URL_PROPERTY = 'V2_QR_PUBLIC_APP_URL';
 const V2_QR_SESSION_HEADERS = [
@@ -39,8 +38,9 @@ function qrMinutesToTimeV2_(minutes) {
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 }
 
-function buildQrRuleTimesV2_(startTime) {
+function buildQrRuleTimesV2_(startTime, endTime) {
   const startMin = qrTimeToMinutesV2_(startTime);
+  const endMin = qrTimeToMinutesV2_(endTime);
   if (startMin < 0) {
     return { openTime:'', onTimeUntil:'', lateFrom:'', lateUntil:'' };
   }
@@ -49,7 +49,7 @@ function buildQrRuleTimesV2_(startTime) {
     openTime: qrMinutesToTimeV2_(startMin - V2_QR_OPEN_BEFORE_MINUTES),
     onTimeUntil: qrMinutesToTimeV2_(lateFromMin),
     lateFrom: qrMinutesToTimeV2_(lateFromMin),
-    lateUntil: qrMinutesToTimeV2_(startMin + V2_QR_LATE_LIMIT_MINUTES)
+    lateUntil: endMin > startMin ? qrMinutesToTimeV2_(endMin) : ''
   };
 }
 
@@ -167,6 +167,7 @@ function getQrAttendanceSetupV2_(auth, options) {
   }
 
   const schedule = findQrScheduleV2_(ss, classId, date);
+  finalizeEndedQrAttendanceForClassV2_(auth, classId, date);
   const activeSession = getActiveQrSessionV2_(auth, classId, date);
   const startTime = activeSession && activeSession.startTime
     ? normalizeQrTimeV2_(activeSession.startTime)
@@ -174,7 +175,7 @@ function getQrAttendanceSetupV2_(auth, options) {
   const endTime = activeSession && activeSession.endTime
     ? normalizeQrTimeV2_(activeSession.endTime)
     : (schedule ? schedule.endTime : '');
-  const rules = buildQrRuleTimesV2_(startTime);
+  const rules = buildQrRuleTimesV2_(startTime, endTime);
 
   if (activeSession) {
     activeSession.publicUrl = publicQrAppUrlV2_()
@@ -197,6 +198,97 @@ function getQrAttendanceSetupV2_(auth, options) {
     publicAppConfigured: !!publicQrAppUrlV2_(),
     activeSession: activeSession
   };
+}
+
+function qrSessionHasEndedV2_(date, endTime) {
+  const dateKey = normalizeAttendanceDateV2_(date);
+  const timeKey = normalizeQrTimeV2_(endTime);
+  if (!dateKey || !timeKey) return false;
+  const tz = Session.getScriptTimeZone() || 'Asia/Ulaanbaatar';
+  const nowKey = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm');
+  return nowKey >= (dateKey + ' ' + timeKey);
+}
+
+function finalizeQrAbsencesForSessionV2_(auth, session) {
+  if (!session || !qrSessionHasEndedV2_(session.date, session.endTime)) {
+    return { finalized:false, absentCount:0 };
+  }
+
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  const classId = String(session.classId || '').trim();
+  const date = normalizeAttendanceDateV2_(session.date);
+  const attendanceSheet = getRequiredDataSheetV2_(ss, 'Attendance');
+
+  const existingRows = getAttendanceRowsV2_(ss, classId, date);
+  const holiday = existingRows.some(function(row) {
+    return String(row.studentId || '').trim() === ATTENDANCE_HOLIDAY_STUDENT_ID_V2_ ||
+      String(row.status || '').trim() === ATTENDANCE_HOLIDAY_STATUS_V2_;
+  });
+  if (holiday) return { finalized:false, absentCount:0, holiday:true };
+
+  const existingMap = {};
+  existingRows.forEach(function(row) {
+    const sid = String(row.studentId || '').trim();
+    if (sid && sid !== ATTENDANCE_HOLIDAY_STUDENT_ID_V2_) existingMap[sid] = true;
+  });
+
+  const targets = getAttendanceTargetStudentsV2_(ss, classId, date);
+  const now = new Date();
+  let absentCount = 0;
+
+  targets.forEach(function(student) {
+    const studentId = String(student.studentId || '').trim();
+    if (!studentId || existingMap[studentId]) return;
+
+    appendObjectRowV2_(attendanceSheet, {
+      attendanceId: makeNextPrefixedIdV2_(attendanceSheet, 'attendanceId', 'ATT-', 4),
+      date: date,
+      classId: classId,
+      studentId: studentId,
+      status: '결석',
+      memo: 'QR 미체크 · 수업 종료 자동 결석',
+      updatedAt: now
+    });
+    existingMap[studentId] = true;
+    absentCount++;
+  });
+
+  if (absentCount > 0) SpreadsheetApp.flush();
+
+  appendAuditLog_(
+    auth.teacher.teacherId,
+    'QR_ABSENCE_FINALIZE',
+    'Attendance',
+    classId + ':' + date,
+    'SUCCESS',
+    'auto absent ' + absentCount
+  );
+
+  return { finalized:true, absentCount:absentCount };
+}
+
+function finalizeEndedQrAttendanceForClassV2_(auth, classId, date) {
+  const teacherId = String(auth.teacher.teacherId || '').trim();
+  const dataSpreadsheetId = String(auth.teacher.dataSpreadsheetId || '').trim();
+  const classKey = String(classId || '').trim();
+  const dateKey = normalizeAttendanceDateV2_(date);
+  const rows = qrSessionRowsV2_();
+
+  for (let i=rows.length-1;i>=0;i--) {
+    const row = rows[i];
+    if (String(row.teacherId || '').trim() !== teacherId) continue;
+    if (String(row.dataSpreadsheetId || '').trim() !== dataSpreadsheetId) continue;
+    if (String(row.classId || '').trim() !== classKey) continue;
+    if (normalizeAttendanceDateV2_(row.date) !== dateKey) continue;
+    if (String(row.status || '').trim() !== 'PREPARED') continue;
+    if (!qrSessionHasEndedV2_(row.date, row.endTime)) return { finalized:false, absentCount:0 };
+
+    const result = finalizeQrAbsencesForSessionV2_(auth, row);
+    closePreparedQrRowsV2_(auth, classKey, dateKey);
+    SpreadsheetApp.flush();
+    return result;
+  }
+  return { finalized:false, absentCount:0 };
 }
 
 function closePreparedQrRowsV2_(auth, classId, date) {
@@ -258,7 +350,7 @@ function startQrAttendanceSessionV2_(auth, payload) {
   closePreparedQrRowsV2_(auth, classId, date);
 
   const schedule = findQrScheduleV2_(ss, classId, date);
-  const rules = buildQrRuleTimesV2_(startTime);
+  const rules = buildQrRuleTimesV2_(startTime, endTime);
   const now = new Date();
   const uuid = Utilities.getUuid().replace(/-/g,'');
   const session = {
@@ -330,6 +422,10 @@ function closeQrAttendanceSessionV2_(auth, payload) {
     throw error;
   }
 
+  const activeSession = getActiveQrSessionV2_(auth, classId, date);
+  const finalization = activeSession
+    ? finalizeQrAbsencesForSessionV2_(auth, activeSession)
+    : { finalized:false, absentCount:0 };
   const closed = closePreparedQrRowsV2_(auth, classId, date);
   SpreadsheetApp.flush();
 
@@ -342,5 +438,11 @@ function closeQrAttendanceSessionV2_(auth, payload) {
     'closed ' + closed
   );
 
-  return { classId:classId, date:date, closedCount:closed };
+  return {
+    classId:classId,
+    date:date,
+    closedCount:closed,
+    absenceFinalized:!!finalization.finalized,
+    autoAbsentCount:Number(finalization.absentCount || 0)
+  };
 }
