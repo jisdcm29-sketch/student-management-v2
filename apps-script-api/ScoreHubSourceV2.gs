@@ -93,6 +93,45 @@ function scoreHubTestResultSummaryV2_(rows) {
   return base;
 }
 
+function scoreHubBuildSnuMasteryV2_(rows) {
+  const byLesson = {};
+  rows.forEach(function(row) {
+    const book = String(row.book || '').trim();
+    const lesson = String(row.lesson || '').trim();
+    const type = String(row.testType || '').trim();
+    if (!book || !lesson || ['vocab','grammar','mixed'].indexOf(type) < 0) return;
+    const key = book + '|' + lesson;
+    if (!byLesson[key]) {
+      byLesson[key] = {
+        book: book,
+        lesson: lesson,
+        vocab: { bestScore:null, attempts:0 },
+        grammar: { bestScore:null, attempts:0 },
+        mixed: { bestScore:null, attempts:0 }
+      };
+    }
+    const item = byLesson[key][type];
+    const score = scoreHubNumberV2_(row.bestScore);
+    const attempts = scoreHubNumberV2_(row.attemptsToday) || 0;
+    item.attempts += attempts;
+    if (score !== null && (item.bestScore === null || score > item.bestScore)) item.bestScore = score;
+  });
+
+  return Object.keys(byLesson).map(function(key) {
+    const item = byLesson[key];
+    item.passed = ['vocab','grammar','mixed'].every(function(type) {
+      return item[type].bestScore !== null && Number(item[type].bestScore) >= 90;
+    });
+    item.status = item.passed ? 'PASS' : 'RETRY';
+    item.totalAttempts = item.vocab.attempts + item.grammar.attempts + item.mixed.attempts;
+    return item;
+  }).sort(function(a,b) {
+    const bookCmp = String(a.book).localeCompare(String(b.book));
+    if (bookCmp !== 0) return bookCmp;
+    return Number(a.lesson || 0) - Number(b.lesson || 0);
+  });
+}
+
 function getScoreHubSourcesV2_(auth) {
   return {
     version: 'phase1-20261003',
@@ -221,7 +260,8 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
         summary:scoreHubTestResultSummaryV2_(snuMixedRows),
         rows:snuMixedRows.slice(-30)
       },
-      rows:snuRows.slice(-60)
+      rows:snuRows.slice(-60),
+      mastery:scoreHubBuildSnuMasteryV2_(snuRows)
     },
     workbookReading:{
       summary:scoreHubLatestScoreV2_(wbReading, '점수(100)'),
