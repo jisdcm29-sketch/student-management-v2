@@ -8,17 +8,29 @@
     :root{--primary:#1f4b70;--secondary:#475569;--danger:#b42318;--border:#dbe3ee;--muted:#667085;--bg:#f4f7fb}
     *{box-sizing:border-box}
     body{font-family:Arial,"Noto Sans KR",sans-serif;margin:0;background:var(--bg);color:#1f2937}
-    main{max-width:1500px;margin:0 auto;padding:0}
+    main{width:100%;max-width:none;margin:0;padding:0}
     .app-shell{min-height:100vh;display:grid;grid-template-columns:190px minmax(0,1fr)}
-    .sidebar{position:sticky;top:0;height:100vh;background:#143f63;color:#fff;padding:16px 10px;display:flex;flex-direction:column;gap:10px}
+    .sidebar{position:sticky;top:0;height:100vh;background:#143f63;color:#fff;padding:16px 10px 10px;display:flex;flex-direction:column;gap:10px}
     .sidebar-brand{padding:2px 2px 8px}.sidebar-brand strong{display:block;font-size:16px}.sidebar-brand span{font-size:11px;color:#d7e3ee}
-    .sidebar-user{padding:9px 10px;border-radius:8px;background:rgba(255,255,255,.08);font-size:12px;color:#e8f1f8}
+    .sidebar-login{margin-top:2px;padding:5px 2px 0;font-size:11px;color:#d7e3ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .sidebar-nav{display:flex;flex-direction:column;gap:8px}.sidebar-nav button{width:100%;text-align:center;background:#53759b;color:#fff;padding:12px 8px;border-radius:8px}
     .sidebar-nav button.active{background:#2f8d87}.sidebar-nav button[data-page="score"]{background:#735ba1}.sidebar-nav button[data-page="lesson"]{background:#5d8b61}.sidebar-nav button[data-page="report"]{background:#94704c}.sidebar-nav button[data-page="teacher"]{background:#955a8e}
     .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px}.sidebar-bottom button{width:100%;background:#fff;color:#153f63}
-    .content-area{min-width:0;padding:14px 14px 30px;background:var(--bg)}
+    .content-area{min-width:0;width:100%;padding:12px 12px 28px;background:var(--bg)}
     .page-panel{min-width:0}.page-title{text-align:center;margin-bottom:10px}.page-title h2{margin-bottom:4px}
-    .home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.home-stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px;text-align:center}.home-stat strong{display:block;font-size:30px;color:#153f63}.home-stat span{font-size:12px;color:#667085}
+    .home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .home-stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 16px;text-align:center;min-height:98px}
+    .home-stat strong{display:block;font-size:28px;line-height:1.2;color:#153f63;margin:5px 0}.home-stat span{font-size:12px;color:#667085}
+    .home-two-col{display:grid;grid-template-columns:1.05fr 1fr;gap:10px;margin-top:10px}
+    .home-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px}
+    .home-card h3{text-align:center;margin-bottom:10px}
+    .home-score-table{width:100%;border-collapse:collapse}.home-score-table th,.home-score-table td{padding:8px 12px;border-bottom:1px solid #e5e7eb}
+    .home-score-table th{width:110px;background:#f8fafc;text-align:center}.home-score-table td{text-align:center;font-weight:700;color:#153f63}
+    .guide-list{margin:0;padding-left:22px;line-height:1.9;font-size:14px}
+    .home-info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .home-info-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px}
+    .home-info-label{font-size:12px;color:#64748b;font-weight:700}.home-info-value{margin-top:5px;font-size:17px;color:#153f63;font-weight:700}
+    .home-info-help{text-align:center;margin-top:10px;font-size:12px;color:#64748b}
     .simple-page{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.04)}
     .simple-page+.simple-page{margin-top:16px}
     h1,h2,h3{margin:0 0 12px} p{margin:0}.muted{color:var(--muted);font-size:13px}.hidden{display:none!important}
@@ -56,7 +68,7 @@
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
       .student-card-top{grid-template-columns:1fr 1fr}.student-metrics{grid-template-columns:1fr 1fr}
       main{padding:0}
-      .app-shell{display:block}.sidebar{position:sticky;top:0;z-index:20;height:auto;padding:8px;background:#143f63}.sidebar-brand,.sidebar-user{display:none}.sidebar-nav{display:flex;flex-direction:row;overflow-x:auto;gap:6px}.sidebar-nav button{min-width:90px;width:auto;padding:9px 10px}.sidebar-bottom{display:flex;flex-direction:row;margin-top:6px}.sidebar-bottom button{min-width:90px}.content-area{padding:10px}.home-stats{grid-template-columns:1fr 1fr}
+      .app-shell{display:block}.sidebar{position:sticky;top:0;z-index:20;height:auto;padding:8px;background:#143f63}.sidebar-brand,.sidebar-login{display:none}.sidebar-nav{display:flex;flex-direction:row;overflow-x:auto;gap:6px}.sidebar-nav button{min-width:90px;width:auto;padding:9px 10px}.sidebar-bottom{display:flex;flex-direction:row;margin-top:6px}.sidebar-bottom button{min-width:90px}.content-area{padding:10px}.home-stats{grid-template-columns:1fr 1fr}.home-two-col{grid-template-columns:1fr}.home-info-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -76,7 +88,6 @@
   <div id="appArea" class="hidden app-shell">
     <aside class="sidebar">
       <div class="sidebar-brand"><strong>한국어학당</strong><span>학생 관리 시스템 V2</span></div>
-      <div class="sidebar-user" id="authUserLabel">로그인됨</div>
       <nav class="sidebar-nav">
         <button id="navHomeBtn" class="active" data-page="home" type="button">홈</button>
         <button id="navClassBtn" data-page="class" type="button">반 관리</button>
@@ -90,17 +101,59 @@
       <div class="sidebar-bottom">
         <button id="refreshBtn" type="button">새로고침</button>
         <button id="logoutBtn" type="button">로그아웃</button>
+        <div class="sidebar-login" id="authUserLabel">로그인됨</div>
       </div>
     </aside>
     <div class="content-area">
       <div id="homePage" class="page-panel">
         <section class="simple-page">
-          <div class="page-title"><h2>홈</h2><p class="muted">필요한 메뉴를 선택해 반과 학생 정보를 관리합니다.</p></div>
+          <div class="page-title">
+            <h2>홈</h2>
+            <p class="muted">필요한 메뉴를 선택해 반, 학생, 출석, 성적, 수업 기록을 확인합니다.</p>
+          </div>
+
           <div class="home-stats">
-            <div class="home-stat"><span>반 수</span><strong id="homeClassCount">0</strong><span>현재 등록된 반</span></div>
-            <div class="home-stat"><span>학생 수</span><strong id="homeStudentCount">0</strong><span>현재 목록 학생</span></div>
-            <div class="home-stat"><span>재학생 수</span><strong id="homeActiveStudentCount">0</strong><span>상태가 재학인 학생</span></div>
-            <div class="home-stat"><span>V2 상태</span><strong style="font-size:22px">정상</strong><span>교사별 데이터 연결</span></div>
+            <div class="home-stat"><span>반 수</span><strong id="homeClassCount">0</strong><span>현재 등록된 반의 수</span></div>
+            <div class="home-stat"><span>학생 수</span><strong id="homeStudentCount">0</strong><span>현재 V2 목록 학생 수</span></div>
+            <div class="home-stat"><span>재학생 수</span><strong id="homeActiveStudentCount">0</strong><span>재학 중인 학생 수</span></div>
+            <div class="home-stat"><span>출석률</span><strong id="homeAttendanceRate">—</strong><span>출석 기능 이전 후 연결</span></div>
+          </div>
+
+          <div class="home-two-col">
+            <div class="home-card">
+              <h3>성적 평균</h3>
+              <table class="home-score-table">
+                <tbody>
+                  <tr><th>읽기</th><td id="homeAvgReading">—</td></tr>
+                  <tr><th>쓰기</th><td id="homeAvgWriting">—</td></tr>
+                  <tr><th>듣기</th><td id="homeAvgListening">—</td></tr>
+                  <tr><th>말하기</th><td id="homeAvgSpeaking">—</td></tr>
+                </tbody>
+              </table>
+              <div class="muted" style="text-align:center;margin-top:8px">성적 관리 기능 이전 후 실제 평균을 연결합니다.</div>
+            </div>
+
+            <div class="home-card">
+              <h3>사용 안내</h3>
+              <ol class="guide-list">
+                <li>반 관리에서 반을 먼저 등록합니다.</li>
+                <li>학생 관리에서 학생을 등록하고 수정합니다.</li>
+                <li>출석과 성적은 반과 학생을 선택한 뒤 저장합니다.</li>
+                <li>수업 내용에서 진도와 학생별 과제를 기록합니다.</li>
+                <li>조회 / 출력에서 학생별, 반별 기록을 확인합니다.</li>
+                <li>학생 상태는 재학, 휴학, 중단, 수료, 중도포기로 관리합니다.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="home-card" style="margin-top:10px">
+            <h3>프로그램 안내</h3>
+            <div class="home-info-grid">
+              <div class="home-info-item"><div class="home-info-label">프로그램명</div><div class="home-info-value">한국어학당 학생 관리 시스템</div></div>
+              <div class="home-info-item"><div class="home-info-label">개발자</div><div class="home-info-value">유정태</div></div>
+              <div class="home-info-item"><div class="home-info-label">문의</div><div class="home-info-value">8919-2157</div></div>
+            </div>
+            <div class="home-info-help">사용 중 문제가 있거나 수정이 필요하면 위 연락처로 문의해 주세요.</div>
           </div>
         </section>
       </div>
