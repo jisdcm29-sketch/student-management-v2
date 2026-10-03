@@ -547,6 +547,10 @@
         </section>
       </div>
 
+      <div id="reportPage" class="page-panel hidden">
+        <iframe id="reportAttendanceFrame" src="./report_attendance.html" title="조회 / 출력 - 통합 출석 조회" style="display:block;width:100%;height:calc(100vh - 86px);min-height:900px;border:0;background:#f4f7fb"></iframe>
+      </div>
+
       <div id="comingPage" class="page-panel hidden">
         <section class="simple-page">
           <div class="page-title"><h2 id="comingTitle">준비 중</h2><p class="muted">이 기능은 V1 운영본을 기준으로 다음 단계에서 안전하게 이전합니다.</p></div>
@@ -642,13 +646,14 @@ function updateHome(){
   $('homeAttentionBody').innerHTML='<tr><td colspan="4" class="dashboard-empty">출석·수업·진도 기능 이전 후 실제 확인 필요 학생을 자동 표시합니다.</td></tr>';
 }
 function switchPage(page){
-  const realPage=['home','class','student','attendance','score'].includes(page)?page:'coming';
+  const realPage=['home','class','student','attendance','score','report'].includes(page)?page:'coming';
   const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
   $('homePage').classList.toggle('hidden',realPage!=='home');
   $('classPage').classList.toggle('hidden',realPage!=='class');
   $('studentPage').classList.toggle('hidden',realPage!=='student');
   $('attendancePage').classList.toggle('hidden',realPage!=='attendance');
   $('scorePage').classList.toggle('hidden',realPage!=='score');
+  $('reportPage').classList.toggle('hidden',realPage!=='report');
   $('comingPage').classList.toggle('hidden',realPage!=='coming');
   document.querySelectorAll('.sidebar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   $('topbarPageTitle').textContent=titles[page]||'학생관리시스템 V2';
