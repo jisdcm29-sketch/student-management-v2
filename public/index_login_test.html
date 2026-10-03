@@ -54,6 +54,11 @@
     .login-result-v2{min-height:42px;margin-top:12px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa;color:#64748b;font-size:13px;text-align:center;display:flex;align-items:center;justify-content:center}
     .login-result-v2.is-loading{color:#12385b;background:#f4f8fc;border-color:#cddceb;font-weight:700}
     .login-action-v2{display:flex;justify-content:center;margin-top:20px}
+    .login-support-v2{margin-top:18px;padding-top:16px;border-top:1px solid #e7edf4;text-align:center;color:#7b8794;font-size:12px;line-height:1.65}
+    .login-support-v2 a{color:#315f8f;text-decoration:none;font-weight:700}
+    .login-support-v2 a:hover{text-decoration:underline}
+    .login-security-v2{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;color:#8b98a8;font-size:11px}
+    .login-security-dot{width:7px;height:7px;border-radius:50%;background:#5f9a79;box-shadow:0 0 0 3px rgba(95,154,121,.12)}
     .login-btn-v2{min-width:130px;height:48px;border-radius:14px;font-size:16px;font-weight:700;background:linear-gradient(135deg,#234f83 0%,#12385b 100%);color:#fff;box-shadow:0 8px 18px rgba(18,56,91,.18);transition:transform .12s ease,opacity .12s ease}
     .login-btn-v2:hover:not(:disabled){background:linear-gradient(135deg,#2b5c96 0%,#16446f 100%);transform:translateY(-1px)}
     .login-btn-v2:disabled{cursor:wait;opacity:.72}
@@ -157,6 +162,16 @@
 
       <div class="login-action-v2">
         <button id="loginBtn" class="login-btn-v2" type="button">로그인</button>
+      </div>
+
+      <div class="login-security-v2">
+        <span class="login-security-dot"></span>
+        <span>승인된 교사 계정만 사용할 수 있습니다.</span>
+      </div>
+
+      <div class="login-support-v2">
+        <div>로그인 또는 인증에 문제가 있나요?</div>
+        <div>개발자 문의 · <a href="mailto:jisdcm29@gmail.com?subject=%ED%95%99%EC%83%9D%EA%B4%80%EB%A6%AC%EC%8B%9C%EC%8A%A4%ED%85%9C%20V2%20%EB%AC%B8%EC%9D%98">jisdcm29@gmail.com</a></div>
       </div>
     </div>
   </section>
