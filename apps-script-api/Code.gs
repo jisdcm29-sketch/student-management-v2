@@ -60,6 +60,11 @@ function doPost(e) {
     if (action === 'attendance.save') return okResponse_(requestId, saveAttendanceV2_(auth, body.attendanceData || {}));
     if (action === 'attendance.holiday.save') return okResponse_(requestId, saveAttendanceHolidayV2_(auth, body.holidayData || {}));
     if (action === 'attendance.holiday.clear') return okResponse_(requestId, clearAttendanceHolidayV2_(auth, body.holidayData || {}));
+    if (action === 'scores.students') return okResponse_(requestId, listScoreStudentsV2_(auth, body.classId));
+    if (action === 'scores.list') return okResponse_(requestId, listScoresV2_(auth, body.options || {}));
+    if (action === 'scores.get') return okResponse_(requestId, getScoreV2_(auth, body.recordId));
+    if (action === 'scores.save') return okResponse_(requestId, saveScoreV2_(auth, body.scoreData || {}));
+    if (action === 'scores.delete') return okResponse_(requestId, deleteScoreV2_(auth, body.recordId));
     if (action === 'qrAttendance.setup') return okResponse_(requestId, getQrAttendanceSetupV2_(auth, body.options || {}));
     if (action === 'qrAttendance.start') return okResponse_(requestId, startQrAttendanceSessionV2_(auth, body.sessionData || {}));
     if (action === 'qrAttendance.close') return okResponse_(requestId, closeQrAttendanceSessionV2_(auth, body.sessionData || {}));
