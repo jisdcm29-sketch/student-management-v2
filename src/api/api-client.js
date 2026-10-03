@@ -53,3 +53,7 @@ export const loadAttendance = (sessionToken, options = {}) => callApi('attendanc
 export const saveAttendance = (sessionToken, attendanceData) => callApi('attendance.save', { sessionToken, attendanceData });
 export const saveAttendanceHoliday = (sessionToken, holidayData) => callApi('attendance.holiday.save', { sessionToken, holidayData });
 export const clearAttendanceHoliday = (sessionToken, holidayData) => callApi('attendance.holiday.clear', { sessionToken, holidayData });
+
+export const getQrAttendanceSetup = (sessionToken, options = {}) => callApi('qrAttendance.setup', { sessionToken, options });
+export const startQrAttendanceSession = (sessionToken, sessionData) => callApi('qrAttendance.start', { sessionToken, sessionData });
+export const closeQrAttendanceSession = (sessionToken, sessionData) => callApi('qrAttendance.close', { sessionToken, sessionData });
