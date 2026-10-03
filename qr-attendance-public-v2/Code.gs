@@ -86,6 +86,9 @@ function submitPublicQrAttendanceV2(payload) {
     if (elapsed < -V2_PUBLIC_QR_CONFIG.openBeforeMinutes) {
       throw new Error('아직 QR 출석 시간이 아닙니다. 수업 시작 30분 전부터 가능합니다.');
     }
+    if (nowMinutes < startMinutes) {
+      throw new Error('수업 시작 전입니다. 출석 체크는 수업 시작 시각부터 가능합니다.');
+    }
     if (nowMinutes >= endMinutes) {
       throw new Error('수업이 종료되어 QR 출석이 마감되었습니다. 미체크 학생은 결석 처리됩니다.');
     }
