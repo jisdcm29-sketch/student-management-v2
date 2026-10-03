@@ -7,7 +7,6 @@ const V2_PUBLIC_QR_CONFIG = {
   attendanceSheet: 'Attendance',
   openBeforeMinutes: 30,
   lateFromMinutes: 20,
-  lateLimitMinutes: 60
 };
 
 const V2_PUBLIC_QR_SESSION_HEADERS = [
@@ -38,6 +37,9 @@ function getPublicQrSessionInfoV2(publicToken) {
     const session = findPublicQrSessionV2_(publicToken);
     if (!session) throw new Error('유효하지 않거나 종료된 QR 출석 세션입니다.');
     assertPublicQrTeacherRouteV2_(session);
+    if (publicQrSessionEndedV2_(session)) {
+      throw new Error('수업이 종료되어 QR 출석이 마감되었습니다.');
+    }
     return {
       success: true,
       session: {
@@ -74,15 +76,18 @@ function submitPublicQrAttendanceV2(payload) {
     if (today !== sessionDate) throw new Error('오늘 수업의 QR 코드가 아닙니다.');
 
     const startMinutes = publicQrTimeToMinutesV2_(session.startTime);
-    if (startMinutes < 0) throw new Error('수업 시작시간을 확인할 수 없습니다.');
+    const endMinutes = publicQrTimeToMinutesV2_(session.endTime);
+    if (startMinutes < 0 || endMinutes < 0 || endMinutes <= startMinutes) {
+      throw new Error('수업 시간을 확인할 수 없습니다.');
+    }
     const nowMinutes = Number(Utilities.formatDate(now, tz, 'H')) * 60 + Number(Utilities.formatDate(now, tz, 'm'));
     const elapsed = nowMinutes - startMinutes;
 
     if (elapsed < -V2_PUBLIC_QR_CONFIG.openBeforeMinutes) {
       throw new Error('아직 QR 출석 시간이 아닙니다. 수업 시작 30분 전부터 가능합니다.');
     }
-    if (elapsed > V2_PUBLIC_QR_CONFIG.lateLimitMinutes) {
-      throw new Error('QR 출석 시간이 종료되었습니다. 교사에게 출석 수정을 요청해 주세요.');
+    if (nowMinutes >= endMinutes) {
+      throw new Error('수업이 종료되어 QR 출석이 마감되었습니다. 미체크 학생은 결석 처리됩니다.');
     }
 
     const dataSpreadsheetId = String(teacher.dataSpreadsheetId || '').trim();
@@ -159,6 +164,19 @@ function submitPublicQrAttendanceV2(payload) {
       try { lock.releaseLock(); } catch (ignore) {}
     }
   }
+}
+
+function publicQrSessionEndedV2_(session) {
+  const tz = Session.getScriptTimeZone() || 'Asia/Ulaanbaatar';
+  const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const sessionDate = normalizePublicQrDateV2_(session.date);
+  const endMinutes = publicQrTimeToMinutesV2_(session.endTime);
+  if (!sessionDate || endMinutes < 0) return false;
+  if (today > sessionDate) return true;
+  if (today < sessionDate) return false;
+  const nowMinutes = Number(Utilities.formatDate(new Date(), tz, 'H')) * 60 +
+    Number(Utilities.formatDate(new Date(), tz, 'm'));
+  return nowMinutes >= endMinutes;
 }
 
 function registrySpreadsheetV2_() {
