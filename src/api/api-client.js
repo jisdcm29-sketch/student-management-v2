@@ -43,3 +43,8 @@ export const saveStudent = (sessionToken, studentData) => callApi('students.save
 
 export const listArchivedStudents = (sessionToken, options = {}) => callApi('students.archived.list', { sessionToken, options });
 export const restoreStudent = (sessionToken, studentId) => callApi('students.restore', { sessionToken, studentId });
+
+export const listDailyRecords = (sessionToken, options = {}) => callApi('dailyRecords.list', { sessionToken, options });
+export const getDailyRecord = (sessionToken, recordId) => callApi('dailyRecords.get', { sessionToken, recordId });
+export const saveDailyRecord = (sessionToken, recordData) => callApi('dailyRecords.save', { sessionToken, recordData });
+export const deleteDailyRecord = (sessionToken, recordId) => callApi('dailyRecords.delete', { sessionToken, recordId });
