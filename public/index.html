@@ -6,118 +6,77 @@
   <title>학생관리시스템 V2</title>
   <style>
     body{font-family:Arial,"Noto Sans KR",sans-serif;margin:0;background:#f4f7fb;color:#1f2937}
-    main{max-width:720px;margin:48px auto;padding:24px}
-    .card{background:#fff;border:1px solid #dbe3ee;border-radius:14px;padding:24px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
-    h1{margin-top:0}
-    label{display:block;margin-top:14px;font-weight:700}
-    input{width:100%;box-sizing:border-box;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px}
-    button{margin-top:16px;padding:11px 16px;border:0;border-radius:8px;background:#1f4b70;color:#fff;font-weight:700;cursor:pointer}
-    button.secondary{background:#475569;margin-left:8px}
-    button.verify{background:#7c3aed;margin-left:8px}
-    pre{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:8px;min-height:80px}
-    .notice{font-size:14px;color:#64748b}
+    main{max-width:1180px;margin:36px auto;padding:20px}
+    .card{background:#fff;border:1px solid #dbe3ee;border-radius:14px;padding:22px;box-shadow:0 4px 18px rgba(0,0,0,.05);margin-bottom:18px}
+    h1,h2,h3{margin-top:0}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+    label{display:block;font-weight:700;margin-bottom:6px}
+    input,select{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+    button{padding:10px 14px;border:0;border-radius:8px;background:#1f4b70;color:#fff;font-weight:700;cursor:pointer}
+    button.secondary{background:#475569}.danger{background:#b42318}.muted{color:#64748b;font-size:13px}.hidden{display:none}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.schedule{padding:12px;border:1px solid #e2e8f0;border-radius:10px;margin-top:10px;background:#f8fafc}
+    .days{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.days label{font-weight:400;margin:0}.time-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.time-row select{width:auto;min-width:120px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:9px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top;font-size:14px}th{background:#f8fafc}.actions{display:flex;gap:6px;flex-wrap:wrap}.actions button{padding:6px 9px;font-size:12px}
+    #resultBox{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:8px;min-height:44px;margin-top:12px}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}.table-wrap{overflow:auto}main{padding:10px}}
   </style>
 </head>
 <body>
 <main>
-  <div class="card">
+  <section class="card" id="loginCard">
     <h1>학생관리시스템 V2</h1>
-    <p class="notice">Phase 2 인증/API 연결 테스트 화면입니다. V1 운영본과는 분리되어 있습니다.</p>
+    <p class="muted">Phase 3 반 관리 테스트 화면입니다. V1 운영본과는 분리되어 있습니다.</p>
+    <div class="grid">
+      <div><label for="teacherId">교사 ID</label><input id="teacherId" value="T-ADMIN-001"></div>
+      <div><label for="password">V2 비밀번호</label><input id="password" type="password"></div>
+    </div>
+    <div class="toolbar"><button id="loginBtn">로그인</button><button id="logoutBtn" class="secondary">로그아웃</button></div>
+    <div id="resultBox">아직 로그인하지 않았습니다.</div>
+  </section>
 
-    <button id="healthBtn" type="button">API 상태 확인</button>
+  <section class="card hidden" id="classCard">
+    <h2>반 관리</h2>
+    <input type="hidden" id="classId">
+    <div class="grid">
+      <div><label>반 이름</label><input id="className" placeholder="예: TOPIK 준비반"></div>
+      <div><label>강사 이름</label><input id="teacherName" placeholder="예: 유정태"></div>
+      <div><label>구분</label><select id="schedule"><option value="">선택</option><option>주간</option><option>주말</option><option>특강</option></select></div>
+      <div><label>강의실</label><input id="classroom" placeholder="예: 101호"></div>
+      <div><label>상태</label><select id="status"><option>운영중</option><option>예정</option><option>종료</option></select></div>
+      <div><label>목표 진도 수</label><input id="targetProgressCount" type="number" min="0"></div>
+      <div><label>진도 단위</label><select id="targetProgressUnit"><option value="">선택</option><option>차시</option><option>과</option><option>단원</option><option>문제</option></select></div>
+    </div>
+    <h3 style="margin-top:18px">요일별 시간표 묶음</h3>
+    <div id="scheduleGroups"></div>
+    <div class="toolbar"><button id="addScheduleBtn" class="secondary">시간표 묶음 추가</button></div>
+    <div class="toolbar"><button id="saveClassBtn">반 저장</button><button id="resetBtn" class="secondary">입력 초기화</button></div>
+  </section>
 
-    <label for="teacherId">교사 ID</label>
-    <input id="teacherId" value="T-ADMIN-001" autocomplete="username">
-
-    <label for="password">V2 비밀번호</label>
-    <input id="password" type="password" autocomplete="current-password">
-
-    <button id="loginBtn" type="button">로그인 테스트</button>
-    <button id="logoutBtn" class="secondary" type="button">로그아웃</button>
-    <button id="reuseBtn" class="verify" type="button">로그아웃 토큰 재사용 검증</button>
-
-    <h3>결과</h3>
-    <pre id="resultBox">아직 테스트하지 않았습니다.</pre>
-  </div>
+  <section class="card hidden" id="listCard">
+    <h2>반 목록</h2>
+    <div class="table-wrap"><div id="classList"></div></div>
+  </section>
 </main>
-
 <script type="module">
-  import { health, login, logout, validateSession, bootstrap, listClasses } from '../src/api/api-client.js';
-
-  const resultBox = document.getElementById('resultBox');
-  let sessionToken = sessionStorage.getItem('v2SessionToken') || '';
-  let lastLoggedOutToken = '';
-
-  function show(value) {
-    resultBox.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-  }
-
-  document.getElementById('healthBtn').addEventListener('click', async () => {
-    try {
-      show(await health());
-    } catch (e) {
-      show('오류: ' + e.message);
-    }
-  });
-
-  document.getElementById('loginBtn').addEventListener('click', async () => {
-    try {
-      const teacherId = document.getElementById('teacherId').value.trim();
-      const password = document.getElementById('password').value;
-      const auth = await login(teacherId, password);
-      sessionToken = auth.sessionToken;
-      lastLoggedOutToken = '';
-      sessionStorage.setItem('v2SessionToken', sessionToken);
-
-      const boot = await bootstrap(sessionToken);
-      const classes = await listClasses(sessionToken);
-
-      show({
-        login: {
-          teacherId: auth.teacher.teacherId,
-          displayName: auth.teacher.displayName,
-          role: auth.teacher.role
-        },
-        bootstrap: boot,
-        classes: classes
-      });
-    } catch (e) {
-      show('오류: ' + e.message + (e.code ? ' [' + e.code + ']' : ''));
-    }
-  });
-
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    try {
-      if (sessionToken) {
-        const tokenToVerify = sessionToken;
-        await logout(sessionToken);
-        lastLoggedOutToken = tokenToVerify;
-      }
-      sessionToken = '';
-      sessionStorage.removeItem('v2SessionToken');
-      show('로그아웃되었습니다. 이제 "로그아웃 토큰 재사용 검증"을 눌러 주세요.');
-    } catch (e) {
-      show('오류: ' + e.message);
-    }
-  });
-
-  document.getElementById('reuseBtn').addEventListener('click', async () => {
-    if (!lastLoggedOutToken) {
-      show('먼저 정상 로그인 후 로그아웃을 실행해 주세요.');
-      return;
-    }
-
-    try {
-      await validateSession(lastLoggedOutToken);
-      show('검증 실패: 로그아웃된 세션 토큰이 다시 사용되었습니다.');
-    } catch (e) {
-      if (e.code === 'SESSION_INVALID') {
-        show('정상: 로그아웃 토큰 재사용이 차단되었습니다. [SESSION_INVALID]');
-      } else {
-        show('오류: ' + e.message + (e.code ? ' [' + e.code + ']' : ''));
-      }
-    }
-  });
+import { login, logout, listClasses, getClassDetail, saveClass, closeClass, deleteClass } from '../src/api/api-client.js';
+let token=sessionStorage.getItem('v2SessionToken')||'';
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+function show(msg){$('resultBox').textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2)}
+function setLoggedIn(on){$('classCard').classList.toggle('hidden',!on);$('listCard').classList.toggle('hidden',!on)}
+function timeOptions(selected=''){let out='<option value="">시간 선택</option>';for(let m=0;m<1440;m+=30){const h=String(Math.floor(m/60)).padStart(2,'0');const mm=String(m%60).padStart(2,'0');const v=h+':'+mm;out+=`<option ${v===selected?'selected':''}>${v}</option>`}return out}
+function addScheduleGroup(data={}){const box=$('scheduleGroups');const div=document.createElement('div');div.className='schedule';div.innerHTML=`<div class="days">${['월','화','수','목','금','토','일'].map(d=>`<label><input type="checkbox" data-day value="${d}" ${(data.days||[]).includes(d)?'checked':''}> ${d}</label>`).join('')}</div><div class="time-row"><span>시작</span><select data-start>${timeOptions(data.startTime||'')}</select><span>종료</span><select data-end>${timeOptions(data.endTime||'')}</select><button type="button" class="secondary" data-remove>삭제</button></div>`;div.querySelector('[data-remove]').onclick=()=>div.remove();box.appendChild(div)}
+function collectGroups(){return [...document.querySelectorAll('#scheduleGroups .schedule')].map(el=>({days:[...el.querySelectorAll('[data-day]:checked')].map(x=>x.value),startTime:el.querySelector('[data-start]').value,endTime:el.querySelector('[data-end]').value})).filter(g=>g.days.length||g.startTime||g.endTime)}
+function resetForm(){$('classId').value='';['className','teacherName','classroom','targetProgressCount'].forEach(id=>$(id).value='');$('schedule').value='';$('status').value='운영중';$('targetProgressUnit').value='';$('scheduleGroups').innerHTML='';addScheduleGroup()}
+async function refresh(){const data=await listClasses(token,{includeClosed:true});const rows=data.classes||[];if(!rows.length){$('classList').innerHTML='<div class="muted">등록된 반이 없습니다.</div>';return} $('classList').innerHTML=`<table><thead><tr><th>반ID</th><th>반명</th><th>강사</th><th>구분</th><th>수업시간</th><th>강의실</th><th>상태</th><th>목표 진도</th><th>관리</th></tr></thead><tbody>${rows.map(r=>{const schedules=(r.schedules||[]).reduce((a,s)=>{const k=(s.startTime||'')+'|'+(s.endTime||'');(a[k]||(a[k]=[])).push(s.dayOfWeek);return a},{});const summary=Object.keys(schedules).map(k=>schedules[k].join('/')+' '+k.replace('|',' ~ ')).join(' / ')||'-';return `<tr><td>${esc(r.classId)}</td><td>${esc(r.className)}</td><td>${esc(r.teacherName)}</td><td>${esc(r.schedule)}</td><td>${esc(summary)}</td><td>${esc(r.classroom)}</td><td>${esc(r.status)}</td><td>${esc((r.targetProgressCount||'')+(r.targetProgressUnit||''))}</td><td><div class="actions"><button data-edit="${esc(r.classId)}">수정</button><button class="secondary" data-close="${esc(r.classId)}" ${r.status==='종료'?'disabled':''}>폐강</button><button class="danger" data-delete="${esc(r.classId)}">삭제</button></div></td></tr>`}).join('')}</tbody></table>`;document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editClass(b.dataset.edit));document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeOne(b.dataset.close));document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteOne(b.dataset.delete))}
+async function editClass(id){try{const d=await getClassDetail(token,id);const i=d.classInfo||{};$('classId').value=i.classId||'';$('className').value=i.className||'';$('teacherName').value=i.teacherName||'';$('schedule').value=i.schedule||'';$('classroom').value=i.classroom||'';$('status').value=i.status||'운영중';$('targetProgressCount').value=i.targetProgressCount||'';$('targetProgressUnit').value=i.targetProgressUnit||'';$('scheduleGroups').innerHTML='';const grouped={};(d.schedules||[]).forEach(s=>{const k=(s.startTime||'')+'|'+(s.endTime||'');if(!grouped[k])grouped[k]={days:[],startTime:s.startTime||'',endTime:s.endTime||''};if(s.dayOfWeek)grouped[k].days.push(s.dayOfWeek)});Object.values(grouped).forEach(addScheduleGroup);if(!Object.keys(grouped).length)addScheduleGroup();window.scrollTo({top:0,behavior:'smooth'});show('반 수정 모드: '+(i.className||id))}catch(e){show('오류: '+e.message+(e.code?' ['+e.code+']':''))}}
+async function closeOne(id){if(!confirm('이 반을 폐강하시겠습니까?\n연결 데이터는 삭제되지 않습니다.'))return;try{await closeClass(token,id);show('반이 폐강 처리되었습니다.');await refresh()}catch(e){show('오류: '+e.message+(e.code?' ['+e.code+']':''))}}
+async function deleteOne(id){if(!confirm('이 반을 완전히 삭제하시겠습니까?\nV2 테스트 데이터와 연결 데이터가 함께 삭제됩니다.'))return;try{await deleteClass(token,id);show('반이 삭제되었습니다.');resetForm();await refresh()}catch(e){show('오류: '+e.message+(e.code?' ['+e.code+']':''))}}
+$('loginBtn').onclick=async()=>{try{const a=await login($('teacherId').value.trim(),$('password').value);token=a.sessionToken;sessionStorage.setItem('v2SessionToken',token);setLoggedIn(true);resetForm();await refresh();show('로그인 성공: '+a.teacher.displayName+' / '+a.teacher.role)}catch(e){show('오류: '+e.message+(e.code?' ['+e.code+']':''))}};
+$('logoutBtn').onclick=async()=>{try{if(token)await logout(token)}catch(e){} token='';sessionStorage.removeItem('v2SessionToken');setLoggedIn(false);show('로그아웃되었습니다.')};
+$('addScheduleBtn').onclick=()=>addScheduleGroup();$('resetBtn').onclick=resetForm;
+$('saveClassBtn').onclick=async()=>{const data={classId:$('classId').value.trim(),className:$('className').value.trim(),teacherName:$('teacherName').value.trim(),schedule:$('schedule').value,classroom:$('classroom').value.trim(),status:$('status').value,targetProgressCount:$('targetProgressCount').value,targetProgressUnit:$('targetProgressUnit').value,scheduleGroups:collectGroups()};if(!data.className){show('반 이름을 입력해 주세요.');return}try{const r=await saveClass(token,data);show((data.classId?'반이 수정':'반이 저장')+'되었습니다. ID: '+r.classId);resetForm();await refresh()}catch(e){show('오류: '+e.message+(e.code?' ['+e.code+']':''))}};
+resetForm();
 </script>
 </body>
 </html>
