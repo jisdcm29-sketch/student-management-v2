@@ -72,26 +72,13 @@ function findQrScheduleV2_(ss, classId, date) {
       normalizeQrTimeV2_(row.endTime);
   }) || null;
 
-  if (exact) {
-    return {
-      startTime: normalizeQrTimeV2_(exact.startTime),
-      endTime: normalizeQrTimeV2_(exact.endTime),
-      source: 'CLASS_SCHEDULE'
-    };
-  }
+  if (!exact) return null;
 
-  const classInfo = readSheetObjects_(ss, 'Classes').find(function(row) {
-    return String(row.classId || '').trim() === targetClassId;
-  }) || null;
-
-  if (classInfo) {
-    const startTime = normalizeQrTimeV2_(classInfo.startTime);
-    const endTime = normalizeQrTimeV2_(classInfo.endTime);
-    if (startTime && endTime) {
-      return { startTime:startTime, endTime:endTime, source:'CLASS_DEFAULT' };
-    }
-  }
-  return null;
+  return {
+    startTime: normalizeQrTimeV2_(exact.startTime),
+    endTime: normalizeQrTimeV2_(exact.endTime),
+    source: 'CLASS_SCHEDULE'
+  };
 }
 
 function ensureQrSessionRegistryV2_() {
