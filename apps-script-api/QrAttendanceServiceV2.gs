@@ -339,6 +339,11 @@ function startQrAttendanceSessionV2_(auth, payload) {
     error.code = 'INVALID_TIME_RANGE';
     throw error;
   }
+  if (startMin % 30 !== 0 || endMin % 30 !== 0) {
+    const error = new Error('수업 시작시간과 종료시간은 30분 단위로 설정해 주세요.');
+    error.code = 'INVALID_TIME_STEP';
+    throw error;
+  }
 
   const publicAppUrl = publicQrAppUrlV2_();
   if (!publicAppUrl) {
