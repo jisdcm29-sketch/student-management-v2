@@ -1,7 +1,6 @@
 const SCORE_HUB_SOURCE_V2_ = {
   MOBILE_ID: '1y4xaZD8SQUVLztDhBSytvi-_naVCGYX5gTOyZqmhMUE',
-  TOPIK1_READING_ID: '18HXty992Riii2-csrB2aHpQ7vVt8qD2NOWFMp1yG63M',
-  TOPIK1_LISTENING_ID: '1F4Bpcb4tIwuRMRy7aLb9j1YLxzxCg_wWyYEiLxkg798'
+  TOPIK1_READING_ID: '18HXty992Riii2-csrB2aHpQ7vVt8qD2NOWFMp1yG63M'
 };
 
 function scoreHubPhoneV2_(value) {
@@ -84,11 +83,15 @@ function getScoreHubSourcesV2_(auth) {
   return {
     version: 'phase1-20261003',
     sources: [
-      {key:'SNU_MOBILE', label:'서울대 모바일 단원 성취', enabled:true},
-      {key:'WORKBOOK_READING', label:'워크북 읽기 평가', enabled:true},
-      {key:'WORKBOOK_LISTENING', label:'워크북 듣기 평가', enabled:true},
-      {key:'TOPIK1_READING', label:'TOPIK I 읽기', enabled:true},
-      {key:'TOPIK1_LISTENING', label:'TOPIK I 듣기', enabled:true},
+      {key:'SNU_VOCAB', label:'서울대 각 과 어휘 테스트', enabled:true},
+      {key:'SNU_GRAMMAR', label:'서울대 각 과 문법 테스트', enabled:true},
+      {key:'SNU_MIXED', label:'서울대 각 과 종합 테스트', enabled:true},
+      {key:'REVIEW_READING', label:'복습 읽기 평가', enabled:true},
+      {key:'REVIEW_LISTENING', label:'복습 듣기 평가', enabled:true},
+      {key:'TOPIK1_COLLOCATION', label:'TOPIK I 연어 시험', enabled:true},
+      {key:'TOPIK1_GRAMMAR', label:'TOPIK I 문법 시험', enabled:true},
+      {key:'TOPIK1_READING', label:'TOPIK I 읽기평가', enabled:true},
+      {key:'TOPIK1_LISTENING', label:'TOPIK I 듣기', enabled:false, deferred:true},
       {key:'TOPIK2', label:'TOPIK II', enabled:false, deferred:true}
     ]
   };
@@ -109,6 +112,24 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
     return /^SNU-/.test(String(row.book || '')) &&
       ['vocab','grammar','mixed'].indexOf(String(row.testType || '')) >= 0;
   });
+  const snuVocabRows = snuRows.filter(function(row) {
+    return String(row.testType || '') === 'vocab';
+  });
+  const snuGrammarRows = snuRows.filter(function(row) {
+    return String(row.testType || '') === 'grammar';
+  });
+  const snuMixedRows = snuRows.filter(function(row) {
+    return String(row.testType || '') === 'mixed';
+  });
+
+  const topik1CollocationRows = tests.filter(function(row) {
+    return String(row.book || '') === 'TOPIK1' &&
+      String(row.testType || '') === 'collocation';
+  });
+  const topik1GrammarRows = tests.filter(function(row) {
+    return String(row.book || '') === 'TOPIK1' &&
+      String(row.testType || '') === 'grammar';
+  });
 
   const wbReading = scoreHubRowsByPhoneV2_(
     SCORE_HUB_SOURCE_V2_.MOBILE_ID, '워크북읽기평가', ['전화번호'], student.phone
@@ -122,9 +143,6 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
 
   const topik1Reading = scoreHubRowsByPhoneV2_(
     SCORE_HUB_SOURCE_V2_.TOPIK1_READING_ID, 'All_Results', ['student_phone'], student.phone
-  );
-  const topik1Listening = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.TOPIK1_LISTENING_ID, 'All_Results', ['student_phone'], student.phone
   );
 
   const progressRows = scoreHubRowsByPhoneV2_(
@@ -157,8 +175,19 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
       currentBook:String(progress['현재교재'] || '')
     } : null,
     snu:{
-      summary:scoreHubLatestScoreV2_(snuRows, 'bestScore'),
-      rows:snuRows.slice(-30)
+      vocab:{
+        summary:scoreHubLatestScoreV2_(snuVocabRows, 'bestScore'),
+        rows:snuVocabRows.slice(-30)
+      },
+      grammar:{
+        summary:scoreHubLatestScoreV2_(snuGrammarRows, 'bestScore'),
+        rows:snuGrammarRows.slice(-30)
+      },
+      mixed:{
+        summary:scoreHubLatestScoreV2_(snuMixedRows, 'bestScore'),
+        rows:snuMixedRows.slice(-30)
+      },
+      rows:snuRows.slice(-60)
     },
     workbookReading:{
       summary:scoreHubLatestScoreV2_(wbReading, '점수(100)'),
@@ -169,15 +198,23 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
       inProgressCount:wbListeningAll.length - wbListening.length,
       rows:wbListening.slice(-30)
     },
+    topik1Collocation:{
+      summary:scoreHubLatestScoreV2_(topik1CollocationRows, 'bestScore'),
+      rows:topik1CollocationRows.slice(-30)
+    },
+    topik1Grammar:{
+      summary:scoreHubLatestScoreV2_(topik1GrammarRows, 'bestScore'),
+      rows:topik1GrammarRows.slice(-30)
+    },
     topik1Reading:splitTopik(topik1Reading),
-    topik1Listening:splitTopik(topik1Listening),
     activity:{
       totalEvents:snuRows.length + wbReading.length + wbListeningAll.length +
-        topik1Reading.length + topik1Listening.length,
-      retryEvents:snuRows.filter(function(r){ return String(r.status || '').toUpperCase() === 'RETRY'; }).length,
-      reviewEvents:topik1Reading.filter(function(r){ return String(r.result_type || '').toUpperCase() === 'WRONG_REVIEW'; }).length +
-        topik1Listening.filter(function(r){ return String(r.result_type || '').toUpperCase() === 'WRONG_REVIEW'; }).length
+        topik1CollocationRows.length + topik1GrammarRows.length + topik1Reading.length,
+      retryEvents:snuRows.filter(function(r){ return String(r.status || '').toUpperCase() === 'RETRY'; }).length +
+        topik1CollocationRows.filter(function(r){ return String(r.status || '').toUpperCase() === 'RETRY'; }).length +
+        topik1GrammarRows.filter(function(r){ return String(r.status || '').toUpperCase() === 'RETRY'; }).length,
+      reviewEvents:topik1Reading.filter(function(r){ return String(r.result_type || '').toUpperCase() === 'WRONG_REVIEW'; }).length
     },
-    deferred:{topik2:true}
+    deferred:{topik1Listening:true, topik2:true}
   };
 }
