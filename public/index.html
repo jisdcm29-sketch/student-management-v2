@@ -153,8 +153,37 @@
     .qr-display-hint{position:absolute;bottom:18px;left:20px;right:20px;text-align:center;color:#7a8896;font-size:clamp(12px,1.15vw,16px)}
     @media(max-width:720px){.qr-display-overlay{padding:12px}.qr-display-top{top:10px;left:12px;right:12px}.qr-display-close{padding:8px 10px}.qr-display-code img,.qr-display-code canvas{max-width:86vmin!important;max-height:86vmin!important}}
     @media(max-width:720px){.attendance-qr-grid{grid-template-columns:1fr}.attendance-qr-session-layout{align-items:flex-start}}
+    .score-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) auto;gap:12px;align-items:end}
+    .score-toolbar .form-row{margin:0}
+    .score-toolbar button{min-height:44px}
+    .score-status{margin-top:12px;padding:10px 12px;border-radius:10px;background:#f6f8fb;color:#5f6f80;font-size:13px}
+    .score-status.loading{background:#eef5fb;color:#244f73}.score-status.error{background:#fff1f0;color:#b42318}
+    .score-student-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+    .score-student-name{font-size:25px;font-weight:800;color:#153f63}
+    .score-student-meta{margin-top:4px;color:#65758a;font-size:14px}
+    .score-progress-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:16px}
+    .score-progress-item{border:1px solid #d9e3ee;background:#fbfdff;border-radius:12px;padding:12px}
+    .score-progress-item .k{font-size:12px;color:#708196;font-weight:700}.score-progress-item .v{font-size:16px;color:#183f62;font-weight:800;margin-top:4px}
+    .score-next-step{margin-top:12px;padding:11px 13px;border-left:4px solid #2f8d87;background:#f3faf9;border-radius:8px;color:#285f5a;font-weight:700}
+    .score-card-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+    .score-card{border:1px solid #d9e3ee;border-radius:15px;background:#fff;padding:15px;box-shadow:0 1px 5px rgba(15,23,42,.035)}
+    .score-card .title{font-size:14px;font-weight:800;color:#34495e}
+    .score-card .big{font-size:27px;line-height:1.15;font-weight:800;color:#153f63;margin:8px 0 5px}
+    .score-card .sub{font-size:12px;color:#718096}
+    .score-card .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:#526477}
+    .score-section-title{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .score-section-title h3{margin:0}.score-section-title span{font-size:12px;color:#718096}
+    .score-table{width:100%;border-collapse:collapse}
+    .score-table th,.score-table td{border:1px solid #dce4ed;padding:9px 10px;font-size:13px;text-align:center;vertical-align:middle}
+    .score-table th{background:#edf4fb;color:#153f63;font-weight:800}.score-table td.left{text-align:left}
+    .score-pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:#eef4fb;color:#214e75;font-size:11px;font-weight:800}
+    .score-pill.pass{background:#eaf7f0;color:#277455}.score-pill.retry{background:#fff4e8;color:#9b5b16}
+    .score-empty{padding:22px;text-align:center;border:1px dashed #cbd5e1;border-radius:12px;color:#718096;background:#fbfcfe}
+    @media(max-width:1100px){.score-progress-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.score-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:900px){
       body{font-size:14px}
+      .score-toolbar{grid-template-columns:1fr}
+      .score-progress-grid,.score-card-grid{grid-template-columns:1fr}
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
       .student-card-top{grid-template-columns:1fr 1fr}.student-metrics{grid-template-columns:1fr 1fr}.archived-summary{grid-template-columns:1fr 1fr}
       main{padding:0}
@@ -467,6 +496,57 @@
         </section>
       </div>
 
+      <div id="scorePage" class="page-panel hidden">
+        <section class="simple-page">
+          <div class="page-title">
+            <h2>통합 성적 관리</h2>
+            <p class="muted">서울대 각 과 어휘·문법·종합, 복습 읽기·듣기, TOPIK I 연어·문법·읽기평가와 학생 진도를 한 화면에서 확인합니다. <span style="white-space:nowrap">테스트 버전 2026-10-03.2</span></p>
+          </div>
+          <div class="score-toolbar">
+            <div class="form-row"><label>반</label><select id="scoreClassId"><option value="">반 선택</option></select></div>
+            <div class="form-row"><label>학생</label><select id="scoreStudentId"><option value="">학생 선택</option></select></div>
+            <button id="loadScoreHubBtn" class="btn-primary" type="button">성적 불러오기</button>
+          </div>
+          <div id="scoreHubStatus" class="score-status">반과 학생을 선택한 뒤 성적을 불러오세요.</div>
+        </section>
+
+        <section id="scoreHubStudentPanel" class="simple-page hidden">
+          <div class="score-student-head">
+            <div>
+              <div id="scoreHubStudentName" class="score-student-name">학생</div>
+              <div id="scoreHubStudentMeta" class="score-student-meta"></div>
+            </div>
+            <span id="scoreHubRecentActivity" class="score-pill">최근 활동 —</span>
+          </div>
+        </section>
+
+        <section id="scoreHubCardsPanel" class="simple-page hidden">
+          <div class="score-section-title"><h3>현재 학습 상태</h3><span>지금 무엇을 하고 있고, 다음에 무엇을 해야 하는지</span></div>
+          <div id="scoreHubCurrentGrid" class="score-card-grid"></div>
+          <div class="score-section-title" style="margin-top:20px"><h3>누적 성취 요약</h3><span>지금까지의 통과·복습·TOPIK I 성취</span></div>
+          <div id="scoreHubAchievementGrid" class="score-card-grid"></div>
+        </section>
+
+        <section id="scoreHubSnuPanel" class="simple-page hidden">
+          <div class="score-section-title"><h3>서울대 교재 과별 누적 통과 현황</h3><span>다음 과 개방 기준: 어휘·문법·종합 각각 누적 최고점 90점 이상</span></div>
+          <div id="scoreHubSnuMasteryTable"></div>
+          <details style="margin-top:16px">
+            <summary style="cursor:pointer;font-weight:800;color:#35516b">일별 응시 기록 보기</summary>
+            <div id="scoreHubSnuTable" style="margin-top:12px"></div>
+          </details>
+        </section>
+
+        <section id="scoreHubReviewPanel" class="simple-page hidden">
+          <div class="score-section-title"><h3>복습 읽기 · 듣기 평가</h3><span>여러 단원을 묶은 복습 평가</span></div>
+          <div id="scoreHubReviewTable"></div>
+        </section>
+
+        <section id="scoreHubTopikPanel" class="simple-page hidden">
+          <div class="score-section-title"><h3>TOPIK I</h3><span>연어 · 문법 · 읽기평가</span></div>
+          <div id="scoreHubTopikTable"></div>
+        </section>
+      </div>
+
       <div id="comingPage" class="page-panel hidden">
         <section class="simple-page">
           <div class="page-title"><h2 id="comingTitle">준비 중</h2><p class="muted">이 기능은 V1 운영본을 기준으로 다음 단계에서 안전하게 이전합니다.</p></div>
@@ -496,6 +576,7 @@ import {
   listStudents, getStudentDetail, saveStudent, listArchivedStudents, restoreStudent,
   listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord,
   loadAttendance, saveAttendance, saveAttendanceHoliday, clearAttendanceHoliday,
+  getScoreHubSources, getScoreHubStudentSummary,
   getQrAttendanceSetup, startQrAttendanceSession, closeQrAttendanceSession
 } from '../src/api/api-client.js';
 
@@ -561,17 +642,19 @@ function updateHome(){
   $('homeAttentionBody').innerHTML='<tr><td colspan="4" class="dashboard-empty">출석·수업·진도 기능 이전 후 실제 확인 필요 학생을 자동 표시합니다.</td></tr>';
 }
 function switchPage(page){
-  const realPage=['home','class','student','attendance'].includes(page)?page:'coming';
+  const realPage=['home','class','student','attendance','score'].includes(page)?page:'coming';
   const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
   $('homePage').classList.toggle('hidden',realPage!=='home');
   $('classPage').classList.toggle('hidden',realPage!=='class');
   $('studentPage').classList.toggle('hidden',realPage!=='student');
   $('attendancePage').classList.toggle('hidden',realPage!=='attendance');
+  $('scorePage').classList.toggle('hidden',realPage!=='score');
   $('comingPage').classList.toggle('hidden',realPage!=='coming');
   document.querySelectorAll('.sidebar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   $('topbarPageTitle').textContent=titles[page]||'학생관리시스템 V2';
   if(page==='student'){fillStudentClassOptions();renderStudentList();}
   if(page==='attendance'){fillAttendanceClassOptions();}
+  if(page==='score'){fillScoreClassOptions();}
   if(page==='home')updateHome();
   if(realPage==='coming'){
     $('comingTitle').textContent=titles[page]||'준비 중';
@@ -595,6 +678,229 @@ function toggleAccordion(id){
   item.classList.toggle('open',willOpen);
 }
 
+function fillScoreClassOptions(){
+  const sel=$('scoreClassId');
+  if(!sel)return;
+  const old=sel.value;
+  const rows=classRows.filter(c=>String(c.status||'')!=='종료').slice()
+    .sort((a,b)=>String(a.className||'').localeCompare(String(b.className||''),'ko'));
+  sel.innerHTML='<option value="">반 선택</option>'+rows.map(c=>'<option value="'+esc(c.classId)+'">'+esc(c.className||c.classId)+' ('+esc(c.classId)+')</option>').join('');
+  if(old)sel.value=old;
+  fillScoreStudentOptions();
+}
+function fillScoreStudentOptions(){
+  const sel=$('scoreStudentId');
+  if(!sel)return;
+  const classId=$('scoreClassId').value;
+  const rows=studentRows.filter(s=>String(s.status||'')==='재학'&&(!classId||String(s.classId||'')===String(classId))).slice()
+    .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ko'));
+  const old=sel.value;
+  sel.innerHTML='<option value="">학생 선택</option>'+rows.map(s=>'<option value="'+esc(s.studentId)+'">'+esc(s.name||s.studentId)+' ('+esc(s.studentId)+')</option>').join('');
+  if(old&&rows.some(s=>String(s.studentId)===String(old)))sel.value=old;
+}
+function scoreFmt(v){return v===null||v===undefined||v===''?'—':String(v)}
+function scoreSummaryCard(title,summary,sub){
+  summary=summary||{};
+  return '<div class="score-card"><div class="title">'+esc(title)+'</div>'+
+    '<div class="big">'+esc(scoreFmt(summary.bestScore))+'</div>'+
+    '<div class="sub">최고점 / 최근 '+esc(scoreFmt(summary.latestScore))+'</div>'+
+    '<div class="meta"><span>응시 '+esc(scoreFmt(summary.attempts||0))+'회</span>'+(sub?'<span>'+esc(sub)+'</span>':'')+'</div></div>';
+}
+function scoreTestLabel(type){
+  return ({vocab:'어휘',grammar:'문법',mixed:'종합'})[String(type||'')]||String(type||'-');
+}
+function scoreStatusPill(status){
+  const s=String(status||'');
+  const cls=s==='PASS'?'pass':(s==='RETRY'?'retry':'');
+  return '<span class="score-pill '+cls+'">'+esc(s||'-')+'</span>';
+}
+function renderScoreHub(data){
+  const student=data.student||{}, p=data.progress||{};
+  $('scoreHubStudentPanel').classList.remove('hidden');
+  $('scoreHubCardsPanel').classList.remove('hidden');
+  $('scoreHubSnuPanel').classList.remove('hidden');
+  $('scoreHubReviewPanel').classList.remove('hidden');
+  $('scoreHubTopikPanel').classList.remove('hidden');
+
+  $('scoreHubStudentName').textContent=student.name||student.studentId||'학생';
+  $('scoreHubStudentMeta').textContent=(student.classId||'-')+' · '+(student.status||'-')+' · '+(student.phone||'-');
+  $('scoreHubRecentActivity').textContent='최근 활동 '+(p.recentActivityAt||p.recentLoginAt||'—');
+
+  let masteryRows=data.snu?.mastery||[];
+  if(!masteryRows.length){
+    const m={};
+    (data.snu?.rows||[]).forEach(r=>{
+      const type=String(r.testType||'');
+      if(!['vocab','grammar','mixed'].includes(type))return;
+      const key=String(r.book||'')+'|'+String(r.lesson||'');
+      if(!m[key])m[key]={book:r.book||'',lesson:r.lesson||'',vocab:{bestScore:null,attempts:0},grammar:{bestScore:null,attempts:0},mixed:{bestScore:null,attempts:0}};
+      const item=m[key][type],score=Number(r.bestScore),attempts=Number(r.attemptsToday||0);
+      if(Number.isFinite(score)&&(item.bestScore===null||score>item.bestScore))item.bestScore=score;
+      if(Number.isFinite(attempts))item.attempts+=attempts;
+    });
+    masteryRows=Object.values(m).map(r=>{
+      r.totalAttempts=r.vocab.attempts+r.grammar.attempts+r.mixed.attempts;
+      r.status=['vocab','grammar','mixed'].every(t=>Number(r[t].bestScore)>=90)?'PASS':'RETRY';
+      return r;
+    }).sort((a,b)=>String(a.book).localeCompare(String(b.book))||Number(a.lesson)-Number(b.lesson));
+  }
+  const passedLessons=masteryRows.filter(r=>r.status==='PASS').length;
+  const currentLessonText=(p.currentBook||'—')+(p.currentLesson?' '+p.currentLesson+'과':'');
+  const currentTests=[
+    {label:'어휘',score:p.vocabBest},
+    {label:'문법',score:p.grammarBest},
+    {label:'종합',score:p.mixedBest}
+  ];
+  const currentPassed=currentTests.filter(x=>Number(x.score)>=90).length;
+  const currentScoreText=currentTests.map(x=>x.label+' '+scoreFmt(x.score)).join(' · ');
+  const currentStateText=currentPassed===3?'현재 과 통과 완료':(currentPassed===0?'현재 과 시험 미통과':'현재 과 일부 통과');
+  const nextStepText=p.nextStep||'다음 단계 정보 없음';
+
+  const wbRead=data.workbookReading?.summary||{};
+  const wbListen=data.workbookListening?.summary||{};
+  const coll=data.topik1Collocation?.summary||{};
+  const gram=data.topik1Grammar?.summary||{};
+  const topikReadExam=data.topik1Reading?.exam?.summary||{};
+  const topikReadPractice=data.topik1Reading?.practice?.summary||{};
+  const topikReadReview=data.topik1Reading?.review?.summary||{};
+
+  function specificCard(title,big,sub,meta,status){
+    const statusHtml=status?'<span class="score-pill '+(status==='PASS'?'pass':status==='RETRY'?'retry':'')+'">'+esc(status)+'</span>':'';
+    return '<div class="score-card">'+
+      '<div class="title">'+esc(title)+'</div>'+
+      '<div class="big">'+esc(big)+'</div>'+
+      '<div class="sub">'+esc(sub)+'</div>'+
+      '<div class="meta">'+meta+statusHtml+'</div>'+
+    '</div>';
+  }
+
+  const currentCards=[
+    specificCard(
+      '현재 진도',
+      currentLessonText,
+      currentStateText,
+      '<span>'+esc(currentScoreText)+'</span>',
+      currentPassed===3?'PASS':(currentPassed>0?'RETRY':'')
+    ),
+    specificCard(
+      '다음 학습 단계',
+      currentPassed+'/3 통과',
+      nextStepText,
+      '<span>통과 기준: 어휘·문법·종합 각각 90점 이상</span>',
+      ''
+    ),
+    specificCard(
+      '최근 서울대 학습',
+      p.recentTest?String(p.recentTest):'기록 없음',
+      p.recentScore!==null&&p.recentScore!==undefined&&p.recentScore!==''?('최근 점수 '+p.recentScore+'점'):'최근 점수 기록 없음',
+      '<span>'+(p.recentActivityAt||p.recentLoginAt?esc(p.recentActivityAt||p.recentLoginAt):'최근 활동 없음')+'</span>',
+      ''
+    ),
+    specificCard(
+      '전체 응시',
+      scoreFmt(p.totalAttempts)+'회',
+      '서울대·TOPIK I 연어·문법 포함 진도현황 기준',
+      '<span>현재 통과 '+passedLessons+'개 과</span>',
+      ''
+    )
+  ];
+  $('scoreHubCurrentGrid').innerHTML=currentCards.join('');
+
+  const achievementCards=[
+    specificCard(
+      '서울대 누적 통과',
+      passedLessons+'개 과',
+      '어휘·문법·종합 모두 90점 이상인 과',
+      '<span>현재 '+esc(currentLessonText)+'</span>',
+      ''
+    ),
+    specificCard(
+      '복습 읽기 평가',
+      wbRead.attempts?('최고 '+scoreFmt(wbRead.bestScore)+'점'):'기록 없음',
+      wbRead.attempts?('최근 '+scoreFmt(wbRead.latestScore)+'점'):'응시 기록 없음',
+      '<span>응시 '+esc(scoreFmt(wbRead.attempts||0))+'회</span>',
+      ''
+    ),
+    specificCard(
+      '복습 듣기 평가',
+      wbListen.attempts?('최고 '+scoreFmt(wbListen.bestScore)+'점'):'기록 없음',
+      wbListen.attempts?('최근 '+scoreFmt(wbListen.latestScore)+'점'):'응시 기록 없음',
+      '<span>완료 '+esc(scoreFmt(wbListen.attempts||0))+'회</span>'+(data.workbookListening?.inProgressCount?'<span>진행중 '+esc(data.workbookListening.inProgressCount)+'회</span>':''),
+      ''
+    ),
+    specificCard(
+      'TOPIK I 연어',
+      p.topikCollocationState||'미시작',
+      coll.attempts?('최고 '+scoreFmt(coll.bestScore)+'점'):'시험 기록 없음',
+      '<span>응시 '+esc(scoreFmt(coll.attempts||0))+'회</span>',
+      ''
+    ),
+    specificCard(
+      'TOPIK I 문법',
+      p.topikGrammarState||'미시작',
+      gram.attempts?('최고 '+scoreFmt(gram.bestScore)+'점'):'시험 기록 없음',
+      '<span>응시 '+esc(scoreFmt(gram.attempts||0))+'회</span>',
+      ''
+    ),
+    specificCard(
+      'TOPIK I 읽기',
+      topikReadExam.attempts?('실전 최고 '+scoreFmt(topikReadExam.bestScore)+'점'):'실전 기록 없음',
+      '연습 '+esc(scoreFmt(topikReadPractice.attempts||0))+'회 · 오답복습 '+esc(scoreFmt(topikReadReview.attempts||0))+'회',
+      '<span>실전 응시 '+esc(scoreFmt(topikReadExam.attempts||0))+'회</span>',
+      ''
+    )
+  ];
+  $('scoreHubAchievementGrid').innerHTML=achievementCards.join('');
+
+  $('scoreHubSnuMasteryTable').innerHTML=masteryRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>교재</th><th>과</th><th>어휘 최고</th><th>문법 최고</th><th>종합 최고</th><th>총 응시</th><th>누적 상태</th></tr></thead><tbody>'+
+    masteryRows.map(r=>'<tr><td>'+esc(r.book||'')+'</td><td>'+esc(r.lesson||'')+'</td><td><strong>'+esc(scoreFmt(r.vocab?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.vocab?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.grammar?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.grammar?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.mixed?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.mixed?.attempts||0))+'회)</span></td><td>'+esc(scoreFmt(r.totalAttempts||0))+'회</td><td>'+scoreStatusPill(r.status)+'</td></tr>').join('')+
+    '</tbody></table></div>':'<div class="score-empty">서울대 누적 통과 기록이 없습니다.</div>';
+
+  const snuRows=(data.snu?.rows||[]).slice().reverse();
+  $('scoreHubSnuTable').innerHTML=snuRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>날짜</th><th>교재</th><th>과</th><th>시험</th><th>당일 최고점</th><th>당일 응시</th><th>정답</th><th>당일 상태</th></tr></thead><tbody>'+
+    snuRows.map(r=>'<tr><td>'+esc(r.date||'')+'</td><td>'+esc(r.book||'')+'</td><td>'+esc(r.lesson||'')+'</td><td>'+esc(scoreTestLabel(r.testType))+'</td><td><strong>'+esc(scoreFmt(r.bestScore))+'</strong></td><td>'+esc(scoreFmt(r.attemptsToday))+'</td><td>'+esc(scoreFmt(r.bestCorrect))+'/'+esc(scoreFmt(r.total))+'</td><td>'+scoreStatusPill(r.status)+'</td></tr>').join('')+
+    '</tbody></table></div>':'<div class="score-empty">서울대 단원 시험 기록이 없습니다.</div>';
+
+  const reviewRows=[];
+  (data.workbookReading?.rows||[]).forEach(r=>reviewRows.push({kind:'읽기',book:r['교재'],review:r['복습'],score:r['점수(100)'],correct:r['정답수'],total:r['전체문항'],duration:r['응시시간(초)'],date:r['제출시각']}));
+  (data.workbookListening?.rows||[]).forEach(r=>reviewRows.push({kind:'듣기',book:r['교재'],review:r['복습'],score:r['점수(100)'],correct:r['정답수'],total:r['전체문항'],duration:r['응시시간(초)'],date:r['제출시각']}));
+  $('scoreHubReviewTable').innerHTML=reviewRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>영역</th><th>교재</th><th>복습 범위</th><th>점수</th><th>정답</th><th>응시시간</th><th>제출</th></tr></thead><tbody>'+
+    reviewRows.slice(-40).reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td>'+esc(r.book||'')+'</td><td class="left">'+esc(r.review||'')+'</td><td><strong>'+esc(scoreFmt(r.score))+'</strong></td><td>'+esc(scoreFmt(r.correct))+'/'+esc(scoreFmt(r.total))+'</td><td>'+esc(scoreFmt(r.duration))+'초</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
+    '</tbody></table></div>':'<div class="score-empty">복습 읽기·듣기 평가 기록이 없습니다.</div>';
+
+  const topikRows=[];
+  (data.topik1Collocation?.rows||[]).forEach(r=>topikRows.push({kind:'연어',label:(r.lesson||'')+'단계',score:r.bestScore,attempts:r.attemptsToday,status:r.status,date:r.date}));
+  (data.topik1Grammar?.rows||[]).forEach(r=>topikRows.push({kind:'문법',label:(r.lesson||'')+'단계',score:r.bestScore,attempts:r.attemptsToday,status:r.status,date:r.date}));
+  ['exam','practice','review'].forEach(key=>{
+    const label={exam:'읽기 실전',practice:'읽기 연습',review:'읽기 오답복습'}[key];
+    (data.topik1Reading?.[key]?.rows||[]).forEach(r=>topikRows.push({kind:label,label:r.generated_exam_label||r.test_scope||'',score:r.section_score_100,attempts:1,status:r.result_type,date:r.recorded_at||r.submitted_at}));
+  });
+  $('scoreHubTopikTable').innerHTML=topikRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>구분</th><th>내용</th><th>점수</th><th>응시</th><th>상태/유형</th><th>일시</th></tr></thead><tbody>'+
+    topikRows.slice(-50).reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td class="left">'+esc(r.label||'')+'</td><td><strong>'+esc(scoreFmt(r.score))+'</strong></td><td>'+esc(scoreFmt(r.attempts))+'</td><td>'+esc(r.status||'')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
+    '</tbody></table></div>':'<div class="score-empty">TOPIK I 기록이 없습니다.</div>';
+}
+async function loadScoreHubStudent(){
+  const studentId=$('scoreStudentId').value;
+  if(!studentId){$('scoreHubStatus').className='score-status error';$('scoreHubStatus').textContent='학생을 선택해 주세요.';return}
+  const btn=$('loadScoreHubBtn');
+  btn.disabled=true;
+  $('scoreHubStatus').className='score-status loading';
+  $('scoreHubStatus').textContent='서울대·복습평가·TOPIK I 기록을 불러오는 중입니다...';
+  try{
+    const data=await getScoreHubStudentSummary(token,studentId);
+    renderScoreHub(data);
+    $('scoreHubStatus').className='score-status';
+    $('scoreHubStatus').textContent='최신 학습 기록을 불러왔습니다.';
+  }catch(e){
+    $('scoreHubStatus').className='score-status error';
+    const msg=String(e&&e.message||'');
+    if(msg.includes('API HTTP 오류: 404')){
+      $('scoreHubStatus').textContent='성적 API 연결 오류(404): 현재 Apps Script 웹앱 배포 주소와 프로그램의 API 주소가 일치하는지 확인해 주세요. 기존에 불러온 화면 데이터는 유지합니다.';
+    }else{
+      $('scoreHubStatus').textContent='성적 불러오기 오류: '+msg+(e.code?' ['+e.code+']':'');
+    }
+  }finally{btn.disabled=false}
+}
 function timeOptions(selected=''){
   let out='<option value="">시간 선택</option>';
   for(let m=0;m<1440;m+=30){const h=String(Math.floor(m/60)).padStart(2,'0'),mm=String(m%60).padStart(2,'0'),v=h+':'+mm;out+=`<option ${v===selected?'selected':''}>${v}</option>`}
@@ -1342,6 +1648,10 @@ $('navScoreBtn').onclick=()=>switchPage('score');
 $('navLessonBtn').onclick=()=>switchPage('lesson');
 $('navReportBtn').onclick=()=>switchPage('report');
 $('navTeacherBtn').onclick=()=>switchPage('teacher');
+$('scoreClassId').onchange=()=>{fillScoreStudentOptions();};
+$('scoreStudentId').onchange=()=>{};
+$('loadScoreHubBtn').onclick=loadScoreHubStudent;
+
 $('refreshBtn').onclick=async()=>{
   const btn=$('refreshBtn');
   const status=$('refreshStatus');
