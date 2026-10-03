@@ -190,3 +190,121 @@ function saveStudentV2_(auth, payload) {
     student: obj
   };
 }
+
+
+function listArchivedStudentsV2_(auth, options) {
+  options = options || {};
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  let rows = readSheetObjects_(ss, 'Students').filter(function(row) {
+    return isArchivedStudentStatusV2_(row.status);
+  });
+
+  const classId = String(options.classId || '').trim();
+  const status = String(options.status || '').trim();
+  const startDate = normalizeStudentDateV2_(options.startDate);
+  const endDate = normalizeStudentDateV2_(options.endDate);
+
+  if (classId) {
+    rows = rows.filter(function(row) {
+      return String(row.classId || '').trim() === classId;
+    });
+  }
+  if (status) {
+    rows = rows.filter(function(row) {
+      return String(row.status || '').trim() === status;
+    });
+  }
+  if (startDate) {
+    rows = rows.filter(function(row) {
+      const d = normalizeStudentDateV2_(row.stopDate);
+      return d && d >= startDate;
+    });
+  }
+  if (endDate) {
+    rows = rows.filter(function(row) {
+      const d = normalizeStudentDateV2_(row.stopDate);
+      return d && d <= endDate;
+    });
+  }
+
+  rows = rows.map(function(row) {
+    return Object.assign({}, row, {
+      enrollmentDate: normalizeStudentDateV2_(row.enrollmentDate),
+      stopDate: normalizeStudentDateV2_(row.stopDate),
+      scholarshipStartDate: normalizeStudentDateV2_(row.scholarshipStartDate),
+      scholarshipEndDate: normalizeStudentDateV2_(row.scholarshipEndDate),
+      paidUntilDate: normalizeStudentDateV2_(row.paidUntilDate)
+    });
+  });
+
+  rows.sort(function(a, b) {
+    const ad = normalizeStudentDateV2_(a.stopDate);
+    const bd = normalizeStudentDateV2_(b.stopDate);
+    if (ad !== bd) return bd.localeCompare(ad);
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+  });
+
+  const summary = {
+    total: rows.length,
+    leave: rows.filter(function(row) { return String(row.status || '') === '휴학'; }).length,
+    stopped: rows.filter(function(row) { return String(row.status || '') === '중단'; }).length,
+    withdrawn: rows.filter(function(row) { return String(row.status || '') === '중도포기'; }).length
+  };
+
+  return { students: rows, summary: summary };
+}
+
+function restoreStudentV2_(auth, studentId) {
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  const sheet = getRequiredDataSheetV2_(ss, 'Students');
+  const id = String(studentId || '').trim();
+  const rowNumber = findDataRowByIdV2_(sheet, 'studentId', id);
+
+  if (rowNumber < 2) {
+    const error = new Error('복귀할 학생을 찾을 수 없습니다.');
+    error.code = 'STUDENT_NOT_FOUND';
+    throw error;
+  }
+
+  const rows = readSheetObjects_(ss, 'Students');
+  const student = rows.find(function(row) {
+    return String(row.studentId || '').trim() === id;
+  });
+
+  if (!student) {
+    const error = new Error('복귀할 학생 정보를 찾을 수 없습니다.');
+    error.code = 'STUDENT_NOT_FOUND';
+    throw error;
+  }
+
+  if (!isArchivedStudentStatusV2_(student.status)) {
+    const error = new Error('보관 상태 학생만 복귀할 수 있습니다.');
+    error.code = 'INVALID_STUDENT_STATUS';
+    throw error;
+  }
+
+  const updated = Object.assign({}, student, {
+    status: '재학',
+    stopDate: ''
+  });
+
+  writeObjectToRowV2_(sheet, rowNumber, updated);
+  SpreadsheetApp.flush();
+
+  appendAuditLog_(
+    auth.teacher.teacherId,
+    'STUDENT_RESTORE',
+    'Student',
+    id,
+    'SUCCESS',
+    'restored to active'
+  );
+
+  return {
+    studentId: id,
+    student: Object.assign({}, updated, {
+      enrollmentDate: normalizeStudentDateV2_(updated.enrollmentDate),
+      stopDate: ''
+    })
+  };
+}
