@@ -518,8 +518,6 @@
             </div>
             <span id="scoreHubRecentActivity" class="score-pill">최근 활동 —</span>
           </div>
-          <div id="scoreHubProgressGrid" class="score-progress-grid"></div>
-          <div id="scoreHubNextStep" class="score-next-step"></div>
         </section>
 
         <section id="scoreHubCardsPanel" class="simple-page hidden">
@@ -727,17 +725,6 @@ function renderScoreHub(data){
   $('scoreHubStudentName').textContent=student.name||student.studentId||'학생';
   $('scoreHubStudentMeta').textContent=(student.classId||'-')+' · '+(student.status||'-')+' · '+(student.phone||'-');
   $('scoreHubRecentActivity').textContent='최근 활동 '+(p.recentActivityAt||p.recentLoginAt||'—');
-
-  const progressItems=[
-    ['현재 진도',(p.currentBook||'—')+(p.currentLesson?' · '+p.currentLesson+'과':'')],
-    ['통과 현황',p.passProgress||'—'],
-    ['어휘 최고',scoreFmt(p.vocabBest)],
-    ['문법 최고',scoreFmt(p.grammarBest)],
-    ['종합 최고',scoreFmt(p.mixedBest)],
-    ['총 응시',scoreFmt(p.totalAttempts)+'회']
-  ];
-  $('scoreHubProgressGrid').innerHTML=progressItems.map(x=>'<div class="score-progress-item"><div class="k">'+esc(x[0])+'</div><div class="v">'+esc(x[1])+'</div></div>').join('');
-  $('scoreHubNextStep').textContent='다음 단계 · '+(p.nextStep||'진도 정보 없음');
 
   let masteryRows=data.snu?.mastery||[];
   if(!masteryRows.length){
