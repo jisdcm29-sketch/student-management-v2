@@ -221,7 +221,8 @@ function saveClassV2_(auth, payload) {
   SpreadsheetApp.flush();
   appendAuditLog_(auth.teacher.teacherId, 'CLASS_SAVE', 'Class', classId, 'SUCCESS', rowNumber >= 2 ? 'updated' : 'created');
 
-  return { classId: classId, teacherName: teacherName, classInfo: obj };
+  const latest = listClassesV2_(auth, { includeClosed: true });
+  return { classId: classId, teacherName: teacherName, classInfo: obj, classes: latest.classes || [] };
 }
 
 function closeClassV2_(auth, classId) {
