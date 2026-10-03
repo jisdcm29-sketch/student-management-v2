@@ -48,3 +48,8 @@ export const listDailyRecords = (sessionToken, options = {}) => callApi('dailyRe
 export const getDailyRecord = (sessionToken, recordId) => callApi('dailyRecords.get', { sessionToken, recordId });
 export const saveDailyRecord = (sessionToken, recordData) => callApi('dailyRecords.save', { sessionToken, recordData });
 export const deleteDailyRecord = (sessionToken, recordId) => callApi('dailyRecords.delete', { sessionToken, recordId });
+
+export const loadAttendance = (sessionToken, options = {}) => callApi('attendance.load', { sessionToken, options });
+export const saveAttendance = (sessionToken, attendanceData) => callApi('attendance.save', { sessionToken, attendanceData });
+export const saveAttendanceHoliday = (sessionToken, holidayData) => callApi('attendance.holiday.save', { sessionToken, holidayData });
+export const clearAttendanceHoliday = (sessionToken, holidayData) => callApi('attendance.holiday.clear', { sessionToken, holidayData });
