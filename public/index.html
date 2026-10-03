@@ -4,11 +4,96 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>학생관리시스템 V2</title>
+  <style>
+    body{font-family:Arial,"Noto Sans KR",sans-serif;margin:0;background:#f4f7fb;color:#1f2937}
+    main{max-width:720px;margin:48px auto;padding:24px}
+    .card{background:#fff;border:1px solid #dbe3ee;border-radius:14px;padding:24px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
+    h1{margin-top:0}
+    label{display:block;margin-top:14px;font-weight:700}
+    input{width:100%;box-sizing:border-box;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px}
+    button{margin-top:16px;padding:11px 16px;border:0;border-radius:8px;background:#1f4b70;color:#fff;font-weight:700;cursor:pointer}
+    button.secondary{background:#475569;margin-left:8px}
+    pre{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:8px;min-height:80px}
+    .notice{font-size:14px;color:#64748b}
+  </style>
 </head>
 <body>
-  <main>
+<main>
+  <div class="card">
     <h1>학생관리시스템 V2</h1>
-    <p>Phase 1 bootstrap 상태입니다. 아직 운영 데이터 및 API와 연결하지 않았습니다.</p>
-  </main>
+    <p class="notice">Phase 2 인증/API 연결 테스트 화면입니다. V1 운영본과는 분리되어 있습니다.</p>
+
+    <button id="healthBtn" type="button">API 상태 확인</button>
+
+    <label for="teacherId">교사 ID</label>
+    <input id="teacherId" value="T-ADMIN-001" autocomplete="username">
+
+    <label for="password">V2 비밀번호</label>
+    <input id="password" type="password" autocomplete="current-password">
+
+    <button id="loginBtn" type="button">로그인 테스트</button>
+    <button id="logoutBtn" class="secondary" type="button">로그아웃</button>
+
+    <h3>결과</h3>
+    <pre id="resultBox">아직 테스트하지 않았습니다.</pre>
+  </div>
+</main>
+
+<script type="module">
+  import { health, login, logout, bootstrap, listClasses } from '../src/api/api-client.js';
+
+  const resultBox = document.getElementById('resultBox');
+  let sessionToken = sessionStorage.getItem('v2SessionToken') || '';
+
+  function show(value) {
+    resultBox.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+  }
+
+  document.getElementById('healthBtn').addEventListener('click', async () => {
+    try {
+      show(await health());
+    } catch (e) {
+      show('오류: ' + e.message);
+    }
+  });
+
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    try {
+      const teacherId = document.getElementById('teacherId').value.trim();
+      const password = document.getElementById('password').value;
+      const auth = await login(teacherId, password);
+      sessionToken = auth.sessionToken;
+      sessionStorage.setItem('v2SessionToken', sessionToken);
+
+      const boot = await bootstrap(sessionToken);
+      const classes = await listClasses(sessionToken);
+
+      show({
+        login: {
+          teacherId: auth.teacher.teacherId,
+          displayName: auth.teacher.displayName,
+          role: auth.teacher.role
+        },
+        bootstrap: boot,
+        classes: classes
+      });
+    } catch (e) {
+      show('오류: ' + e.message + (e.code ? ' [' + e.code + ']' : ''));
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try {
+      if (sessionToken) {
+        await logout(sessionToken);
+      }
+      sessionToken = '';
+      sessionStorage.removeItem('v2SessionToken');
+      show('로그아웃되었습니다.');
+    } catch (e) {
+      show('오류: ' + e.message);
+    }
+  });
+</script>
 </body>
 </html>
