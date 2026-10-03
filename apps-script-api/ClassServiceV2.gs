@@ -238,3 +238,40 @@ function closeClassV2_(auth, classId) {
   appendAuditLog_(auth.teacher.teacherId, 'CLASS_CLOSE', 'Class', classId, 'SUCCESS', '');
   return { classId: classId, status: '종료' };
 }
+
+function deleteClassV2_(auth, classId) {
+  requireSuperAdminV2_(auth);
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  const classes = readSheetObjects_(ss, 'Classes');
+  if (!classes.some(function(row) { return String(row.classId || '') === String(classId || ''); })) {
+    const error = new Error('삭제할 반을 찾을 수 없습니다.');
+    error.code = 'CLASS_NOT_FOUND';
+    throw error;
+  }
+
+  const students = readSheetObjects_(ss, 'Students').filter(function(row) { return String(row.classId || '') === String(classId || ''); });
+  const lessons = readSheetObjects_(ss, 'Lessons').filter(function(row) { return String(row.classId || '') === String(classId || ''); });
+  const studentIds = {};
+  const lessonIds = {};
+  students.forEach(function(row) { studentIds[String(row.studentId || '')] = true; });
+  lessons.forEach(function(row) { lessonIds[String(row.lessonId || '')] = true; });
+
+  const assignments = ss.getSheetByName('LessonAssignments');
+  deleteRowsMatchingV2_(assignments, function(row) {
+    return String(row.classId || '') === String(classId || '') || !!studentIds[String(row.studentId || '')] || !!lessonIds[String(row.lessonId || '')];
+  });
+  deleteRowsMatchingV2_(ss.getSheetByName('Attendance'), function(row) {
+    return String(row.classId || '') === String(classId || '') || !!studentIds[String(row.studentId || '')];
+  });
+  deleteRowsMatchingV2_(ss.getSheetByName('Scores'), function(row) {
+    return String(row.classId || '') === String(classId || '') || !!studentIds[String(row.studentId || '')];
+  });
+  deleteRowsMatchingV2_(ss.getSheetByName('Lessons'), function(row) { return String(row.classId || '') === String(classId || ''); });
+  deleteRowsMatchingV2_(ss.getSheetByName('Students'), function(row) { return String(row.classId || '') === String(classId || ''); });
+  deleteRowsMatchingV2_(ss.getSheetByName('ClassSchedules'), function(row) { return String(row.classId || '') === String(classId || ''); });
+  deleteRowsMatchingV2_(ss.getSheetByName('Classes'), function(row) { return String(row.classId || '') === String(classId || ''); });
+
+  SpreadsheetApp.flush();
+  appendAuditLog_(auth.teacher.teacherId, 'CLASS_DELETE', 'Class', classId, 'SUCCESS', 'Strong delete in teacher dataset');
+  return { classId: classId, deleted: true };
+}
