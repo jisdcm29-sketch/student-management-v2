@@ -36,3 +36,7 @@ export const getClassDetail = (sessionToken, classId) => callApi('classes.get', 
 export const saveClass = (sessionToken, classData) => callApi('classes.save', { sessionToken, classData });
 export const closeClass = (sessionToken, classId) => callApi('classes.close', { sessionToken, classId });
 export const deleteClass = (sessionToken, classId) => callApi('classes.delete', { sessionToken, classId });
+
+export const listStudents = (sessionToken, options = {}) => callApi('students.list', { sessionToken, options });
+export const getStudentDetail = (sessionToken, studentId) => callApi('students.get', { sessionToken, studentId });
+export const saveStudent = (sessionToken, studentData) => callApi('students.save', { sessionToken, studentData });
