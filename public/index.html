@@ -12,11 +12,17 @@
     .app-shell{min-height:100vh;display:grid;grid-template-columns:190px minmax(0,1fr)}
     .sidebar{position:sticky;top:0;height:100vh;background:#143f63;color:#fff;padding:16px 10px 10px;display:flex;flex-direction:column;gap:10px}
     .sidebar-brand{padding:2px 2px 8px}.sidebar-brand strong{display:block;font-size:16px}.sidebar-brand span{font-size:11px;color:#d7e3ee}
-    .sidebar-login{margin-top:2px;padding:5px 2px 0;font-size:11px;color:#d7e3ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .sidebar-nav{display:flex;flex-direction:column;gap:8px}.sidebar-nav button{width:100%;text-align:center;background:#53759b;color:#fff;padding:12px 8px;border-radius:8px}
     .sidebar-nav button.active{background:#2f8d87}.sidebar-nav button[data-page="score"]{background:#735ba1}.sidebar-nav button[data-page="lesson"]{background:#5d8b61}.sidebar-nav button[data-page="report"]{background:#94704c}.sidebar-nav button[data-page="teacher"]{background:#955a8e}
-    .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px}.sidebar-bottom button{width:100%;background:#fff;color:#153f63}
-    .content-area{min-width:0;width:100%;padding:12px 12px 28px;background:var(--bg)}
+    .content-area{min-width:0;width:100%;padding:0 12px 28px;background:var(--bg)}
+    .topbar{position:sticky;top:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;margin:0 -12px 12px;padding:8px 14px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(15,23,42,.05);backdrop-filter:blur(6px)}
+    .topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
+    .topbar-title{font-size:18px;font-weight:800;color:#153f63;white-space:nowrap}
+    .topbar-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+    .topbar-user{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc;color:#153f63;font-size:13px;font-weight:700;white-space:nowrap}
+    .topbar-sep{color:#94a3b8;font-weight:400}
+    .topbar-action{background:#fff!important;color:#153f63!important;border:1px solid #cbd5e1!important;padding:7px 11px!important}
+    .topbar-action:hover{background:#f1f5f9!important}
     .page-panel{min-width:0}.page-title{text-align:center;margin-bottom:10px}.page-title h2{margin-bottom:4px}
     .home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .home-stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 16px;text-align:center;min-height:98px}
@@ -68,7 +74,7 @@
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
       .student-card-top{grid-template-columns:1fr 1fr}.student-metrics{grid-template-columns:1fr 1fr}
       main{padding:0}
-      .app-shell{display:block}.sidebar{position:sticky;top:0;z-index:20;height:auto;padding:8px;background:#143f63}.sidebar-brand,.sidebar-login{display:none}.sidebar-nav{display:flex;flex-direction:row;overflow-x:auto;gap:6px}.sidebar-nav button{min-width:90px;width:auto;padding:9px 10px}.sidebar-bottom{display:flex;flex-direction:row;margin-top:6px}.sidebar-bottom button{min-width:90px}.content-area{padding:10px}.home-stats{grid-template-columns:1fr 1fr}.home-two-col{grid-template-columns:1fr}.home-info-grid{grid-template-columns:1fr}
+      .app-shell{display:block}.sidebar{position:sticky;top:0;z-index:20;height:auto;padding:8px;background:#143f63}.sidebar-brand{display:none}.sidebar-nav{display:flex;flex-direction:row;overflow-x:auto;gap:6px}.sidebar-nav button{min-width:90px;width:auto;padding:9px 10px}.content-area{padding:0 10px 20px}.topbar{position:sticky;top:58px;margin:0 -10px 10px;padding:8px 10px;align-items:flex-start}.topbar-left{min-width:90px}.topbar-title{font-size:16px}.topbar-right{gap:6px}.topbar-user{font-size:12px;padding:6px 8px}.topbar-action{padding:6px 8px!important;font-size:12px}.home-stats{grid-template-columns:1fr 1fr}.home-two-col{grid-template-columns:1fr}.home-info-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -98,13 +104,18 @@
         <button id="navReportBtn" data-page="report" type="button">조회 / 출력</button>
         <button id="navTeacherBtn" data-page="teacher" type="button">교사 업무 관리</button>
       </nav>
-      <div class="sidebar-bottom">
-        <button id="refreshBtn" type="button">새로고침</button>
-        <button id="logoutBtn" type="button">로그아웃</button>
-        <div class="sidebar-login" id="authUserLabel">로그인됨</div>
-      </div>
     </aside>
     <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-title" id="topbarPageTitle">홈</div>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-user"><span id="topbarUserName">사용자</span><span class="topbar-sep">·</span><span id="topbarUserRole">권한</span></div>
+          <button id="refreshBtn" class="topbar-action" type="button">새로고침</button>
+          <button id="logoutBtn" class="topbar-action" type="button">로그아웃</button>
+        </div>
+      </header>
       <div id="homePage" class="page-panel">
         <section class="simple-page">
           <div class="page-title">
@@ -257,7 +268,10 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&
 const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2);
 
 function setLoggedIn(on){$('loginCard').classList.toggle('hidden',on);$('appArea').classList.toggle('hidden',!on)}
-function updateAuthLabel(){$('authUserLabel').textContent=currentTeacher?(currentTeacher.displayName+' / '+currentTeacher.role):'로그인됨'}
+function updateAuthLabel(){
+  $('topbarUserName').textContent=currentTeacher?(currentTeacher.displayName||currentTeacher.teacherId||'사용자'):'사용자';
+  $('topbarUserRole').textContent=currentTeacher?(currentTeacher.role||'TEACHER'):'권한';
+}
 function updateHome(){
   $('homeClassCount').textContent=String(classRows.filter(c=>c.status!=='종료').length);
   $('homeStudentCount').textContent=String(studentRows.length);
@@ -265,15 +279,16 @@ function updateHome(){
 }
 function switchPage(page){
   const realPage=['home','class','student'].includes(page)?page:'coming';
+  const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
   $('homePage').classList.toggle('hidden',realPage!=='home');
   $('classPage').classList.toggle('hidden',realPage!=='class');
   $('studentPage').classList.toggle('hidden',realPage!=='student');
   $('comingPage').classList.toggle('hidden',realPage!=='coming');
   document.querySelectorAll('.sidebar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  $('topbarPageTitle').textContent=titles[page]||'학생관리시스템 V2';
   if(page==='student'){fillStudentClassOptions();renderStudentList();}
   if(page==='home')updateHome();
   if(realPage==='coming'){
-    const titles={attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
     $('comingTitle').textContent=titles[page]||'준비 중';
   }
 }
