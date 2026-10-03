@@ -54,6 +54,9 @@ export const saveAttendance = (sessionToken, attendanceData) => callApi('attenda
 export const saveAttendanceHoliday = (sessionToken, holidayData) => callApi('attendance.holiday.save', { sessionToken, holidayData });
 export const clearAttendanceHoliday = (sessionToken, holidayData) => callApi('attendance.holiday.clear', { sessionToken, holidayData });
 
+export const getScoreHubSources = sessionToken => callApi('scoreHub.sources', { sessionToken });
+export const getScoreHubStudentSummary = (sessionToken, studentId) => callApi('scoreHub.studentSummary', { sessionToken, studentId });
+
 export const getQrAttendanceSetup = (sessionToken, options = {}) => callApi('qrAttendance.setup', { sessionToken, options });
 export const startQrAttendanceSession = (sessionToken, sessionData) => callApi('qrAttendance.start', { sessionToken, sessionData });
 export const closeQrAttendanceSession = (sessionToken, sessionData) => callApi('qrAttendance.close', { sessionToken, sessionData });
