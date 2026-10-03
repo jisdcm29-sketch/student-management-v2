@@ -50,6 +50,8 @@ function doPost(e) {
     if (action === 'students.list') return okResponse_(requestId, listStudentsV2_(auth, body.options || {}));
     if (action === 'students.get') return okResponse_(requestId, getStudentV2_(auth, body.studentId));
     if (action === 'students.save') return okResponse_(requestId, saveStudentV2_(auth, body.studentData || {}));
+    if (action === 'students.archived.list') return okResponse_(requestId, listArchivedStudentsV2_(auth, body.options || {}));
+    if (action === 'students.restore') return okResponse_(requestId, restoreStudentV2_(auth, body.studentId));
 
     return errorResponse_(requestId, 'NOT_FOUND', '지원하지 않는 API action입니다.');
   } catch (err) {
