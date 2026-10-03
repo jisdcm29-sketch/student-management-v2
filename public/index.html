@@ -13,6 +13,7 @@
     input{width:100%;box-sizing:border-box;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px}
     button{margin-top:16px;padding:11px 16px;border:0;border-radius:8px;background:#1f4b70;color:#fff;font-weight:700;cursor:pointer}
     button.secondary{background:#475569;margin-left:8px}
+    button.verify{background:#7c3aed;margin-left:8px}
     pre{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:8px;min-height:80px}
     .notice{font-size:14px;color:#64748b}
   </style>
@@ -33,6 +34,7 @@
 
     <button id="loginBtn" type="button">로그인 테스트</button>
     <button id="logoutBtn" class="secondary" type="button">로그아웃</button>
+    <button id="reuseBtn" class="verify" type="button">로그아웃 토큰 재사용 검증</button>
 
     <h3>결과</h3>
     <pre id="resultBox">아직 테스트하지 않았습니다.</pre>
@@ -40,10 +42,11 @@
 </main>
 
 <script type="module">
-  import { health, login, logout, bootstrap, listClasses } from '../src/api/api-client.js';
+  import { health, login, logout, validateSession, bootstrap, listClasses } from '../src/api/api-client.js';
 
   const resultBox = document.getElementById('resultBox');
   let sessionToken = sessionStorage.getItem('v2SessionToken') || '';
+  let lastLoggedOutToken = '';
 
   function show(value) {
     resultBox.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -63,6 +66,7 @@
       const password = document.getElementById('password').value;
       const auth = await login(teacherId, password);
       sessionToken = auth.sessionToken;
+      lastLoggedOutToken = '';
       sessionStorage.setItem('v2SessionToken', sessionToken);
 
       const boot = await bootstrap(sessionToken);
@@ -85,13 +89,33 @@
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     try {
       if (sessionToken) {
+        const tokenToVerify = sessionToken;
         await logout(sessionToken);
+        lastLoggedOutToken = tokenToVerify;
       }
       sessionToken = '';
       sessionStorage.removeItem('v2SessionToken');
-      show('로그아웃되었습니다.');
+      show('로그아웃되었습니다. 이제 "로그아웃 토큰 재사용 검증"을 눌러 주세요.');
     } catch (e) {
       show('오류: ' + e.message);
+    }
+  });
+
+  document.getElementById('reuseBtn').addEventListener('click', async () => {
+    if (!lastLoggedOutToken) {
+      show('먼저 정상 로그인 후 로그아웃을 실행해 주세요.');
+      return;
+    }
+
+    try {
+      await validateSession(lastLoggedOutToken);
+      show('검증 실패: 로그아웃된 세션 토큰이 다시 사용되었습니다.');
+    } catch (e) {
+      if (e.code === 'SESSION_INVALID') {
+        show('정상: 로그아웃 토큰 재사용이 차단되었습니다. [SESSION_INVALID]');
+      } else {
+        show('오류: ' + e.message + (e.code ? ' [' + e.code + ']' : ''));
+      }
     }
   });
 </script>
