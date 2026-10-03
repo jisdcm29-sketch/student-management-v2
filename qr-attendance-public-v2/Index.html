@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+  <title>QR 출석 체크인</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;min-height:100%;background:#f2f6fa;font-family:Arial,"Noto Sans KR",sans-serif;color:#12385b;-webkit-text-size-adjust:100%}
+    body{min-height:100dvh}
+    .wrap{width:100%;max-width:none;margin:0;padding:12px;min-height:100dvh;display:flex;align-items:flex-start;justify-content:center}
+    .card{width:100%;max-width:none;background:#fff;border:1px solid #dbe5ef;border-radius:20px;padding:24px;box-shadow:0 8px 24px rgba(15,52,85,.08)}
+    body.mobile-ui{background:#fff;height:100dvh;overflow:hidden}
+    body.mobile-ui .wrap{width:100vw;height:100dvh;min-height:100dvh;padding:0;margin:0;display:block}
+    body.mobile-ui .card{width:100vw;height:100dvh;min-height:100dvh;margin:0;padding:clamp(22px,4.5vw,34px);border:0;border-radius:0;box-shadow:none;display:flex;flex-direction:column;overflow:auto}
+    body.mobile-ui h1{font-size:clamp(34px,5vh,50px);line-height:1.12;margin:0 0 clamp(12px,1.8vh,20px)}
+    body.mobile-ui #content{flex:1;min-height:0;flex-direction:column;justify-content:space-evenly;gap:clamp(10px,1.4vh,20px)}
+    body.mobile-ui .sub{font-size:clamp(22px,3.1vh,31px);line-height:1.4;margin:0}
+    body.mobile-ui .info{padding:clamp(22px,3vh,34px) clamp(22px,5vw,32px);margin:0;font-size:clamp(23px,3.35vh,33px);border-radius:18px}
+    body.mobile-ui .row{margin:clamp(8px,1.2vh,14px) 0;line-height:1.35}
+    body.mobile-ui label{font-size:clamp(23px,3.3vh,32px);margin:0 0 clamp(8px,1.2vh,12px)}
+    body.mobile-ui input{min-height:clamp(72px,9vh,92px);padding:clamp(18px,2.4vh,26px) 22px;font-size:clamp(24px,3.45vh,34px);border-radius:16px}
+    body.mobile-ui button{min-height:clamp(74px,9.4vh,96px);margin-top:0;padding:clamp(18px,2.4vh,26px);font-size:clamp(24px,3.45vh,34px);border-radius:16px}
+    body.mobile-ui .result{font-size:clamp(22px,3.1vh,30px);padding:clamp(18px,2.3vh,26px);line-height:1.45}
+    body.mobile-ui .muted{font-size:clamp(17px,2.25vh,23px);line-height:1.5;margin:0}
+    body.mobile-ui .loading{font-size:clamp(22px,3.1vh,30px);padding:clamp(24px,4vh,44px) 0}
+    @media (max-height:700px){
+      body.mobile-ui{overflow:auto}
+      body.mobile-ui .card{height:auto;min-height:100dvh;overflow:visible}
+      body.mobile-ui #content{justify-content:flex-start}
+    }
+    h1{font-size:clamp(28px,7vw,38px);line-height:1.2;margin:0 0 12px}
+    .sub{font-size:clamp(17px,4.5vw,22px);color:#66788a;line-height:1.55;margin-bottom:20px}
+    .info{background:#f6f9fc;border-radius:14px;padding:16px 18px;margin:14px 0 22px;font-size:clamp(17px,4.5vw,22px)}
+    .row{margin:9px 0;line-height:1.45}
+    label{display:block;font-size:clamp(18px,4.7vw,23px);font-weight:700;margin:18px 0 9px}
+    input{width:100%;min-height:58px;padding:16px;border:1px solid #c9d6e2;border-radius:12px;font-size:clamp(20px,5.2vw,26px);background:#fff}
+    button{width:100%;min-height:60px;margin-top:16px;padding:16px;border:0;border-radius:12px;background:#176aa6;color:#fff;font-size:clamp(19px,5vw,24px);font-weight:700;touch-action:manipulation}
+    button:disabled{opacity:.6}
+    .result{margin-top:18px;padding:16px;border-radius:12px;display:none;font-size:clamp(17px,4.5vw,22px);line-height:1.55}
+    .ok{display:block;background:#eaf7ef;color:#17603a}
+    .bad{display:block;background:#fff1f0;color:#a12c2c}
+    .muted{font-size:clamp(14px,3.8vw,18px);color:#778899;margin-top:16px;line-height:1.55}
+    .loading{padding:22px 0;color:#66788a;font-size:clamp(17px,4.5vw,22px)}
+    @media (min-width:900px){
+      body:not(.mobile-ui) .wrap{padding:24px}
+      body:not(.mobile-ui) .card{max-width:680px;padding:30px}
+    }
+  </style>
+</head>
+<body>
+<script>
+(function(){
+  var ua=navigator.userAgent||'';
+  var isMobile=/Android|iPhone|iPad|iPod|Mobile|SamsungBrowser/i.test(ua)||(navigator.maxTouchPoints>1&&Math.min(screen.width,screen.height)<1200);
+  if(isMobile)document.body.classList.add('mobile-ui');
+})();
+</script>
+<div class="wrap"><div class="card">
+  <h1>QR 출석 체크인</h1>
+  <div id="loading" class="loading">출석 세션을 확인하고 있습니다...</div>
+  <div id="content" style="display:none">
+    <div class="sub">아래 수업의 출석을 확인합니다.</div>
+    <div class="info">
+      <div class="row"><b>반</b> <span id="className"></span></div>
+      <div class="row"><b>날짜</b> <span id="date"></span></div>
+      <div class="row"><b>수업</b> <span id="time"></span></div>
+    </div>
+    <label for="phone">등록 전화번호</label>
+    <input id="phone" inputmode="tel" autocomplete="tel" placeholder="전화번호를 입력하세요">
+    <button id="submitBtn" onclick="submitQr()">출석 체크</button>
+    <div id="result" class="result"></div>
+    <div class="muted">학생관리 시스템에 등록된 본인의 전화번호를 사용합니다. 같은 QR을 다시 열어도 출석 기록은 중복 저장되지 않습니다.</div>
+  </div>
+  <div id="error" class="result bad"></div>
+</div></div>
+<script>
+const QR_TOKEN=<?!= JSON.stringify(qrToken || '') ?>;
+window.addEventListener('load',function(){
+  if(!QR_TOKEN){showError('QR 출석 세션 정보가 없습니다.');return;}
+  google.script.run.withSuccessHandler(function(res){
+    if(!res||!res.success){showError((res&&res.error)||'유효하지 않은 QR 출석 세션입니다.');return;}
+    document.getElementById('loading').style.display='none';
+    document.getElementById('content').style.display=document.body.classList.contains('mobile-ui')?'flex':'block';
+    document.getElementById('className').textContent=res.session.className||'';
+    document.getElementById('date').textContent=res.session.date||'';
+    document.getElementById('time').textContent=(res.session.startTime||'')+' ~ '+(res.session.endTime||'');
+  }).withFailureHandler(function(e){showError((e&&e.message)||String(e));}).getPublicQrSessionInfoV2(QR_TOKEN);
+});
+function showError(msg){
+  document.getElementById('loading').style.display='none';
+  const box=document.getElementById('error');box.textContent=msg;box.style.display='block';
+}
+function submitQr(){
+  const phone=(document.getElementById('phone').value||'').trim();
+  const btn=document.getElementById('submitBtn');
+  const result=document.getElementById('result');
+  if(!phone){result.className='result bad';result.textContent='전화번호를 입력해 주세요.';return;}
+  btn.disabled=true;btn.textContent='확인 중...';
+  google.script.run.withSuccessHandler(function(res){
+    btn.disabled=false;btn.textContent='출석 체크';
+    if(res&&res.success){
+      result.className='result ok';
+      result.innerHTML='<b>'+escapeHtml(res.studentName||'')+'</b><br>'+escapeHtml(res.status||'')+' · '+escapeHtml(res.checkInTime||'')+'<br>'+escapeHtml(res.message||'');
+    }else{
+      result.className='result bad';
+      result.textContent=(res&&res.error)||'출석 처리에 실패했습니다.';
+    }
+  }).withFailureHandler(function(e){
+    btn.disabled=false;btn.textContent='출석 체크';
+    result.className='result bad';result.textContent=(e&&e.message)||String(e);
+  }).submitPublicQrAttendanceV2({publicToken:QR_TOKEN,phone:phone});
+}
+function escapeHtml(v){
+  return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];});
+}
+</script>
+</body>
+</html>
