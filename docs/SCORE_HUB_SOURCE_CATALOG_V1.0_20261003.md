@@ -1,7 +1,7 @@
 # SCORE HUB SOURCE CATALOG V1.0
 작성일: 2026-10-03
-범위: 서울대/워크북 + TOPIK I
-TOPIK II: 이번 단계에서 제외하고 추후 연결.
+범위: 서울대 각 과 어휘·문법·종합 + 복습 읽기·듣기 평가 + TOPIK I 연어·문법·읽기평가
+TOPIK I 듣기 및 TOPIK II: 이번 단계에서 제외하고 추후 연결.
 
 ## 학생 연결키
 학생관리 V2 Students의 studentId를 내부 기준키로 사용하고, 외부 프로그램은 phone exact match로 연결한다. 이름만으로 자동 연결하지 않는다.
@@ -33,10 +33,10 @@ Sheet: All_Results
 TOPIK I 읽기와 동일 계열 스키마로 실전/연습/오답복습을 분리 집계한다.
 
 ## 1차 응답 구조
-student, progress, snu, workbookReading, workbookListening, topik1Reading, topik1Listening, activity
+student, progress, snu, workbookReading, workbookListening, topik1Collocation, topik1Grammar, topik1Reading, activity
 
 ## 태도 처리
 자동 태도점수는 만들지 않는다. 최근 접속, 학습 이벤트, 재시도, 오답복습, 미응답, 시간초과, 진도, 출석 등 객관적 근거와 교사 메모를 분리한다.
 
 ## 제외
-TOPIK II 읽기/듣기/쓰기: 추후 연결.
+TOPIK I 듣기 및 TOPIK II 읽기/듣기/쓰기: 추후 연결.
