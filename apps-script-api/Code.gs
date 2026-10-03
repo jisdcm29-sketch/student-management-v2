@@ -60,6 +60,9 @@ function doPost(e) {
     if (action === 'attendance.save') return okResponse_(requestId, saveAttendanceV2_(auth, body.attendanceData || {}));
     if (action === 'attendance.holiday.save') return okResponse_(requestId, saveAttendanceHolidayV2_(auth, body.holidayData || {}));
     if (action === 'attendance.holiday.clear') return okResponse_(requestId, clearAttendanceHolidayV2_(auth, body.holidayData || {}));
+    if (action === 'qrAttendance.setup') return okResponse_(requestId, getQrAttendanceSetupV2_(auth, body.options || {}));
+    if (action === 'qrAttendance.start') return okResponse_(requestId, startQrAttendanceSessionV2_(auth, body.sessionData || {}));
+    if (action === 'qrAttendance.close') return okResponse_(requestId, closeQrAttendanceSessionV2_(auth, body.sessionData || {}));
 
     return errorResponse_(requestId, 'NOT_FOUND', '지원하지 않는 API action입니다.');
   } catch (err) {
