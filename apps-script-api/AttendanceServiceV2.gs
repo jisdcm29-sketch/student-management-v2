@@ -42,9 +42,14 @@ function isStudentActiveOnAttendanceDateV2_(student, date) {
 
   const enrollmentDate = normalizeAttendanceDateV2_(student.enrollmentDate);
   const stopDate = normalizeAttendanceDateV2_(student.stopDate);
+  const status = String(student.status || '').trim();
 
   if (enrollmentDate && targetDate < enrollmentDate) return false;
   if (stopDate && targetDate >= stopDate) return false;
+
+  // 과거 출석 이력은 stopDate 이전이면 유지한다.
+  // 다만 비재학 상태인데 stopDate가 없는 예외 데이터는 자동 출석/결석 대상에서 제외한다.
+  if (!stopDate && status && status !== '재학') return false;
 
   return true;
 }
