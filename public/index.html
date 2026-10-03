@@ -94,6 +94,17 @@
     .attendance-qr-session{margin-top:10px;padding:12px;border:1px solid #cbdbea;border-radius:12px;background:#fff}
     .attendance-qr-session-layout{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:10px}
     .attendance-qr-image{background:#fff;padding:8px;border:1px solid #dbe5ef;border-radius:10px;min-width:180px;min-height:180px}
+    body.qr-display-open{overflow:hidden}
+    .qr-display-overlay{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+    .qr-display-overlay.hidden{display:none}
+    .qr-display-top{position:absolute;top:18px;left:24px;right:24px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;color:#12385b}
+    .qr-display-class{font-size:clamp(18px,2.2vw,28px);font-weight:800}
+    .qr-display-meta{margin-top:4px;font-size:clamp(13px,1.35vw,18px);color:#66788a}
+    .qr-display-close{border:1px solid #cbd8e6;background:#f8fbff;color:#173f63;border-radius:10px;padding:10px 14px;font-size:15px;font-weight:800;cursor:pointer}
+    .qr-display-code{display:flex;align-items:center;justify-content:center;background:#fff;padding:16px}
+    .qr-display-code img,.qr-display-code canvas{display:block;max-width:78vmin!important;max-height:78vmin!important;width:auto!important;height:auto!important}
+    .qr-display-hint{position:absolute;bottom:18px;left:20px;right:20px;text-align:center;color:#7a8896;font-size:clamp(12px,1.15vw,16px)}
+    @media(max-width:720px){.qr-display-overlay{padding:12px}.qr-display-top{top:10px;left:12px;right:12px}.qr-display-close{padding:8px 10px}.qr-display-code img,.qr-display-code canvas{max-width:86vmin!important;max-height:86vmin!important}}
     @media(max-width:720px){.attendance-qr-grid{grid-template-columns:1fr}.attendance-qr-session-layout{align-items:flex-start}}
     @media(max-width:900px){
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
@@ -382,6 +393,18 @@
   </div>
 </main>
 
+<div id="qrDisplayOverlay" class="qr-display-overlay hidden" aria-hidden="true">
+  <div class="qr-display-top">
+    <div>
+      <div id="qrDisplayClass" class="qr-display-class">출석 QR</div>
+      <div id="qrDisplayMeta" class="qr-display-meta"></div>
+    </div>
+    <button id="qrDisplayCloseBtn" class="qr-display-close" type="button">닫기</button>
+  </div>
+  <div id="qrDisplayCode" class="qr-display-code"></div>
+  <div class="qr-display-hint">학생은 휴대전화 카메라로 QR 코드를 촬영하세요.</div>
+</div>
+
 <script type="module">
 import {
   login, logout,
@@ -401,6 +424,7 @@ let dailyRecordRows=[];
 let attendanceLoadedRows=[];
 let attendanceHoliday=null;
 let qrAttendanceSetup=null;
+let qrDisplayUrl='';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2);
@@ -937,9 +961,13 @@ function renderQrAttendanceSession(session){
       '<span class="attendance-chip">'+esc(session.date||'')+'</span>'+
     '</div>'+
     (publicUrl
-      ? '<div class="attendance-qr-session-layout"><div id="attendanceQrImage" class="attendance-qr-image"></div><div style="flex:1;min-width:240px"><div style="font-weight:700">학생용 QR</div><div class="muted" style="margin-top:5px">학생이 QR을 촬영한 뒤 등록 전화번호를 입력하면 출석/지각이 자동 저장됩니다.</div><a href="'+esc(publicUrl)+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px">학생 체크인 링크 열기</a></div></div>'
+      ? '<div class="attendance-qr-session-layout"><div id="attendanceQrImage" class="attendance-qr-image"></div><div style="flex:1;min-width:240px"><div style="font-weight:700">학생용 QR</div><div class="muted" style="margin-top:5px">수업 중에는 QR 크게 보기를 사용하면 관리 화면을 숨기고 QR만 표시할 수 있습니다.</div><div class="action-row" style="margin-top:8px"><button id="openQrDisplayBtn" class="btn-primary" type="button">QR 크게 보기</button><a href="'+esc(publicUrl)+'" target="_blank" rel="noopener" style="align-self:center">학생 체크인 링크 열기</a></div></div></div>'
       : '<div style="margin-top:8px;color:#a12c2c">학생용 공개 URL이 설정되지 않았습니다.</div>');
-  if(publicUrl)renderQrCode(publicUrl);
+  if(publicUrl){
+    renderQrCode(publicUrl);
+    const displayBtn=$('openQrDisplayBtn');
+    if(displayBtn) displayBtn.onclick=()=>openQrDisplay(session,publicUrl);
+  }
 }
 function renderQrCode(publicUrl){
   const target=$('attendanceQrImage');
@@ -959,6 +987,54 @@ function renderQrCode(publicUrl){
   script.id='qrcodejs-cdn-script';
   script.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
   script.onload=draw;script.onerror=draw;document.head.appendChild(script);
+}
+
+function drawQrDisplayCode(publicUrl){
+  const target=$('qrDisplayCode');
+  if(!target)return;
+  const size=Math.max(280,Math.min(Math.floor(window.innerWidth*0.62),Math.floor(window.innerHeight*0.68),680));
+  function draw(){
+    target.innerHTML='';
+    if(window.QRCode){
+      new QRCode(target,{text:publicUrl,width:size,height:size,correctLevel:QRCode.CorrectLevel.M});
+    }else{
+      target.innerHTML='<div class="empty-box">QR 생성 모듈을 불러오지 못했습니다.</div>';
+    }
+  }
+  if(window.QRCode){draw();return}
+  const old=document.getElementById('qrcodejs-cdn-script');
+  if(old){old.addEventListener('load',draw,{once:true});return}
+  const script=document.createElement('script');
+  script.id='qrcodejs-cdn-script';
+  script.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  script.onload=draw;script.onerror=draw;document.head.appendChild(script);
+}
+async function openQrDisplay(session,publicUrl){
+  qrDisplayUrl=String(publicUrl||'');
+  if(!qrDisplayUrl)return;
+  $('qrDisplayClass').textContent=String(session.className||session.classId||'출석 QR');
+  $('qrDisplayMeta').textContent=[
+    String(session.date||''),
+    [String(session.startTime||''),String(session.endTime||'')].filter(Boolean).join(' ~ ')
+  ].filter(Boolean).join(' · ');
+  $('qrDisplayOverlay').classList.remove('hidden');
+  $('qrDisplayOverlay').setAttribute('aria-hidden','false');
+  document.body.classList.add('qr-display-open');
+  drawQrDisplayCode(qrDisplayUrl);
+  try{
+    if($('qrDisplayOverlay').requestFullscreen && !document.fullscreenElement){
+      await $('qrDisplayOverlay').requestFullscreen();
+    }
+  }catch(e){}
+}
+async function closeQrDisplay(){
+  if(document.fullscreenElement){
+    try{await document.exitFullscreen()}catch(e){}
+  }
+  $('qrDisplayOverlay').classList.add('hidden');
+  $('qrDisplayOverlay').setAttribute('aria-hidden','true');
+  document.body.classList.remove('qr-display-open');
+  qrDisplayUrl='';
 }
 async function loadQrAttendanceSetupFromForm(){
   const classId=$('attendanceClassId').value;
@@ -1133,6 +1209,11 @@ $('saveDailyRecordBtn').onclick=saveDailyRecordFromForm;
 $('resetDailyRecordBtn').onclick=()=>{resetDailyRecordForm();show('dailyRecordResult','입력값을 기본값으로 초기화했습니다.')};
 $('loadDailyRecordsBtn').onclick=loadDailyRecords;
 $('resetDailyRecordFilterBtn').onclick=resetDailyRecordFilter;
+$('qrDisplayCloseBtn').onclick=closeQrDisplay;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('qrDisplayOverlay').classList.contains('hidden'))closeQrDisplay()});
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&!$('qrDisplayOverlay').classList.contains('hidden')){ /* overlay stays visible until close */ }});
+window.addEventListener('resize',()=>{if(qrDisplayUrl&&!$('qrDisplayOverlay').classList.contains('hidden'))drawQrDisplayCode(qrDisplayUrl)});
+
 $('saveStudentBtn').onclick=async()=>{
   const data={studentId:$('editingStudentId').value.trim(),classId:$('studentClassId').value,name:$('studentName').value.trim(),phone:$('studentPhone').value.trim(),currentTopikLevel:$('studentCurrentTopikLevel').value.trim(),targetTopikLevel:$('studentTargetTopikLevel').value.trim(),scholarshipType:$('studentScholarshipType').value,scholarshipStartDate:$('studentScholarshipStartDate').value,scholarshipEndDate:$('studentScholarshipEndDate').value,paidUntilDate:$('studentPaidUntilDate').value,enrollmentDate:$('studentEnrollmentDate').value,status:$('studentStatus').value,stopDate:$('studentStopDate').value,note:$('studentNote').value.trim(),photoUrl:''};
   if(!data.classId){show('studentResult','반을 선택해 주세요.');return}
