@@ -491,6 +491,7 @@ function renderClassList(){
   if(!classRows.length){
     $('classList').innerHTML='<div class="empty-box">등록된 반이 없습니다.</div>';
     fillStudentClassOptions();
+    fillAttendanceClassOptions();
     updateHome();
     return;
   }
@@ -499,6 +500,7 @@ function renderClassList(){
   document.querySelectorAll('[data-close-class]').forEach(b=>b.onclick=()=>closeOne(b.dataset.closeClass));
   document.querySelectorAll('[data-delete-class]').forEach(b=>b.onclick=()=>deleteOne(b.dataset.deleteClass));
   fillStudentClassOptions();
+  fillAttendanceClassOptions();
   updateHome();
 }
 async function refreshClasses(){
