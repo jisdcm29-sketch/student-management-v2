@@ -23,6 +23,10 @@ function hashPassword_(password, salt) {
   return value;
 }
 
+function setupInitialAdminPassword() {
+  return setupInitialAdminPasswordFromProperty_();
+}
+
 function setupInitialAdminPasswordFromProperty_() {
   const props = PropertiesService.getScriptProperties();
   const password = String(props.getProperty('SETUP_ADMIN_PASSWORD') || '');
