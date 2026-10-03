@@ -43,9 +43,8 @@
 - 응시시간, 문항수, 정답/오답/미응답, 점수, 문항 번호 목록
 
 ### D. TOPIK I 듣기
-- 별도 응시기록의 All_Results
-- TOPIK I 읽기와 유사한 구조
-- 실전/연습/오답복습 및 점수/문항/시간을 확인 가능
+- 이번 1차 성적 허브 범위에서 제외한다.
+- TOPIK I 듣기 앱이 운영에 포함되는 시점에 별도 연결한다.
 
 ### E. TOPIK II 읽기/듣기/쓰기
 - 이번 1차 성적 허브 범위에서 제외한다.
@@ -57,7 +56,7 @@
 서버에서 읽은 데이터를 공통 포맷으로 변환하여 화면에 제공한다.
 
 공통 이벤트 예:
-- source: SNU_MOBILE / WORKBOOK_READING / WORKBOOK_LISTENING / TOPIK1_READING / TOPIK1_LISTENING / TOPIK2_...
+- source: SNU_VOCAB / SNU_GRAMMAR / SNU_MIXED / REVIEW_READING / REVIEW_LISTENING / TOPIK1_COLLOCATION / TOPIK1_GRAMMAR / TOPIK1_READING
 - studentId
 - phone
 - occurredAt
@@ -87,24 +86,24 @@ source + sourceAttemptId
 - 최근 30일 학습 활동 횟수
 
 ### 핵심 성취 카드
-- 서울대 교재 단원 성취
-- 워크북 읽기
-- 워크북 듣기
-- TOPIK I 읽기
-- TOPIK I 듣기
-- TOPIK II 읽기
-- TOPIK II 듣기
-- TOPIK II 쓰기
+- 서울대 각 과 어휘 테스트
+- 서울대 각 과 문법 테스트
+- 서울대 각 과 종합 테스트
+- 복습 읽기 평가
+- 복습 듣기 평가
+- TOPIK I 연어 시험
+- TOPIK I 문법 시험
+- TOPIK I 읽기평가
 각 카드는 최신점수, 최고점수, 최근 응시일, 응시횟수를 보여준다.
+TOPIK I 듣기와 TOPIK II는 후속 단계에서 추가한다.
 
 ### 세부 탭
 1. 종합
 2. 서울대 교재
-3. 읽기/듣기 평가
+3. 복습 읽기·듣기
 4. TOPIK I
-5. TOPIK II
-6. 학습 활동
-7. 교사 기록
+5. 학습 활동
+6. 교사 기록
 
 ## 5. 반 전체 화면
 교사가 반을 선택하면 한 화면에서 학생별 핵심 지표를 본다.
@@ -115,7 +114,6 @@ source + sourceAttemptId
 - 워크북 읽기
 - 워크북 듣기
 - TOPIK I
-- TOPIK II
 - 최근 활동
 - 출석
 - 교사 확인
@@ -176,13 +174,13 @@ source + sourceAttemptId
 1. 데이터 소스 카탈로그 확정
 2. 학생 전화번호 <-> studentId 연결 검증
 3. 한국어 모바일 TestResults/워크북/진도 어댑터
-4. TOPIK I 읽기/듣기 어댑터
+4. TOPIK I 연어/문법/읽기 어댑터
 5. 반 전체 요약 API
 6. 학생 상세 API
 7. 성적 관리 테스트 화면
 8. 교사 사용성 검증
 9. 운영 반영
-10. TOPIK II는 후속 단계에서 별도 연결
+10. TOPIK I 듣기와 TOPIK II는 후속 단계에서 별도 연결
 
 ## 11. 현재 중단/보류 사항
 이전에 준비한 단순 ScoreServiceV2(읽기/쓰기/듣기/말하기 수동 점수 중심)는 최종 성적 화면의 기반으로 사용하지 않는다.
@@ -191,3 +189,19 @@ source + sourceAttemptId
 ## 12. 데이터 해석 주의
 접속 횟수, 페이지 열람, 사용시간 같은 활동 데이터는 학업 성취나 태도를 직접 의미하지 않는다.
 따라서 시스템은 사실 데이터와 경향을 표시하고, 교사의 최종 판단을 대신하지 않는다.
+
+
+## 13. 진도 및 응시 참고자료
+학생 상세 상단에 현재 학습 위치와 응시량을 함께 표시한다.
+- 시작교재/시작과
+- 현재교재/현재과
+- 현재 과 통과현황
+- 현재 과 어휘/문법/종합 최고점
+- 현재상태 및 다음단계
+- TOPIK I 연어/문법 진행상태
+- 최근활동 시각
+- 최근시험 및 최근점수
+- 총응시 횟수
+
+서울대 및 TOPIK I 연어/문법 시험의 응시수는 TestResults의 행 개수가 아니라 attemptsToday의 합계를 사용한다.
+복습 읽기/듣기와 TOPIK I 읽기는 제출/응시 기록 1행을 1회 응시로 계산한다.
