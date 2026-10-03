@@ -74,6 +74,15 @@
     .archived-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin:12px 0}
     .archived-summary-card{padding:10px;border:1px solid #dbe3ee;border-radius:10px;background:#f8fbff}
     .archived-summary-card .label{font-size:12px;color:#64748b}.archived-summary-card .value{margin-top:4px;font-size:18px;font-weight:800;color:#12385b}
+    #attendancePage .simple-page{padding:16px}
+    .attendance-summary{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+    .attendance-chip{padding:7px 10px;border:1px solid #dbe3ee;border-radius:999px;background:#f8fbff;font-size:13px;font-weight:700;color:#153f63}
+    .attendance-chip.present{background:#eaf7ee;color:#176b3a;border-color:#c6e6d1}
+    .attendance-chip.late{background:#fff6e8;color:#9a5a00;border-color:#f0d7aa}
+    .attendance-chip.absent{background:#fdeeee;color:#a92820;border-color:#f0c7c4}
+    .attendance-chip.early{background:#eef4ff;color:#24558f;border-color:#ccd9ef}
+    .attendance-status{min-width:100px}
+    .attendance-holiday-view{padding:14px;border:1px solid #d0d5dd;border-radius:10px;background:#f8fafc;line-height:1.6}
     @media(max-width:900px){
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
       .student-card-top{grid-template-columns:1fr 1fr}.student-metrics{grid-template-columns:1fr 1fr}.archived-summary{grid-template-columns:1fr 1fr}
@@ -290,6 +299,50 @@
       </section>
     </div>
 
+      <div id="attendancePage" class="page-panel hidden">
+        <section class="simple-page">
+          <div class="student-form-grid">
+            <div class="form-row">
+              <label>반</label>
+              <select id="attendanceClassId"><option value="">반 선택</option></select>
+            </div>
+            <div class="form-row">
+              <label>날짜</label>
+              <input type="date" id="attendanceDate">
+            </div>
+            <div class="form-row">
+              <label>휴무 사유</label>
+              <select id="attendanceHolidayReason">
+                <option value="학당 휴무">학당 휴무</option>
+                <option value="공휴일">공휴일</option>
+                <option value="임시 휴강">임시 휴강</option>
+                <option value="직접 입력">직접 입력</option>
+              </select>
+            </div>
+            <div class="form-row hidden" id="attendanceHolidayMemoRow">
+              <label>휴무 메모</label>
+              <input type="text" id="attendanceHolidayMemo" placeholder="휴무 사유를 입력해 주세요.">
+            </div>
+          </div>
+          <div class="muted" style="margin-top:8px">기본값은 오늘 날짜와 운영 중인 반입니다. 학생을 불러오면 모두 출석으로 시작하고 필요한 학생만 변경합니다.</div>
+          <div class="action-row">
+            <button id="loadAttendanceBtn" class="btn-primary" type="button">학생 불러오기</button>
+            <button id="saveAttendanceHolidayBtn" class="btn-secondary" type="button">휴무일 저장</button>
+            <button id="clearAttendanceHolidayBtn" class="btn-secondary" type="button">휴무 해제</button>
+            <button id="resetAttendanceBtn" class="btn-secondary" type="button">입력 초기화</button>
+          </div>
+          <div id="attendanceTopResult" class="empty-box">반과 날짜를 확인한 뒤 학생 불러오기를 눌러 주세요.</div>
+        </section>
+
+        <section class="simple-page" style="margin-top:10px">
+          <div id="attendanceInputBox" class="empty-box">출석 대상 학생을 불러오면 여기에 표시됩니다.</div>
+          <div class="action-row">
+            <button id="saveAttendanceBtn" class="btn-primary hidden" type="button">출석 저장</button>
+          </div>
+          <div id="attendanceSaveResult" class="empty-box hidden"></div>
+        </section>
+      </div>
+
       <div id="comingPage" class="page-panel hidden">
         <section class="simple-page">
           <div class="page-title"><h2 id="comingTitle">준비 중</h2><p class="muted">이 기능은 V1 운영본을 기준으로 다음 단계에서 안전하게 이전합니다.</p></div>
@@ -305,7 +358,8 @@ import {
   login, logout,
   listClasses, getClassDetail, saveClass, closeClass, deleteClass,
   listStudents, getStudentDetail, saveStudent, listArchivedStudents, restoreStudent,
-  listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord
+  listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord,
+  loadAttendance, saveAttendance, saveAttendanceHoliday, clearAttendanceHoliday
 } from '../src/api/api-client.js';
 
 let token=sessionStorage.getItem('v2SessionToken')||'';
@@ -314,6 +368,8 @@ let classRows=[];
 let studentRows=[];
 let archivedStudentRows=[];
 let dailyRecordRows=[];
+let attendanceLoadedRows=[];
+let attendanceHoliday=null;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2);
@@ -350,15 +406,17 @@ function updateHome(){
   $('homeAttentionBody').innerHTML='<tr><td colspan="4" class="dashboard-empty">출석·수업·진도 기능 이전 후 실제 확인 필요 학생을 자동 표시합니다.</td></tr>';
 }
 function switchPage(page){
-  const realPage=['home','class','student'].includes(page)?page:'coming';
+  const realPage=['home','class','student','attendance'].includes(page)?page:'coming';
   const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
   $('homePage').classList.toggle('hidden',realPage!=='home');
   $('classPage').classList.toggle('hidden',realPage!=='class');
   $('studentPage').classList.toggle('hidden',realPage!=='student');
+  $('attendancePage').classList.toggle('hidden',realPage!=='attendance');
   $('comingPage').classList.toggle('hidden',realPage!=='coming');
   document.querySelectorAll('.sidebar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   $('topbarPageTitle').textContent=titles[page]||'학생관리시스템 V2';
   if(page==='student'){fillStudentClassOptions();renderStudentList();}
+  if(page==='attendance'){fillAttendanceClassOptions();}
   if(page==='home')updateHome();
   if(realPage==='coming'){
     $('comingTitle').textContent=titles[page]||'준비 중';
@@ -646,6 +704,157 @@ async function deleteOneDailyRecord(id){
   }
 }
 
+
+function fillAttendanceClassOptions(){
+  if(!$('attendanceClassId'))return;
+  const active=classRows.filter(c=>String(c.status||'')==='운영중').slice().sort((a,b)=>String(a.className||'').localeCompare(String(b.className||''),'ko'));
+  const old=$('attendanceClassId').value;
+  $('attendanceClassId').innerHTML='<option value="">반 선택</option>'+active.map(c=>'<option value="'+esc(c.classId)+'">'+esc(c.className)+' ('+esc(c.classId)+')</option>').join('');
+  if(old&&active.some(c=>String(c.classId)===String(old)))$('attendanceClassId').value=old;
+  else if(active.length===1)$('attendanceClassId').value=active[0].classId;
+}
+function attendanceHolidayMemo(){
+  return $('attendanceHolidayReason').value==='직접 입력'
+    ? $('attendanceHolidayMemo').value.trim()
+    : $('attendanceHolidayReason').value;
+}
+function toggleAttendanceHolidayMemo(){
+  const direct=$('attendanceHolidayReason').value==='직접 입력';
+  $('attendanceHolidayMemoRow').classList.toggle('hidden',!direct);
+  if(!direct)$('attendanceHolidayMemo').value='';
+}
+function resetAttendanceForm(){
+  if(!$('attendanceDate'))return;
+  attendanceLoadedRows=[];
+  attendanceHoliday=null;
+  $('attendanceDate').value=todayYmd();
+  $('attendanceHolidayReason').value='학당 휴무';
+  $('attendanceHolidayMemo').value='';
+  toggleAttendanceHolidayMemo();
+  fillAttendanceClassOptions();
+  $('attendanceInputBox').className='empty-box';
+  $('attendanceInputBox').textContent='출석 대상 학생을 불러오면 여기에 표시됩니다.';
+  $('attendanceTopResult').className='empty-box';
+  $('attendanceTopResult').textContent='반과 날짜를 확인한 뒤 학생 불러오기를 눌러 주세요.';
+  $('saveAttendanceBtn').classList.add('hidden');
+  $('attendanceSaveResult').classList.add('hidden');
+}
+function attendanceSummaryHtml(rows){
+  const summary={present:0,late:0,absent:0,early:0};
+  (rows||[]).forEach(r=>{
+    if(r.status==='지각')summary.late++;
+    else if(r.status==='결석')summary.absent++;
+    else if(r.status==='조퇴')summary.early++;
+    else summary.present++;
+  });
+  return '<div class="attendance-summary">'+
+    '<span class="attendance-chip present">출석 '+summary.present+'</span>'+
+    '<span class="attendance-chip late">지각 '+summary.late+'</span>'+
+    '<span class="attendance-chip absent">결석 '+summary.absent+'</span>'+
+    '<span class="attendance-chip early">조퇴 '+summary.early+'</span>'+
+  '</div>';
+}
+function collectAttendanceRows(){
+  return [...document.querySelectorAll('#attendanceInputBox tbody tr[data-student-id]')].map(tr=>({
+    studentId:tr.dataset.studentId,
+    status:tr.querySelector('[data-att-status]').value,
+    memo:tr.querySelector('[data-att-memo]').value.trim()
+  }));
+}
+function refreshAttendanceSummaryFromInputs(){
+  const rows=collectAttendanceRows();
+  const box=$('attendanceLiveSummary');
+  if(box)box.innerHTML=attendanceSummaryHtml(rows);
+}
+function renderAttendanceLoaded(data){
+  attendanceHoliday=data.holiday||null;
+  attendanceLoadedRows=data.rows||[];
+  const className=(data.classInfo&&data.classInfo.className)||$('attendanceClassId').value;
+  if(attendanceHoliday){
+    $('attendanceInputBox').className='';
+    $('attendanceInputBox').innerHTML='<div class="attendance-holiday-view"><strong>'+esc(data.date)+' · '+esc(className)+'</strong><br>이 날짜는 휴무일입니다.<br>사유: '+esc(attendanceHoliday.memo||'학당 휴무')+'</div>';
+    $('attendanceTopResult').textContent='휴무일로 저장되어 있습니다. 출석을 입력하려면 먼저 휴무 해제를 눌러 주세요.';
+    $('saveAttendanceBtn').classList.add('hidden');
+    return;
+  }
+  if(!attendanceLoadedRows.length){
+    $('attendanceInputBox').className='empty-box';
+    $('attendanceInputBox').textContent='이 날짜에 출석 대상 학생이 없습니다.';
+    $('attendanceTopResult').textContent='출석 대상 학생 0명';
+    $('saveAttendanceBtn').classList.add('hidden');
+    return;
+  }
+  $('attendanceInputBox').className='';
+  $('attendanceInputBox').innerHTML=
+    '<div id="attendanceLiveSummary">'+attendanceSummaryHtml(attendanceLoadedRows)+'</div>'+
+    '<div class="table-wrap"><table class="basic-table"><thead><tr><th>학생</th><th>출결 상태</th><th>메모</th></tr></thead><tbody>'+
+    attendanceLoadedRows.map(r=>'<tr data-student-id="'+esc(r.studentId)+'">'+
+      '<td>'+esc(r.studentName||r.studentId)+'</td>'+
+      '<td><select class="attendance-status" data-att-status>'+
+        ['출석','지각','결석','조퇴'].map(v=>'<option value="'+v+'" '+(v===r.status?'selected':'')+'>'+v+'</option>').join('')+
+      '</select></td>'+
+      '<td><input type="text" data-att-memo value="'+esc(r.memo||'')+'" placeholder="선택 입력"></td>'+
+    '</tr>').join('')+
+    '</tbody></table></div>';
+  document.querySelectorAll('[data-att-status]').forEach(el=>el.onchange=refreshAttendanceSummaryFromInputs);
+  $('attendanceTopResult').textContent=(data.savedRows||[]).length?'저장된 출석을 불러왔습니다. 필요한 항목만 수정한 뒤 저장하세요.':'기본값은 모두 출석입니다. 필요한 학생만 변경한 뒤 저장하세요.';
+  $('saveAttendanceBtn').classList.remove('hidden');
+}
+async function loadAttendanceFromForm(){
+  const classId=$('attendanceClassId').value;
+  const date=$('attendanceDate').value;
+  if(!classId){$('attendanceTopResult').textContent='반을 선택해 주세요.';return}
+  if(!date){$('attendanceTopResult').textContent='날짜를 선택해 주세요.';return}
+  try{
+    const data=await loadAttendance(token,{classId,date});
+    renderAttendanceLoaded(data);
+  }catch(e){
+    $('attendanceTopResult').textContent='불러오기 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+async function saveAttendanceFromForm(){
+  const classId=$('attendanceClassId').value;
+  const date=$('attendanceDate').value;
+  const records=collectAttendanceRows();
+  if(!records.length){$('attendanceSaveResult').classList.remove('hidden');$('attendanceSaveResult').textContent='먼저 학생을 불러와 주세요.';return}
+  try{
+    const data=await saveAttendance(token,{classId,date,records});
+    $('attendanceSaveResult').classList.remove('hidden');
+    $('attendanceSaveResult').textContent='출석이 저장되었습니다. '+data.savedCount+'명';
+    await loadAttendanceFromForm();
+  }catch(e){
+    $('attendanceSaveResult').classList.remove('hidden');
+    $('attendanceSaveResult').textContent='저장 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+async function saveAttendanceHolidayFromForm(){
+  const classId=$('attendanceClassId').value;
+  const date=$('attendanceDate').value;
+  const memo=attendanceHolidayMemo();
+  if(!classId){$('attendanceTopResult').textContent='반을 선택해 주세요.';return}
+  if(!date){$('attendanceTopResult').textContent='날짜를 선택해 주세요.';return}
+  if(!memo){$('attendanceTopResult').textContent='휴무 사유를 입력해 주세요.';return}
+  if(!confirm('이 날짜를 휴무일로 저장할까요? 같은 날짜의 학생별 출석 기록은 휴무 처리로 대체됩니다.'))return;
+  try{
+    await saveAttendanceHoliday(token,{classId,date,memo});
+    await loadAttendanceFromForm();
+  }catch(e){
+    $('attendanceTopResult').textContent='휴무 저장 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+async function clearAttendanceHolidayFromForm(){
+  const classId=$('attendanceClassId').value;
+  const date=$('attendanceDate').value;
+  if(!classId||!date){$('attendanceTopResult').textContent='반과 날짜를 먼저 선택해 주세요.';return}
+  if(!confirm('이 날짜의 휴무 설정을 해제할까요?'))return;
+  try{
+    await clearAttendanceHoliday(token,{classId,date});
+    await loadAttendanceFromForm();
+  }catch(e){
+    $('attendanceTopResult').textContent='휴무 해제 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+
 async function loadArchivedStudents(){
   const options={
     classId:$('archivedStudentClassId').value,
@@ -724,6 +933,12 @@ $('navHomeBtn').onclick=()=>switchPage('home');
 $('navClassBtn').onclick=()=>switchPage('class');
 $('navStudentBtn').onclick=()=>switchPage('student');
 $('navAttendanceBtn').onclick=()=>switchPage('attendance');
+$('loadAttendanceBtn').onclick=loadAttendanceFromForm;
+$('saveAttendanceBtn').onclick=saveAttendanceFromForm;
+$('saveAttendanceHolidayBtn').onclick=saveAttendanceHolidayFromForm;
+$('clearAttendanceHolidayBtn').onclick=clearAttendanceHolidayFromForm;
+$('resetAttendanceBtn').onclick=resetAttendanceForm;
+$('attendanceHolidayReason').onchange=toggleAttendanceHolidayMemo;
 $('navScoreBtn').onclick=()=>switchPage('score');
 $('navLessonBtn').onclick=()=>switchPage('lesson');
 $('navReportBtn').onclick=()=>switchPage('report');
@@ -755,7 +970,7 @@ $('saveStudentBtn').onclick=async()=>{
   try{const r=await saveStudent(token,data);show('studentResult',data.studentId?'학생 정보가 수정되었습니다.':'학생이 등록되었습니다. ID: '+r.studentId);resetStudentForm();await refreshStudents();if(isArchivedStatus(data.status)){$('studentSectionArchived').classList.add('open');await loadArchivedStudents()}else{$('studentSectionList').classList.add('open')}}catch(e){show('studentResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}
 };
 
-resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();setLoggedIn(false);
+resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();resetAttendanceForm();setLoggedIn(false);
 </script>
 </body>
 </html>
