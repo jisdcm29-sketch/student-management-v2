@@ -8,7 +8,17 @@
     :root{--primary:#1f4b70;--secondary:#475569;--danger:#b42318;--border:#dbe3ee;--muted:#667085;--bg:#f4f7fb}
     *{box-sizing:border-box}
     body{font-family:Arial,"Noto Sans KR",sans-serif;margin:0;background:var(--bg);color:#1f2937}
-    main{max-width:1240px;margin:28px auto;padding:0 18px 32px}
+    main{max-width:1500px;margin:0 auto;padding:0}
+    .app-shell{min-height:100vh;display:grid;grid-template-columns:190px minmax(0,1fr)}
+    .sidebar{position:sticky;top:0;height:100vh;background:#143f63;color:#fff;padding:16px 10px;display:flex;flex-direction:column;gap:10px}
+    .sidebar-brand{padding:2px 2px 8px}.sidebar-brand strong{display:block;font-size:16px}.sidebar-brand span{font-size:11px;color:#d7e3ee}
+    .sidebar-user{padding:9px 10px;border-radius:8px;background:rgba(255,255,255,.08);font-size:12px;color:#e8f1f8}
+    .sidebar-nav{display:flex;flex-direction:column;gap:8px}.sidebar-nav button{width:100%;text-align:center;background:#53759b;color:#fff;padding:12px 8px;border-radius:8px}
+    .sidebar-nav button.active{background:#2f8d87}.sidebar-nav button[data-page="score"]{background:#735ba1}.sidebar-nav button[data-page="lesson"]{background:#5d8b61}.sidebar-nav button[data-page="report"]{background:#94704c}.sidebar-nav button[data-page="teacher"]{background:#955a8e}
+    .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px}.sidebar-bottom button{width:100%;background:#fff;color:#153f63}
+    .content-area{min-width:0;padding:14px 14px 30px;background:var(--bg)}
+    .page-panel{min-width:0}.page-title{text-align:center;margin-bottom:10px}.page-title h2{margin-bottom:4px}
+    .home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.home-stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px;text-align:center}.home-stat strong{display:block;font-size:30px;color:#153f63}.home-stat span{font-size:12px;color:#667085}
     .simple-page{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.04)}
     .simple-page+.simple-page{margin-top:16px}
     h1,h2,h3{margin:0 0 12px} p{margin:0}.muted{color:var(--muted);font-size:13px}.hidden{display:none!important}
@@ -22,8 +32,6 @@
     .btn-small{padding:5px 8px;font-size:12px;line-height:1.2;min-width:44px}
     .toolbar,.action-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
     .empty-box,.result-box{margin-top:14px;padding:11px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;color:#475467;font-size:14px}
-    .v2-auth-status{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:10px 14px;background:#fff;border:1px solid var(--border);border-radius:10px}
-    .main-nav{display:flex;gap:8px;margin-bottom:14px}.main-nav button{background:#e8eef5;color:#12385b}.main-nav button.active{background:var(--primary);color:#fff}
     .schedule-group{margin-bottom:8px;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa}
     .days{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.days label{display:flex;align-items:center;gap:4px;font-weight:400}.days input{width:auto}
     .time-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.time-row select{width:auto;min-width:120px}
@@ -47,7 +55,8 @@
     @media(max-width:900px){
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
       .student-card-top{grid-template-columns:1fr 1fr}.student-metrics{grid-template-columns:1fr 1fr}
-      main{padding:0 10px 24px}
+      main{padding:0}
+      .app-shell{display:block}.sidebar{position:sticky;top:0;z-index:20;height:auto;padding:8px;background:#143f63}.sidebar-brand,.sidebar-user{display:none}.sidebar-nav{display:flex;flex-direction:row;overflow-x:auto;gap:6px}.sidebar-nav button{min-width:90px;width:auto;padding:9px 10px}.sidebar-bottom{display:flex;flex-direction:row;margin-top:6px}.sidebar-bottom button{min-width:90px}.content-area{padding:10px}.home-stats{grid-template-columns:1fr 1fr}
     }
   </style>
 </head>
@@ -64,17 +73,39 @@
     <div id="loginResult" class="result-box">아직 로그인하지 않았습니다.</div>
   </section>
 
-  <div id="appArea" class="hidden">
-    <div class="v2-auth-status">
-      <strong id="authUserLabel">로그인됨</strong>
-      <button id="logoutBtn" class="btn-secondary btn-small">로그아웃</button>
-    </div>
-    <div class="main-nav">
-      <button id="navClassBtn" class="active" type="button">반 관리</button>
-      <button id="navStudentBtn" type="button">학생 관리</button>
-    </div>
+  <div id="appArea" class="hidden app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><strong>한국어학당</strong><span>학생 관리 시스템 V2</span></div>
+      <div class="sidebar-user" id="authUserLabel">로그인됨</div>
+      <nav class="sidebar-nav">
+        <button id="navHomeBtn" class="active" data-page="home" type="button">홈</button>
+        <button id="navClassBtn" data-page="class" type="button">반 관리</button>
+        <button id="navStudentBtn" data-page="student" type="button">학생 관리</button>
+        <button id="navAttendanceBtn" data-page="attendance" type="button">출석 관리</button>
+        <button id="navScoreBtn" data-page="score" type="button">성적 관리</button>
+        <button id="navLessonBtn" data-page="lesson" type="button">수업 내용</button>
+        <button id="navReportBtn" data-page="report" type="button">조회 / 출력</button>
+        <button id="navTeacherBtn" data-page="teacher" type="button">교사 업무 관리</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button id="refreshBtn" type="button">새로고침</button>
+        <button id="logoutBtn" type="button">로그아웃</button>
+      </div>
+    </aside>
+    <div class="content-area">
+      <div id="homePage" class="page-panel">
+        <section class="simple-page">
+          <div class="page-title"><h2>홈</h2><p class="muted">필요한 메뉴를 선택해 반과 학생 정보를 관리합니다.</p></div>
+          <div class="home-stats">
+            <div class="home-stat"><span>반 수</span><strong id="homeClassCount">0</strong><span>현재 등록된 반</span></div>
+            <div class="home-stat"><span>학생 수</span><strong id="homeStudentCount">0</strong><span>현재 목록 학생</span></div>
+            <div class="home-stat"><span>재학생 수</span><strong id="homeActiveStudentCount">0</strong><span>상태가 재학인 학생</span></div>
+            <div class="home-stat"><span>V2 상태</span><strong style="font-size:22px">정상</strong><span>교사별 데이터 연결</span></div>
+          </div>
+        </section>
+      </div>
 
-    <div id="classPage">
+      <div id="classPage" class="page-panel hidden">
       <section class="simple-page">
         <h2>반 관리</h2>
         <p>반 기본 정보와 요일 묶음별 시간표를 저장하고 바로 아래 목록에서 확인 및 수정할 수 있습니다.</p>
@@ -101,7 +132,7 @@
       <section class="simple-page"><h2>반 목록</h2><div id="classList"></div></section>
     </div>
 
-    <div id="studentPage" class="hidden">
+    <div id="studentPage" class="page-panel hidden">
       <section class="simple-page">
         <h2>학생 관리</h2>
         <p>학생 정보 입력, 학생 목록 확인을 기존 V1 화면 흐름에 맞춰 사용할 수 있습니다.</p>
@@ -146,6 +177,14 @@
         </div>
       </section>
     </div>
+
+      <div id="comingPage" class="page-panel hidden">
+        <section class="simple-page">
+          <div class="page-title"><h2 id="comingTitle">준비 중</h2><p class="muted">이 기능은 V1 운영본을 기준으로 다음 단계에서 안전하게 이전합니다.</p></div>
+          <div class="empty-box">현재 V2에서는 아직 활성화하지 않았습니다. 기존 V1 운영본에는 영향을 주지 않습니다.</div>
+        </section>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -166,13 +205,24 @@ const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(
 
 function setLoggedIn(on){$('loginCard').classList.toggle('hidden',on);$('appArea').classList.toggle('hidden',!on)}
 function updateAuthLabel(){$('authUserLabel').textContent=currentTeacher?(currentTeacher.displayName+' / '+currentTeacher.role):'로그인됨'}
+function updateHome(){
+  $('homeClassCount').textContent=String(classRows.filter(c=>c.status!=='종료').length);
+  $('homeStudentCount').textContent=String(studentRows.length);
+  $('homeActiveStudentCount').textContent=String(studentRows.filter(s=>String(s.status||'')==='재학').length);
+}
 function switchPage(page){
-  const isClass=page==='class';
-  $('classPage').classList.toggle('hidden',!isClass);
-  $('studentPage').classList.toggle('hidden',isClass);
-  $('navClassBtn').classList.toggle('active',isClass);
-  $('navStudentBtn').classList.toggle('active',!isClass);
-  if(!isClass){fillStudentClassOptions();renderStudentList();}
+  const realPage=['home','class','student'].includes(page)?page:'coming';
+  $('homePage').classList.toggle('hidden',realPage!=='home');
+  $('classPage').classList.toggle('hidden',realPage!=='class');
+  $('studentPage').classList.toggle('hidden',realPage!=='student');
+  $('comingPage').classList.toggle('hidden',realPage!=='coming');
+  document.querySelectorAll('.sidebar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  if(page==='student'){fillStudentClassOptions();renderStudentList();}
+  if(page==='home')updateHome();
+  if(realPage==='coming'){
+    const titles={attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
+    $('comingTitle').textContent=titles[page]||'준비 중';
+  }
 }
 function todayYmd(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function formatDate(v){return v?String(v).trim().split('T')[0].split(' ')[0]:''}
@@ -208,6 +258,7 @@ async function refreshClasses(){
   document.querySelectorAll('[data-close-class]').forEach(b=>b.onclick=()=>closeOne(b.dataset.closeClass));
   document.querySelectorAll('[data-delete-class]').forEach(b=>b.onclick=()=>deleteOne(b.dataset.deleteClass));
   fillStudentClassOptions();
+  updateHome();
 }
 async function editClass(id){
   try{const d=await getClassDetail(token,id),i=d.classInfo||{};$('classId').value=i.classId||'';$('className').value=i.className||'';$('teacherName').value=i.teacherName||'';$('schedule').value=i.schedule||'';$('classroom').value=i.classroom||'';$('status').value=i.status||'운영중';$('targetProgressCount').value=i.targetProgressCount||'';$('targetProgressUnit').value=i.targetProgressUnit||'';$('scheduleGroups').innerHTML='';
@@ -234,7 +285,7 @@ function resetStudentForm(){
   $('studentEnrollmentDate').value=todayYmd();$('studentScholarshipType').value='';$('studentStatus').value='재학';$('studentEditInfo').classList.add('hidden');toggleStopDate();
 }
 async function refreshStudents(){
-  const data=await listStudents(token,{currentOnly:true});studentRows=data.students||[];fillExistingStudentOptions();renderStudentList();
+  const data=await listStudents(token,{currentOnly:true});studentRows=data.students||[];fillExistingStudentOptions();renderStudentList();updateHome();
 }
 function filteredStudents(){
   let rows=studentRows.filter(s=>!isArchivedStatus(s.status));
@@ -256,9 +307,17 @@ async function editStudent(id){
   }catch(e){show('studentResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}
 }
 
-$('loginBtn').onclick=async()=>{try{const a=await login($('teacherId').value.trim(),$('password').value);token=a.sessionToken;currentTeacher=a.teacher;sessionStorage.setItem('v2SessionToken',token);updateAuthLabel();setLoggedIn(true);switchPage('class');resetClassForm();resetStudentForm();await refreshClasses();await refreshStudents();show('classResult','로그인 성공: '+a.teacher.displayName+' / '+a.teacher.role)}catch(e){show('loginResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}};
+$('loginBtn').onclick=async()=>{try{const a=await login($('teacherId').value.trim(),$('password').value);token=a.sessionToken;currentTeacher=a.teacher;sessionStorage.setItem('v2SessionToken',token);updateAuthLabel();setLoggedIn(true);switchPage('home');resetClassForm();resetStudentForm();await refreshClasses();await refreshStudents();show('classResult','로그인 성공: '+a.teacher.displayName+' / '+a.teacher.role)}catch(e){show('loginResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}};
 $('logoutBtn').onclick=async()=>{try{if(token)await logout(token)}catch(e){}token='';currentTeacher=null;classRows=[];studentRows=[];sessionStorage.removeItem('v2SessionToken');setLoggedIn(false);show('loginResult','로그아웃되었습니다.')};
-$('navClassBtn').onclick=()=>switchPage('class');$('navStudentBtn').onclick=()=>switchPage('student');
+$('navHomeBtn').onclick=()=>switchPage('home');
+$('navClassBtn').onclick=()=>switchPage('class');
+$('navStudentBtn').onclick=()=>switchPage('student');
+$('navAttendanceBtn').onclick=()=>switchPage('attendance');
+$('navScoreBtn').onclick=()=>switchPage('score');
+$('navLessonBtn').onclick=()=>switchPage('lesson');
+$('navReportBtn').onclick=()=>switchPage('report');
+$('navTeacherBtn').onclick=()=>switchPage('teacher');
+$('refreshBtn').onclick=async()=>{try{await refreshClasses();await refreshStudents();updateHome();switchPage('home')}catch(e){alert('새로고침 오류: '+e.message)}};
 $('addScheduleBtn').onclick=()=>addScheduleGroup();$('resetClassBtn').onclick=()=>{resetClassForm();show('classResult','입력값을 초기화했습니다.')};
 $('saveClassBtn').onclick=async()=>{const data={classId:$('classId').value.trim(),className:$('className').value.trim(),teacherName:$('teacherName').value.trim(),schedule:$('schedule').value,classroom:$('classroom').value.trim(),status:$('status').value,targetProgressCount:$('targetProgressCount').value,targetProgressUnit:$('targetProgressUnit').value,scheduleGroups:collectGroups()};if(!data.className){show('classResult','반 이름을 입력해 주세요.');return}try{const r=await saveClass(token,data);show('classResult',data.classId?'반이 수정되었습니다.':'반이 저장되었습니다. ID: '+r.classId);resetClassForm();await refreshClasses()}catch(e){show('classResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}};
 
