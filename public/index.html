@@ -7,37 +7,48 @@
   <style>
     :root{--primary:#1f4b70;--secondary:#475569;--danger:#b42318;--border:#dbe3ee;--muted:#667085;--bg:#f4f7fb}
     *{box-sizing:border-box}
-    body{font-family:Arial,"Noto Sans KR",sans-serif;margin:0;background:var(--bg);color:#1f2937}
+    body{font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif;margin:0;background:var(--bg);color:#1f2937;font-size:15px;line-height:1.5}
     main{width:100%;max-width:none;margin:0;padding:0}
-    .app-shell{min-height:100vh;display:grid;grid-template-columns:190px minmax(0,1fr)}
-    .sidebar{position:sticky;top:0;height:100vh;background:#143f63;color:#fff;padding:16px 10px 10px;display:flex;flex-direction:column;gap:10px}
-    .sidebar-brand{padding:2px 2px 8px}.sidebar-brand strong{display:block;font-size:16px}.sidebar-brand span{font-size:11px;color:#d7e3ee}
-    .sidebar-nav{display:flex;flex-direction:column;gap:8px}.sidebar-nav button{width:100%;text-align:center;background:#53759b;color:#fff;padding:12px 8px;border-radius:8px}
+    .app-shell{min-height:100vh;display:grid;grid-template-columns:220px minmax(0,1fr)}
+    .sidebar{position:sticky;top:0;height:100vh;background:#143f63;color:#fff;padding:18px 12px 12px;display:flex;flex-direction:column;gap:12px}
+    .sidebar-brand{padding:2px 2px 10px}.sidebar-brand strong{display:block;font-size:19px;line-height:1.3}.sidebar-brand span{font-size:13px;color:#d7e3ee}
+    .sidebar-nav{display:flex;flex-direction:column;gap:9px}.sidebar-nav button{width:100%;text-align:center;background:#53759b;color:#fff;padding:14px 10px;border-radius:9px;font-size:15px;min-height:50px}
     .sidebar-nav button.active{background:#2f8d87}.sidebar-nav button[data-page="score"]{background:#735ba1}.sidebar-nav button[data-page="lesson"]{background:#5d8b61}.sidebar-nav button[data-page="report"]{background:#94704c}.sidebar-nav button[data-page="teacher"]{background:#955a8e}
-    .content-area{min-width:0;width:100%;padding:0 12px 28px;background:var(--bg)}
-    .topbar{position:sticky;top:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;margin:0 -12px 12px;padding:8px 14px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(15,23,42,.05);backdrop-filter:blur(6px)}
+    .content-area{min-width:0;width:100%;padding:0 16px 32px;background:var(--bg)}
+    .topbar{position:sticky;top:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;margin:0 -16px 14px;padding:10px 18px;background:rgba(255,255,255,.98);border-bottom:1px solid var(--border);box-shadow:0 2px 9px rgba(15,23,42,.06);backdrop-filter:blur(6px)}
     .topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
-    .topbar-title{font-size:18px;font-weight:800;color:#153f63;white-space:nowrap}
-    .topbar-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-    .topbar-user{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc;color:#153f63;font-size:13px;font-weight:700;white-space:nowrap}
+    .topbar-title{font-size:21px;font-weight:800;color:#153f63;white-space:nowrap}
+    .topbar-right{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+    .topbar-user{display:flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid #d8e1eb;border-radius:9px;background:#f8fafc;color:#153f63;font-size:14px;font-weight:700;white-space:nowrap}
     .topbar-sep{color:#94a3b8;font-weight:400}
-    .topbar-action{background:#fff!important;color:#153f63!important;border:1px solid #cbd5e1!important;padding:7px 11px!important}
+    .topbar-action{background:#fff!important;color:#153f63!important;border:1px solid #cbd5e1!important;padding:8px 13px!important;font-size:14px!important;min-height:38px}
     .topbar-action:hover{background:#f1f5f9!important}
-    .page-panel{min-width:0}.page-title{text-align:center;margin-bottom:10px}.page-title h2{margin-bottom:4px}
-    .home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .home-stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 16px;text-align:center;min-height:98px}
-    .home-stat strong{display:block;font-size:28px;line-height:1.2;color:#153f63;margin:5px 0}.home-stat span{font-size:12px;color:#667085}
-    .dashboard-intro{margin-bottom:10px;color:#475569;font-size:14px}
-    .dashboard-section{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:10px}
-    .dashboard-section h3{margin:0 0 4px;text-align:left}
-    .dashboard-section .section-note{font-size:12px;color:#667085;margin-bottom:12px}
+    .topbar-action.is-loading{cursor:wait;opacity:.72}
+    .refresh-status{font-size:12px;color:#5f7082;min-width:92px;text-align:right}
+    .refresh-status.ok{color:#32765a;font-weight:700}
+    .refresh-status.error{color:#b42318;font-weight:700}
+    .refresh-spinner{display:inline-block;width:12px;height:12px;margin-right:6px;border:2px solid #a9b9c9;border-top-color:#153f63;border-radius:50%;vertical-align:-2px;animation:refreshSpin .7s linear infinite}
+    @keyframes refreshSpin{to{transform:rotate(360deg)}}
+    .page-panel{min-width:0}.page-title{text-align:center;margin-bottom:12px}.page-title h2{margin-bottom:5px}
+    .home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .home-stat{position:relative;background:#fff;border:1px solid #d9e3ee;border-radius:18px;padding:20px 18px;text-align:center;min-height:116px;box-shadow:0 1px 6px rgba(15,23,42,.045)}
+    .home-stat::before{content:"";position:absolute;left:18px;right:18px;top:0;height:3px;border-radius:0 0 8px 8px;background:#6281a5}
+    .home-stat:nth-child(2)::before{background:#5d9b8f}.home-stat:nth-child(3)::before{background:#8a78b8}.home-stat:nth-child(4)::before{background:#aa8260}
+    .home-stat strong{display:block;font-size:31px;line-height:1.15;color:#153f63;margin:8px 0 6px;font-weight:800}
+    .home-stat span:first-child{font-size:15px;color:#243b53;font-weight:800}
+    .home-stat span:last-child{font-size:12px;color:#6b7787}
+    .dashboard-intro{margin-bottom:14px;color:#334e68;font-size:16px;font-weight:600}
+    .dashboard-section{background:#fff;border:1px solid #d9e3ee;border-radius:17px;padding:17px 18px;margin-top:14px;box-shadow:0 1px 6px rgba(15,23,42,.04)}
+    .dashboard-section h3{margin:0 0 5px;text-align:left;font-size:19px;color:#153f63}
+    .dashboard-section .section-note{font-size:13px;color:#667085;margin-bottom:14px}
     .dashboard-table{width:100%;border-collapse:collapse}
-    .dashboard-table th,.dashboard-table td{padding:9px 10px;border:1px solid #dbe3ee;font-size:13px;text-align:left;vertical-align:middle}
-    .dashboard-table th{background:#eef4fb;color:#153f63;font-weight:700}
-    .dashboard-empty{text-align:center!important;color:#64748b;padding:20px!important}
-    .simple-page{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.04)}
+    .dashboard-table th,.dashboard-table td{padding:11px 12px;border:1px solid #dbe3ee;font-size:14px;text-align:left;vertical-align:middle}
+    .dashboard-table th{background:#edf4fb;color:#153f63;font-weight:800}
+    .dashboard-table td{color:#263746}
+    .dashboard-empty{text-align:center!important;color:#64748b;padding:22px!important}
+    .simple-page{background:#fff;border:1px solid #d9e3ee;border-radius:16px;padding:24px 26px;box-shadow:0 2px 10px rgba(15,23,42,.045)}
     .simple-page+.simple-page{margin-top:16px}
-    h1,h2,h3{margin:0 0 12px} p{margin:0}.muted{color:var(--muted);font-size:13px}.hidden{display:none!important}
+    h1,h2,h3{margin:0 0 12px} h2{font-size:24px} h3{font-size:18px} p{margin:0}.muted{color:var(--muted);font-size:14px}.hidden{display:none!important}
     .auth-page{max-width:900px;margin:70px auto 0}
     .login-screen-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;position:relative;overflow:hidden;background:linear-gradient(145deg,#f5f8fc 0%,#edf3f9 45%,#e7eef7 100%)}
     .login-screen-wrap::before,.login-screen-wrap::after{content:"";position:absolute;border-radius:999px;filter:blur(2px);pointer-events:none}
@@ -77,9 +88,9 @@
     @media(max-width:640px){.login-screen-wrap{padding:16px}.login-card-v2{border-radius:20px;padding:28px 22px 24px}.login-card-v2 h1{font-size:28px}.login-subtitle-v2{font-size:15px}.login-btn-v2{width:100%}}
     .auth-grid,.student-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px}
     .form-row{display:flex;flex-direction:column;gap:8px;min-width:0}.form-row-full{grid-column:1/-1}.form-row label{font-weight:600}
-    input,select,textarea{width:100%;min-width:0;padding:10px 11px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font:inherit}
+    input,select,textarea{width:100%;min-width:0;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font:inherit;font-size:15px}
     textarea{resize:vertical}
-    button{border:0;border-radius:7px;padding:9px 13px;font-weight:700;cursor:pointer}
+    button{border:0;border-radius:8px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer}
     .btn-primary{background:var(--primary);color:#fff}.btn-secondary{background:var(--secondary);color:#fff}.btn-danger{background:var(--danger);color:#fff}
     .btn-small{padding:5px 8px;font-size:12px;line-height:1.2;min-width:44px}
     .toolbar,.action-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
@@ -143,6 +154,7 @@
     @media(max-width:720px){.qr-display-overlay{padding:12px}.qr-display-top{top:10px;left:12px;right:12px}.qr-display-close{padding:8px 10px}.qr-display-code img,.qr-display-code canvas{max-width:86vmin!important;max-height:86vmin!important}}
     @media(max-width:720px){.attendance-qr-grid{grid-template-columns:1fr}.attendance-qr-session-layout{align-items:flex-start}}
     @media(max-width:900px){
+      body{font-size:14px}
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
       .student-card-top{grid-template-columns:1fr 1fr}.student-metrics{grid-template-columns:1fr 1fr}.archived-summary{grid-template-columns:1fr 1fr}
       main{padding:0}
@@ -219,6 +231,7 @@
         </div>
         <div class="topbar-right">
           <div class="topbar-user"><span id="topbarUserName">사용자</span><span class="topbar-sep">·</span><span id="topbarUserRole">권한</span></div>
+          <span id="refreshStatus" class="refresh-status" aria-live="polite"></span>
           <button id="refreshBtn" class="topbar-action" type="button">새로고침</button>
           <button id="logoutBtn" class="topbar-action" type="button">로그아웃</button>
         </div>
@@ -1329,7 +1342,36 @@ $('navScoreBtn').onclick=()=>switchPage('score');
 $('navLessonBtn').onclick=()=>switchPage('lesson');
 $('navReportBtn').onclick=()=>switchPage('report');
 $('navTeacherBtn').onclick=()=>switchPage('teacher');
-$('refreshBtn').onclick=async()=>{try{await refreshClasses();await refreshStudents();updateHome();switchPage('home')}catch(e){alert('새로고침 오류: '+e.message)}};
+$('refreshBtn').onclick=async()=>{
+  const btn=$('refreshBtn');
+  const status=$('refreshStatus');
+  if(btn.disabled)return;
+  const activeBtn=document.querySelector('.sidebar-nav button.active');
+  const currentPage=activeBtn&&activeBtn.dataset.page?activeBtn.dataset.page:'home';
+  btn.disabled=true;
+  btn.classList.add('is-loading');
+  btn.innerHTML='<span class="refresh-spinner"></span>새로고침 중';
+  status.className='refresh-status';
+  status.textContent='데이터 확인 중...';
+  try{
+    await refreshClasses();
+    await refreshStudents();
+    updateHome();
+    if(currentPage==='student'){fillStudentClassOptions();renderStudentList()}
+    if(currentPage==='attendance'){fillAttendanceClassOptions()}
+    status.className='refresh-status ok';
+    status.textContent='최신 상태 반영';
+    setTimeout(()=>{if(status.textContent==='최신 상태 반영')status.textContent=''},2200);
+  }catch(e){
+    status.className='refresh-status error';
+    status.textContent='새로고침 실패';
+    alert('새로고침 오류: '+e.message);
+  }finally{
+    btn.disabled=false;
+    btn.classList.remove('is-loading');
+    btn.textContent='새로고침';
+  }
+};
 $('addScheduleBtn').onclick=()=>addScheduleGroup();$('resetClassBtn').onclick=()=>{resetClassForm();show('classResult','입력값을 초기화했습니다.')};
 $('saveClassBtn').onclick=async()=>{const data={classId:$('classId').value.trim(),className:$('className').value.trim(),teacherName:$('teacherName').value.trim(),schedule:$('schedule').value,classroom:$('classroom').value.trim(),status:$('status').value,targetProgressCount:$('targetProgressCount').value,targetProgressUnit:$('targetProgressUnit').value,scheduleGroups:collectGroups()};if(!data.className){show('classResult','반 이름을 입력해 주세요.');return}try{const r=await saveClass(token,data);show('classResult',data.classId?'반이 수정되었습니다.':'반이 저장되었습니다. ID: '+r.classId);resetClassForm();if(Array.isArray(r.classes)){classRows=r.classes;renderClassList()}else{await refreshClasses()}}catch(e){show('classResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}};
 
