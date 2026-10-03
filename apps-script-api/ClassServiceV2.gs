@@ -118,3 +118,123 @@ function summarizeScheduleGroupsV2_(groups) {
   };
 }
 
+function replaceClassSchedulesV2_(ss, classId, groups, now) {
+  const sheet = getRequiredDataSheetV2_(ss, 'ClassSchedules');
+  deleteRowsMatchingV2_(sheet, function(row) { return String(row.classId || '') === String(classId || ''); });
+
+  const clean = summarizeScheduleGroupsV2_(groups).groups;
+  clean.forEach(function(group) {
+    group.days.forEach(function(day) {
+      appendObjectRowV2_(sheet, {
+        scheduleId: makeNextPrefixedIdV2_(sheet, 'scheduleId', 'SCH-', 3),
+        classId: classId,
+        dayOfWeek: day,
+        startTime: group.startTime,
+        endTime: group.endTime,
+        createdAt: now
+      });
+    });
+  });
+}
+
+function listClassesV2_(auth, options) {
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  const classes = readSheetObjects_(ss, 'Classes');
+  const schedules = readSheetObjects_(ss, 'ClassSchedules');
+  const includeClosed = !options || options.includeClosed !== false;
+  const rows = classes.filter(function(row) {
+    return includeClosed || normalizeClassStatusV2_(row.status) !== '종료';
+  }).map(function(row) {
+    const classId = String(row.classId || '');
+    return Object.assign({}, row, {
+      status: normalizeClassStatusV2_(row.status),
+      schedules: schedules.filter(function(s) { return String(s.classId || '') === classId; })
+    });
+  });
+  rows.sort(function(a, b) { return String(a.className || '').localeCompare(String(b.className || ''), 'ko'); });
+  return { classes: rows };
+}
+
+function getClassV2_(auth, classId) {
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  const classes = readSheetObjects_(ss, 'Classes');
+  const info = classes.find(function(row) { return String(row.classId || '') === String(classId || ''); });
+  if (!info) {
+    const error = new Error('반 정보를 찾을 수 없습니다.');
+    error.code = 'CLASS_NOT_FOUND';
+    throw error;
+  }
+  const schedules = readSheetObjects_(ss, 'ClassSchedules').filter(function(row) {
+    return String(row.classId || '') === String(classId || '');
+  });
+  info.status = normalizeClassStatusV2_(info.status);
+  return { classInfo: info, schedules: schedules };
+}
+
+function saveClassV2_(auth, payload) {
+  payload = payload || {};
+  const className = String(payload.className || '').trim();
+  if (!className) {
+    const error = new Error('반 이름을 입력해 주세요.');
+    error.code = 'VALIDATION_ERROR';
+    throw error;
+  }
+
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  const classSheet = getRequiredDataSheetV2_(ss, 'Classes');
+  const now = new Date();
+  let classId = String(payload.classId || '').trim();
+  let rowNumber = classId ? findDataRowByIdV2_(classSheet, 'classId', classId) : -1;
+  const summary = summarizeScheduleGroupsV2_(payload.scheduleGroups || []);
+
+  let teacherName = String(payload.teacherName || '').trim();
+  if (String(auth.teacher.role || '').toUpperCase() !== 'SUPER_ADMIN') teacherName = String(auth.teacher.displayName || '').trim();
+  if (!teacherName) teacherName = String(auth.teacher.displayName || '').trim();
+
+  if (classId && rowNumber < 2) {
+    const error = new Error('수정할 반을 찾을 수 없습니다.');
+    error.code = 'CLASS_NOT_FOUND';
+    throw error;
+  }
+
+  if (!classId) classId = makeNextPrefixedIdV2_(classSheet, 'classId', 'C-', 3);
+
+  const obj = {
+    classId: classId,
+    className: className,
+    teacherName: teacherName,
+    days: summary.days,
+    startTime: summary.startTime,
+    endTime: summary.endTime,
+    schedule: String(payload.schedule || '').trim(),
+    classroom: String(payload.classroom || '').trim(),
+    status: normalizeClassStatusV2_(payload.status || '운영중'),
+    targetProgressCount: Number(payload.targetProgressCount || 0),
+    targetProgressUnit: String(payload.targetProgressUnit || '').trim(),
+    createdAt: now
+  };
+
+  if (rowNumber >= 2) writeObjectToRowV2_(classSheet, rowNumber, obj);
+  else appendObjectRowV2_(classSheet, obj);
+
+  replaceClassSchedulesV2_(ss, classId, summary.groups, now);
+  SpreadsheetApp.flush();
+  appendAuditLog_(auth.teacher.teacherId, 'CLASS_SAVE', 'Class', classId, 'SUCCESS', rowNumber >= 2 ? 'updated' : 'created');
+
+  return { classId: classId, teacherName: teacherName, classInfo: obj };
+}
+
+function closeClassV2_(auth, classId) {
+  const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  const sheet = getRequiredDataSheetV2_(ss, 'Classes');
+  const row = findDataRowByIdV2_(sheet, 'classId', classId);
+  if (row < 2) {
+    const error = new Error('폐강할 반을 찾을 수 없습니다.');
+    error.code = 'CLASS_NOT_FOUND';
+    throw error;
+  }
+  writeObjectToRowV2_(sheet, row, { status: '종료', createdAt: new Date() });
+  SpreadsheetApp.flush();
+  appendAuditLog_(auth.teacher.teacherId, 'CLASS_CLOSE', 'Class', classId, 'SUCCESS', '');
+  return { classId: classId, status: '종료' };
+}
