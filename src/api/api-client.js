@@ -40,3 +40,6 @@ export const deleteClass = (sessionToken, classId) => callApi('classes.delete', 
 export const listStudents = (sessionToken, options = {}) => callApi('students.list', { sessionToken, options });
 export const getStudentDetail = (sessionToken, studentId) => callApi('students.get', { sessionToken, studentId });
 export const saveStudent = (sessionToken, studentData) => callApi('students.save', { sessionToken, studentData });
+
+export const listArchivedStudents = (sessionToken, options = {}) => callApi('students.archived.list', { sessionToken, options });
+export const restoreStudent = (sessionToken, studentId) => callApi('students.restore', { sessionToken, studentId });
