@@ -47,6 +47,9 @@ function doPost(e) {
     if (action === 'classes.save') return okResponse_(requestId, saveClassV2_(auth, body.classData || {}));
     if (action === 'classes.close') return okResponse_(requestId, closeClassV2_(auth, body.classId));
     if (action === 'classes.delete') return okResponse_(requestId, deleteClassV2_(auth, body.classId));
+    if (action === 'students.list') return okResponse_(requestId, listStudentsV2_(auth, body.options || {}));
+    if (action === 'students.get') return okResponse_(requestId, getStudentV2_(auth, body.studentId));
+    if (action === 'students.save') return okResponse_(requestId, saveStudentV2_(auth, body.studentData || {}));
 
     return errorResponse_(requestId, 'NOT_FOUND', '지원하지 않는 API action입니다.');
   } catch (err) {
