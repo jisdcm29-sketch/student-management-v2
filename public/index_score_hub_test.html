@@ -528,8 +528,12 @@
         </section>
 
         <section id="scoreHubSnuPanel" class="simple-page hidden">
-          <div class="score-section-title"><h3>서울대 교재 과별 시험</h3><span>현재 진도와 함께 최근 시험 결과를 확인합니다.</span></div>
-          <div id="scoreHubSnuTable"></div>
+          <div class="score-section-title"><h3>서울대 교재 과별 누적 통과 현황</h3><span>다음 과 개방 기준: 어휘·문법·종합 각각 누적 최고점 90점 이상</span></div>
+          <div id="scoreHubSnuMasteryTable"></div>
+          <details style="margin-top:16px">
+            <summary style="cursor:pointer;font-weight:800;color:#35516b">일별 응시 기록 보기</summary>
+            <div id="scoreHubSnuTable" style="margin-top:12px"></div>
+          </details>
         </section>
 
         <section id="scoreHubReviewPanel" class="simple-page hidden">
@@ -745,8 +749,30 @@ function renderScoreHub(data){
   ];
   $('scoreHubCardGrid').innerHTML=cards.join('');
 
+  let masteryRows=data.snu?.mastery||[];
+  if(!masteryRows.length){
+    const m={};
+    (data.snu?.rows||[]).forEach(r=>{
+      const type=String(r.testType||'');
+      if(!['vocab','grammar','mixed'].includes(type))return;
+      const key=String(r.book||'')+'|'+String(r.lesson||'');
+      if(!m[key])m[key]={book:r.book||'',lesson:r.lesson||'',vocab:{bestScore:null,attempts:0},grammar:{bestScore:null,attempts:0},mixed:{bestScore:null,attempts:0}};
+      const item=m[key][type],score=Number(r.bestScore),attempts=Number(r.attemptsToday||0);
+      if(Number.isFinite(score)&&(item.bestScore===null||score>item.bestScore))item.bestScore=score;
+      if(Number.isFinite(attempts))item.attempts+=attempts;
+    });
+    masteryRows=Object.values(m).map(r=>{
+      r.totalAttempts=r.vocab.attempts+r.grammar.attempts+r.mixed.attempts;
+      r.status=['vocab','grammar','mixed'].every(t=>Number(r[t].bestScore)>=90)?'PASS':'RETRY';
+      return r;
+    }).sort((a,b)=>String(a.book).localeCompare(String(b.book))||Number(a.lesson)-Number(b.lesson));
+  }
+  $('scoreHubSnuMasteryTable').innerHTML=masteryRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>교재</th><th>과</th><th>어휘 최고</th><th>문법 최고</th><th>종합 최고</th><th>총 응시</th><th>누적 상태</th></tr></thead><tbody>'+
+    masteryRows.map(r=>'<tr><td>'+esc(r.book||'')+'</td><td>'+esc(r.lesson||'')+'</td><td><strong>'+esc(scoreFmt(r.vocab?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.vocab?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.grammar?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.grammar?.attempts||0))+'회)</span></td><td><strong>'+esc(scoreFmt(r.mixed?.bestScore))+'</strong> <span class="muted">('+esc(scoreFmt(r.mixed?.attempts||0))+'회)</span></td><td>'+esc(scoreFmt(r.totalAttempts||0))+'회</td><td>'+scoreStatusPill(r.status)+'</td></tr>').join('')+
+    '</tbody></table></div>':'<div class="score-empty">서울대 누적 통과 기록이 없습니다.</div>';
+
   const snuRows=(data.snu?.rows||[]).slice().reverse();
-  $('scoreHubSnuTable').innerHTML=snuRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>날짜</th><th>교재</th><th>과</th><th>시험</th><th>최고점</th><th>응시</th><th>정답</th><th>상태</th></tr></thead><tbody>'+
+  $('scoreHubSnuTable').innerHTML=snuRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>날짜</th><th>교재</th><th>과</th><th>시험</th><th>당일 최고점</th><th>당일 응시</th><th>정답</th><th>당일 상태</th></tr></thead><tbody>'+
     snuRows.map(r=>'<tr><td>'+esc(r.date||'')+'</td><td>'+esc(r.book||'')+'</td><td>'+esc(r.lesson||'')+'</td><td>'+esc(scoreTestLabel(r.testType))+'</td><td><strong>'+esc(scoreFmt(r.bestScore))+'</strong></td><td>'+esc(scoreFmt(r.attemptsToday))+'</td><td>'+esc(scoreFmt(r.bestCorrect))+'/'+esc(scoreFmt(r.total))+'</td><td>'+scoreStatusPill(r.status)+'</td></tr>').join('')+
     '</tbody></table></div>':'<div class="score-empty">서울대 단원 시험 기록이 없습니다.</div>';
 
