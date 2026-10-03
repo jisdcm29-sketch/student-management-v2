@@ -13,17 +13,15 @@ function scoreHubNumberV2_(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-function scoreHubRowsByPhoneV2_(spreadsheetId, sheetName, phoneHeaders, phone) {
+function scoreHubRowsByPhoneFromSpreadsheetV2_(ss, sheetName, phoneHeaders, phone) {
   const targetPhone = scoreHubPhoneV2_(phone);
   if (!targetPhone) return [];
 
-  const ss = SpreadsheetApp.openById(spreadsheetId);
   const sheet = ss.getSheetByName(sheetName);
-  if (!sheet || sheet.getLastRow() < 2) return [];
+  if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 1) return [];
 
-  const lastColumn = sheet.getLastColumn();
-  const headers = sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0]
-    .map(function(v) { return String(v || '').trim(); });
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getDisplayValues();
+  const headers = values[0].map(function(v) { return String(v || '').trim(); });
 
   let phoneIndex = -1;
   for (let i = 0; i < phoneHeaders.length; i++) {
@@ -31,22 +29,30 @@ function scoreHubRowsByPhoneV2_(spreadsheetId, sheetName, phoneHeaders, phone) {
     if (phoneIndex >= 0) break;
   }
   if (phoneIndex < 0) {
-    throw new Error(sheetName + ' 전화번호 열을 찾을 수 없습니다.');
+    const error = new Error(sheetName + ' 전화번호 열을 찾을 수 없습니다.');
+    error.code = 'SCORE_SOURCE_PHONE_HEADER_NOT_FOUND';
+    throw error;
   }
 
-  const cells = sheet.getRange(2, phoneIndex + 1, sheet.getLastRow() - 1, 1)
-    .createTextFinder(targetPhone)
-    .matchEntireCell(true)
-    .findAll();
-
-  return cells.map(function(cell) {
-    const values = sheet.getRange(cell.getRow(), 1, 1, lastColumn).getDisplayValues()[0];
+  const rows = [];
+  for (let r = 1; r < values.length; r++) {
+    if (scoreHubPhoneV2_(values[r][phoneIndex]) !== targetPhone) continue;
     const row = {};
     headers.forEach(function(header, index) {
-      if (header) row[header] = values[index];
+      if (header) row[header] = values[r][index];
     });
-    return row;
-  });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function scoreHubRowsByPhoneV2_(spreadsheetId, sheetName, phoneHeaders, phone) {
+  return scoreHubRowsByPhoneFromSpreadsheetV2_(
+    SpreadsheetApp.openById(spreadsheetId),
+    sheetName,
+    phoneHeaders,
+    phone
+  );
 }
 
 function scoreHubStudentV2_(auth, studentId) {
@@ -93,6 +99,45 @@ function scoreHubTestResultSummaryV2_(rows) {
   return base;
 }
 
+function scoreHubBuildSnuMasteryV2_(rows) {
+  const byLesson = {};
+  rows.forEach(function(row) {
+    const book = String(row.book || '').trim();
+    const lesson = String(row.lesson || '').trim();
+    const type = String(row.testType || '').trim();
+    if (!book || !lesson || ['vocab','grammar','mixed'].indexOf(type) < 0) return;
+    const key = book + '|' + lesson;
+    if (!byLesson[key]) {
+      byLesson[key] = {
+        book: book,
+        lesson: lesson,
+        vocab: { bestScore:null, attempts:0 },
+        grammar: { bestScore:null, attempts:0 },
+        mixed: { bestScore:null, attempts:0 }
+      };
+    }
+    const item = byLesson[key][type];
+    const score = scoreHubNumberV2_(row.bestScore);
+    const attempts = scoreHubNumberV2_(row.attemptsToday) || 0;
+    item.attempts += attempts;
+    if (score !== null && (item.bestScore === null || score > item.bestScore)) item.bestScore = score;
+  });
+
+  return Object.keys(byLesson).map(function(key) {
+    const item = byLesson[key];
+    item.passed = ['vocab','grammar','mixed'].every(function(type) {
+      return item[type].bestScore !== null && Number(item[type].bestScore) >= 90;
+    });
+    item.status = item.passed ? 'PASS' : 'RETRY';
+    item.totalAttempts = item.vocab.attempts + item.grammar.attempts + item.mixed.attempts;
+    return item;
+  }).sort(function(a,b) {
+    const bookCmp = String(a.book).localeCompare(String(b.book));
+    if (bookCmp !== 0) return bookCmp;
+    return Number(a.lesson || 0) - Number(b.lesson || 0);
+  });
+}
+
 function getScoreHubSourcesV2_(auth) {
   return {
     version: 'phase1-20261003',
@@ -119,8 +164,11 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
     throw error;
   }
 
-  const tests = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, 'TestResults', ['phone'], student.phone
+  const mobileSs = SpreadsheetApp.openById(SCORE_HUB_SOURCE_V2_.MOBILE_ID);
+  const topik1ReadingSs = SpreadsheetApp.openById(SCORE_HUB_SOURCE_V2_.TOPIK1_READING_ID);
+
+  const tests = scoreHubRowsByPhoneFromSpreadsheetV2_(
+    mobileSs, 'TestResults', ['phone'], student.phone
   );
   const snuRows = tests.filter(function(row) {
     return /^SNU-/.test(String(row.book || '')) &&
@@ -145,22 +193,22 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
       String(row.testType || '') === 'grammar';
   });
 
-  const wbReading = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, '워크북읽기평가', ['전화번호'], student.phone
+  const wbReading = scoreHubRowsByPhoneFromSpreadsheetV2_(
+    mobileSs, '워크북읽기평가', ['전화번호'], student.phone
   );
-  const wbListeningAll = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, '워크북듣기평가', ['전화번호'], student.phone
+  const wbListeningAll = scoreHubRowsByPhoneFromSpreadsheetV2_(
+    mobileSs, '워크북듣기평가', ['전화번호'], student.phone
   );
   const wbListening = wbListeningAll.filter(function(row) {
     return String(row['상태'] || '') === 'SUBMITTED';
   });
 
-  const topik1Reading = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.TOPIK1_READING_ID, 'All_Results', ['student_phone'], student.phone
+  const topik1Reading = scoreHubRowsByPhoneFromSpreadsheetV2_(
+    topik1ReadingSs, 'All_Results', ['student_phone'], student.phone
   );
 
-  const progressRows = scoreHubRowsByPhoneV2_(
-    SCORE_HUB_SOURCE_V2_.MOBILE_ID, '진도현황', ['전화번호'], student.phone
+  const progressRows = scoreHubRowsByPhoneFromSpreadsheetV2_(
+    mobileSs, '진도현황', ['전화번호'], student.phone
   );
   const progress = progressRows.length ? progressRows[0] : null;
 
@@ -221,7 +269,8 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
         summary:scoreHubTestResultSummaryV2_(snuMixedRows),
         rows:snuMixedRows.slice(-30)
       },
-      rows:snuRows.slice(-60)
+      rows:snuRows.slice(-60),
+      mastery:scoreHubBuildSnuMasteryV2_(snuRows)
     },
     workbookReading:{
       summary:scoreHubLatestScoreV2_(wbReading, '점수(100)'),
