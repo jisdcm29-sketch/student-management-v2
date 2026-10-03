@@ -103,6 +103,10 @@ function loadAttendanceV2_(auth, options) {
     throw error;
   }
 
+  if (typeof finalizeEndedQrAttendanceForClassV2_ === 'function') {
+    finalizeEndedQrAttendanceForClassV2_(auth, classId, date);
+  }
+
   const students = getAttendanceTargetStudentsV2_(ss, classId, date);
   const savedRows = getAttendanceRowsV2_(ss, classId, date);
   const holidayRow = savedRows.find(function(row) {
