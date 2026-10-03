@@ -83,6 +83,18 @@
     .attendance-chip.early{background:#eef4ff;color:#24558f;border-color:#ccd9ef}
     .attendance-status{min-width:100px}
     .attendance-holiday-view{padding:14px;border:1px solid #d0d5dd;border-radius:10px;background:#f8fafc;line-height:1.6}
+    .attendance-qr-details{margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;background:#fbfdff;overflow:hidden}
+    .attendance-qr-details>summary{cursor:pointer;list-style:none;padding:13px 15px;font-weight:800;color:#153f63;display:flex;justify-content:space-between;align-items:center}
+    .attendance-qr-details>summary::-webkit-details-marker{display:none}
+    .attendance-qr-details>summary::after{content:'⌄';font-size:14px}
+    .attendance-qr-details[open]>summary::after{content:'⌃'}
+    .attendance-qr-body{padding:0 15px 15px;border-top:1px solid #e7edf5}
+    .attendance-qr-grid{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:10px 14px;margin-top:12px}
+    .attendance-qr-preview{margin-top:10px;padding:11px 12px;border:1px solid #dbe3ee;border-radius:10px;background:#fff;line-height:1.55}
+    .attendance-qr-session{margin-top:10px;padding:12px;border:1px solid #cbdbea;border-radius:12px;background:#fff}
+    .attendance-qr-session-layout{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .attendance-qr-image{background:#fff;padding:8px;border:1px solid #dbe5ef;border-radius:10px;min-width:180px;min-height:180px}
+    @media(max-width:720px){.attendance-qr-grid{grid-template-columns:1fr}.attendance-qr-session-layout{align-items:flex-start}}
     @media(max-width:900px){
       .auth-grid,.student-form-grid{grid-template-columns:1fr}.form-row-full{grid-column:auto}
       .student-card-top{grid-template-columns:1fr 1fr}.student-metrics{grid-template-columns:1fr 1fr}.archived-summary{grid-template-columns:1fr 1fr}
@@ -332,6 +344,23 @@
             <button id="resetAttendanceBtn" class="btn-secondary" type="button">입력 초기화</button>
           </div>
           <div id="attendanceTopResult" class="empty-box">반과 날짜를 확인한 뒤 학생 불러오기를 눌러 주세요.</div>
+
+          <details id="attendanceQrDetails" class="attendance-qr-details">
+            <summary>QR 출석</summary>
+            <div class="attendance-qr-body">
+              <div class="muted" style="margin-top:10px">현재 선택한 반과 날짜를 그대로 사용합니다. 등록된 수업시간을 자동으로 불러오고 필요할 때만 수정할 수 있습니다.</div>
+              <div class="attendance-qr-grid">
+                <div class="form-row"><label>수업 시작</label><input type="time" id="attendanceQrStartTime" step="1800"></div>
+                <div class="form-row"><label>수업 종료</label><input type="time" id="attendanceQrEndTime" step="1800"></div>
+              </div>
+              <div id="attendanceQrRulePreview" class="attendance-qr-preview">QR 영역을 열면 등록된 시간표와 현재 세션을 확인합니다.</div>
+              <div class="action-row">
+                <button id="prepareQrAttendanceBtn" class="btn-primary" type="button">QR 세션 준비</button>
+                <button id="closeQrAttendanceBtn" class="btn-secondary" type="button">QR 세션 닫기</button>
+              </div>
+              <div id="attendanceQrSessionBox" class="hidden"></div>
+            </div>
+          </details>
         </section>
 
         <section class="simple-page" style="margin-top:10px">
@@ -359,7 +388,8 @@ import {
   listClasses, getClassDetail, saveClass, closeClass, deleteClass,
   listStudents, getStudentDetail, saveStudent, listArchivedStudents, restoreStudent,
   listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord,
-  loadAttendance, saveAttendance, saveAttendanceHoliday, clearAttendanceHoliday
+  loadAttendance, saveAttendance, saveAttendanceHoliday, clearAttendanceHoliday,
+  getQrAttendanceSetup, startQrAttendanceSession, closeQrAttendanceSession
 } from '../src/api/api-client.js';
 
 let token=sessionStorage.getItem('v2SessionToken')||'';
@@ -370,6 +400,7 @@ let archivedStudentRows=[];
 let dailyRecordRows=[];
 let attendanceLoadedRows=[];
 let attendanceHoliday=null;
+let qrAttendanceSetup=null;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2);
@@ -738,6 +769,11 @@ function resetAttendanceForm(){
   $('attendanceTopResult').textContent='반과 날짜를 확인한 뒤 학생 불러오기를 눌러 주세요.';
   $('saveAttendanceBtn').classList.add('hidden');
   $('attendanceSaveResult').classList.add('hidden');
+  if($('attendanceQrDetails'))$('attendanceQrDetails').open=false;
+  if($('attendanceQrStartTime'))$('attendanceQrStartTime').value='';
+  if($('attendanceQrEndTime'))$('attendanceQrEndTime').value='';
+  hideQrAttendanceSession();
+  if($('attendanceQrRulePreview'))$('attendanceQrRulePreview').textContent='QR 영역을 열면 등록된 시간표와 현재 세션을 확인합니다.';
 }
 function attendanceSummaryHtml(rows){
   const summary={present:0,late:0,absent:0,early:0};
@@ -855,6 +891,133 @@ async function clearAttendanceHolidayFromForm(){
   }
 }
 
+function qrClientTimeToMinutes(value){
+  const m=String(value||'').match(/^(\d{1,2}):(\d{2})$/);
+  return m?Number(m[1])*60+Number(m[2]):-1;
+}
+function qrClientMinutesToTime(minutes){
+  let n=Number(minutes);
+  if(!Number.isFinite(n))return '';
+  n=((n%1440)+1440)%1440;
+  return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+}
+function renderQrRulePreview(data){
+  const box=$('attendanceQrRulePreview');
+  if(!box)return;
+  const start=(data&&data.startTime)||$('attendanceQrStartTime').value||'-';
+  const end=(data&&data.endTime)||$('attendanceQrEndTime').value||'-';
+  const startMin=qrClientTimeToMinutes(start);
+  const open=(data&&data.openTime)||(startMin>=0?qrClientMinutesToTime(startMin-30):'-');
+  const lateFrom=(data&&data.lateFrom)||(startMin>=0?qrClientMinutesToTime(startMin+20):'-');
+  const lateUntil=(data&&data.lateUntil)||(startMin>=0?qrClientMinutesToTime(startMin+60):'-');
+  const source=data&&data.scheduleFound?'등록된 시간표 자동 적용':'등록 시간 없음 또는 직접 수정';
+  const configNote=data&&data.publicAppConfigured===false
+    ? '<div style="margin-top:6px;color:#a12c2c;font-weight:700">학생용 V2 QR 공개 웹앱 URL 등록이 필요합니다.</div>'
+    : '';
+  box.innerHTML='<strong>QR 출석 규칙</strong><br>'+
+    '수업 '+esc(start)+' ~ '+esc(end)+' · '+esc(source)+'<br>'+
+    '<span class="muted">QR 오픈 '+esc(open)+' · 정상 출석: 시작 후 20분 미만 · 지각 '+esc(lateFrom)+' ~ '+esc(lateUntil)+'</span>'+
+    configNote;
+}
+function hideQrAttendanceSession(){
+  $('attendanceQrSessionBox').classList.add('hidden');
+  $('attendanceQrSessionBox').innerHTML='';
+}
+function renderQrAttendanceSession(session){
+  const box=$('attendanceQrSessionBox');
+  if(!session||!session.sessionId){hideQrAttendanceSession();return}
+  const publicUrl=String(session.publicUrl||'');
+  box.className='attendance-qr-session';
+  box.innerHTML='<strong>QR 출석 세션 준비 완료</strong>'+
+    '<div class="attendance-summary" style="margin-top:8px">'+
+      '<span class="attendance-chip">세션 '+esc(session.sessionCode||'-')+'</span>'+
+      '<span class="attendance-chip">'+esc(session.className||session.classId||'')+'</span>'+
+      '<span class="attendance-chip">'+esc(session.date||'')+'</span>'+
+    '</div>'+
+    (publicUrl
+      ? '<div class="attendance-qr-session-layout"><div id="attendanceQrImage" class="attendance-qr-image"></div><div style="flex:1;min-width:240px"><div style="font-weight:700">학생용 QR</div><div class="muted" style="margin-top:5px">학생이 QR을 촬영한 뒤 등록 전화번호를 입력하면 출석/지각이 자동 저장됩니다.</div><a href="'+esc(publicUrl)+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px">학생 체크인 링크 열기</a></div></div>'
+      : '<div style="margin-top:8px;color:#a12c2c">학생용 공개 URL이 설정되지 않았습니다.</div>');
+  if(publicUrl)renderQrCode(publicUrl);
+}
+function renderQrCode(publicUrl){
+  const target=$('attendanceQrImage');
+  if(!target)return;
+  function draw(){
+    target.innerHTML='';
+    if(window.QRCode){
+      new QRCode(target,{text:publicUrl,width:180,height:180,correctLevel:QRCode.CorrectLevel.M});
+    }else{
+      target.innerHTML='<div class="muted" style="padding:18px">QR 생성 모듈을 불러오지 못했습니다.<br>옆의 링크를 사용해 주세요.</div>';
+    }
+  }
+  if(window.QRCode){draw();return}
+  const old=document.getElementById('qrcodejs-cdn-script');
+  if(old){old.addEventListener('load',draw,{once:true});return}
+  const script=document.createElement('script');
+  script.id='qrcodejs-cdn-script';
+  script.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  script.onload=draw;script.onerror=draw;document.head.appendChild(script);
+}
+async function loadQrAttendanceSetupFromForm(){
+  const classId=$('attendanceClassId').value;
+  const date=$('attendanceDate').value;
+  if(!classId||!date){
+    $('attendanceQrRulePreview').textContent='반과 날짜를 먼저 선택해 주세요.';
+    hideQrAttendanceSession();
+    return;
+  }
+  try{
+    const data=await getQrAttendanceSetup(token,{classId,date});
+    qrAttendanceSetup=data;
+    $('attendanceQrStartTime').value=data.startTime||'';
+    $('attendanceQrEndTime').value=data.endTime||'';
+    renderQrRulePreview(data);
+    if(data.activeSession)renderQrAttendanceSession(data.activeSession);
+    else hideQrAttendanceSession();
+  }catch(e){
+    $('attendanceQrRulePreview').textContent='QR 설정 불러오기 오류: '+e.message+(e.code?' ['+e.code+']':'');
+    hideQrAttendanceSession();
+  }
+}
+async function prepareQrAttendanceSessionFromForm(){
+  const classId=$('attendanceClassId').value;
+  const date=$('attendanceDate').value;
+  const startTime=$('attendanceQrStartTime').value;
+  const endTime=$('attendanceQrEndTime').value;
+  if(!classId||!date){$('attendanceQrRulePreview').textContent='반과 날짜를 먼저 선택해 주세요.';return}
+  if(!startTime||!endTime){$('attendanceQrRulePreview').textContent='수업 시작시간과 종료시간을 확인해 주세요.';return}
+  if(!confirm('이 반의 QR 출석 세션을 준비할까요? 수동 출석 기능은 그대로 유지됩니다.'))return;
+  try{
+    const data=await startQrAttendanceSession(token,{classId,date,startTime,endTime});
+    qrAttendanceSetup=data;
+    renderQrRulePreview({...data,publicAppConfigured:true});
+    renderQrAttendanceSession(data.session||{});
+  }catch(e){
+    $('attendanceQrRulePreview').textContent='QR 세션 준비 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+async function closeQrAttendanceSessionFromForm(){
+  const classId=$('attendanceClassId').value;
+  const date=$('attendanceDate').value;
+  if(!classId||!date){$('attendanceQrRulePreview').textContent='반과 날짜를 먼저 선택해 주세요.';return}
+  if(!confirm('이 QR 출석 세션을 닫을까요?'))return;
+  try{
+    await closeQrAttendanceSession(token,{classId,date});
+    hideQrAttendanceSession();
+    $('attendanceQrRulePreview').innerHTML='<strong>QR 세션이 닫혔습니다.</strong> 필요하면 다시 준비할 수 있습니다.';
+  }catch(e){
+    $('attendanceQrRulePreview').textContent='QR 세션 닫기 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+function onAttendanceContextChanged(){
+  attendanceLoadedRows=[];
+  $('attendanceInputBox').className='empty-box';
+  $('attendanceInputBox').textContent='출석 대상 학생을 불러오면 여기에 표시됩니다.';
+  $('saveAttendanceBtn').classList.add('hidden');
+  if($('attendanceQrDetails').open)loadQrAttendanceSetupFromForm();
+  else hideQrAttendanceSession();
+}
+
 async function loadArchivedStudents(){
   const options={
     classId:$('archivedStudentClassId').value,
@@ -939,6 +1102,13 @@ $('saveAttendanceHolidayBtn').onclick=saveAttendanceHolidayFromForm;
 $('clearAttendanceHolidayBtn').onclick=clearAttendanceHolidayFromForm;
 $('resetAttendanceBtn').onclick=resetAttendanceForm;
 $('attendanceHolidayReason').onchange=toggleAttendanceHolidayMemo;
+$('attendanceQrDetails').addEventListener('toggle',()=>{if($('attendanceQrDetails').open)loadQrAttendanceSetupFromForm()});
+$('prepareQrAttendanceBtn').onclick=prepareQrAttendanceSessionFromForm;
+$('closeQrAttendanceBtn').onclick=closeQrAttendanceSessionFromForm;
+$('attendanceQrStartTime').onchange=()=>renderQrRulePreview(qrAttendanceSetup||{});
+$('attendanceQrEndTime').onchange=()=>renderQrRulePreview(qrAttendanceSetup||{});
+$('attendanceClassId').onchange=onAttendanceContextChanged;
+$('attendanceDate').onchange=onAttendanceContextChanged;
 $('navScoreBtn').onclick=()=>switchPage('score');
 $('navLessonBtn').onclick=()=>switchPage('lesson');
 $('navReportBtn').onclick=()=>switchPage('report');
