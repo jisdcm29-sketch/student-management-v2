@@ -361,8 +361,8 @@
             <div class="attendance-qr-body">
               <div class="muted" style="margin-top:10px">현재 선택한 반과 날짜를 그대로 사용합니다. 등록된 수업시간을 자동으로 불러오고 필요할 때만 수정할 수 있습니다.</div>
               <div class="attendance-qr-grid">
-                <div class="form-row"><label>수업 시작</label><input type="time" id="attendanceQrStartTime" step="1800"></div>
-                <div class="form-row"><label>수업 종료</label><input type="time" id="attendanceQrEndTime" step="1800"></div>
+                <div class="form-row"><label>수업 시작</label><select id="attendanceQrStartTime"></select></div>
+                <div class="form-row"><label>수업 종료</label><select id="attendanceQrEndTime"></select></div>
               </div>
               <div id="attendanceQrRulePreview" class="attendance-qr-preview">QR 영역을 열면 등록된 시간표와 현재 세션을 확인합니다.</div>
               <div class="action-row">
@@ -782,6 +782,7 @@ function toggleAttendanceHolidayMemo(){
 }
 function resetAttendanceForm(){
   if(!$('attendanceDate'))return;
+  fillQrHalfHourOptions();
   attendanceLoadedRows=[];
   attendanceHoliday=null;
   $('attendanceDate').value=todayYmd();
@@ -926,6 +927,20 @@ function qrClientMinutesToTime(minutes){
   if(!Number.isFinite(n))return '';
   n=((n%1440)+1440)%1440;
   return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+}
+function fillQrHalfHourOptions(){
+  ['attendanceQrStartTime','attendanceQrEndTime'].forEach(id=>{
+    const el=$(id);
+    if(!el)return;
+    const current=el.value||'';
+    let html='<option value="">시간 선택</option>';
+    for(let m=0;m<1440;m+=30){
+      const value=qrClientMinutesToTime(m);
+      html+='<option value="'+value+'">'+value+'</option>';
+    }
+    el.innerHTML=html;
+    if(current && [...el.options].some(o=>o.value===current)) el.value=current;
+  });
 }
 function renderQrRulePreview(data){
   const box=$('attendanceQrRulePreview');
