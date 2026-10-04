@@ -31,6 +31,7 @@ export const login = (teacherId, password) => callApi('login', { teacherId, pass
 export const logout = sessionToken => callApi('logout', { sessionToken });
 export const validateSession = sessionToken => callApi('session', { sessionToken });
 export const bootstrap = sessionToken => callApi('bootstrap', { sessionToken });
+export const getHomeDashboard = (sessionToken, options = {}) => callApi('home.dashboard', { sessionToken, options });
 export const listClasses = (sessionToken, options = {}) => callApi('classes.list', { sessionToken, options });
 export const getClassDetail = (sessionToken, classId) => callApi('classes.get', { sessionToken, classId });
 export const saveClass = (sessionToken, classData) => callApi('classes.save', { sessionToken, classData });
@@ -56,9 +57,16 @@ export const clearAttendanceHoliday = (sessionToken, holidayData) => callApi('at
 
 export const getScoreHubSources = sessionToken => callApi('scoreHub.sources', { sessionToken });
 export const getScoreHubStudentSummary = (sessionToken, studentId) => callApi('scoreHub.studentSummary', { sessionToken, studentId });
+export const listTeacherManualScores = (sessionToken, studentId) => callApi('scores.manual.list', { sessionToken, studentId });
+export const saveTeacherManualScore = (sessionToken, scoreData) => callApi('scores.manual.save', { sessionToken, scoreData });
+export const deleteTeacherManualScore = (sessionToken, recordId) => callApi('scores.manual.delete', { sessionToken, recordId });
 
 export const getStudentAttendanceHistory = (sessionToken, studentId, options = {}) => callApi('report.attendance.student', { sessionToken, studentId, options });
 export const getStudentSummaryReport = (sessionToken, studentId, options = {}) => callApi('report.student.summary', { sessionToken, studentId, options });
+export const getClassSummaryReport = (sessionToken, classId, options = {}) => callApi('report.class.summary', { sessionToken, classId, options });
+export const getStudentStatusStatsReport = (sessionToken, options = {}) => callApi('report.student.statusStats', { sessionToken, options });
+export const getReportEmailContact = (sessionToken, studentId) => callApi('report.email.contact', { sessionToken, studentId });
+export const prepareReportEmail = (sessionToken, emailData = {}) => callApi('report.email.prepare', { sessionToken, emailData });
 
 export const listLessons = (sessionToken, options = {}) => callApi('lessons.list', { sessionToken, options });
 export const getPreviousLesson = (sessionToken, classId, beforeDate = '') => callApi('lessons.previous', { sessionToken, classId, beforeDate });
