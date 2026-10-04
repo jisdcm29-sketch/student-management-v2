@@ -63,6 +63,7 @@ function doPost(e) {
     if (action === 'scoreHub.sources') return okResponse_(requestId, getScoreHubSourcesV2_(auth));
     if (action === 'scoreHub.studentSummary') return okResponse_(requestId, getScoreHubStudentSummaryV2_(auth, body.studentId));
     if (action === 'report.attendance.student') return okResponse_(requestId, getStudentAttendanceHistoryV2_(auth, body.studentId, body.options || {}));
+    if (action === 'report.student.summary') return okResponse_(requestId, getStudentSummaryReportV2_(auth, body.studentId, body.options || {}));
     if (action === 'qrAttendance.setup') return okResponse_(requestId, getQrAttendanceSetupV2_(auth, body.options || {}));
     if (action === 'qrAttendance.start') return okResponse_(requestId, startQrAttendanceSessionV2_(auth, body.sessionData || {}));
     if (action === 'qrAttendance.close') return okResponse_(requestId, closeQrAttendanceSessionV2_(auth, body.sessionData || {}));
