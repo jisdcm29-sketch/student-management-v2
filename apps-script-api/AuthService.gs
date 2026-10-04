@@ -50,25 +50,56 @@ function setupInitialAdminPasswordFromProperty_() {
   return 'V2 관리자 비밀번호 설정 완료';
 }
 
+function sessionStorageKeyV2_(token) {
+  return 'V2_SESSION_' + sha256Hex_(String(token || '').trim());
+}
+
+function sessionCacheKeyV2_(token) {
+  return 'session:' + sha256Hex_(String(token || '').trim());
+}
+
+function sessionTtlSecondsV2_() {
+  return Math.max(300, Number(V2_CONFIG.SESSION_TTL_SECONDS || 21600));
+}
+
+function removePersistentSessionV2_(token) {
+  const normalized = String(token || '').trim();
+  if (!normalized) return;
+  CacheService.getScriptCache().remove(sessionCacheKeyV2_(normalized));
+  PropertiesService.getScriptProperties().deleteProperty(sessionStorageKeyV2_(normalized));
+}
+
 function issueSession_(teacher) {
   const token = Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid();
-  const cacheKey = 'session:' + sha256Hex_(token);
+  const ttlSeconds = sessionTtlSecondsV2_();
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + ttlSeconds * 1000);
   const payload = {
     teacherId: teacher.teacherId,
     displayName: teacher.displayName || '',
     role: teacher.role || 'TEACHER',
-    issuedAt: new Date().toISOString()
+    issuedAt: issuedAt.toISOString(),
+    expiresAt: expiresAt.toISOString()
   };
 
+  const raw = JSON.stringify(payload);
   CacheService.getScriptCache().put(
-    cacheKey,
-    JSON.stringify(payload),
-    Number(V2_CONFIG.SESSION_TTL_SECONDS || 21600)
+    sessionCacheKeyV2_(token),
+    raw,
+    Math.min(21600, ttlSeconds)
+  );
+
+  // CacheService는 만료 전에도 제거될 수 있으므로 새로고침 복원을 위해
+  // 동일 세션을 Script Properties에도 보존한다. 토큰 원문은 저장하지 않고
+  // SHA-256 해시를 키로 사용한다.
+  PropertiesService.getScriptProperties().setProperty(
+    sessionStorageKeyV2_(token),
+    raw
   );
 
   return {
     sessionToken: token,
-    expiresInSeconds: Number(V2_CONFIG.SESSION_TTL_SECONDS || 21600),
+    expiresInSeconds: ttlSeconds,
     teacher: {
       teacherId: payload.teacherId,
       displayName: payload.displayName,
@@ -85,19 +116,55 @@ function requireSession_(sessionToken) {
     throw error;
   }
 
-  const cacheKey = 'session:' + sha256Hex_(token);
-  const raw = CacheService.getScriptCache().get(cacheKey);
+  const cache = CacheService.getScriptCache();
+  const cacheKey = sessionCacheKeyV2_(token);
+  const propertyKey = sessionStorageKeyV2_(token);
+  const props = PropertiesService.getScriptProperties();
+
+  let raw = cache.get(cacheKey);
+  let fromPersistentStore = false;
+
+  if (!raw) {
+    raw = props.getProperty(propertyKey);
+    fromPersistentStore = !!raw;
+  }
+
   if (!raw) {
     const error = new Error('세션이 만료되었거나 유효하지 않습니다.');
     error.code = 'SESSION_INVALID';
     throw error;
   }
 
-  const session = JSON.parse(raw);
+  let session;
+  try {
+    session = JSON.parse(raw);
+  } catch (e) {
+    cache.remove(cacheKey);
+    props.deleteProperty(propertyKey);
+    const error = new Error('세션 정보가 손상되었습니다. 다시 로그인해 주세요.');
+    error.code = 'SESSION_INVALID';
+    throw error;
+  }
+
+  const expiresAtMs = Date.parse(String(session.expiresAt || ''));
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    cache.remove(cacheKey);
+    props.deleteProperty(propertyKey);
+    const error = new Error('세션이 만료되었습니다. 다시 로그인해 주세요.');
+    error.code = 'SESSION_INVALID';
+    throw error;
+  }
+
+  if (fromPersistentStore) {
+    const remainingSeconds = Math.max(1, Math.floor((expiresAtMs - Date.now()) / 1000));
+    cache.put(cacheKey, raw, Math.min(21600, remainingSeconds));
+  }
+
   const teacher = findTeacherById_(session.teacherId);
 
   if (!teacher || String(teacher.status || '').toUpperCase() !== 'ACTIVE') {
-    CacheService.getScriptCache().remove(cacheKey);
+    cache.remove(cacheKey);
+    props.deleteProperty(propertyKey);
     const error = new Error('사용할 수 없는 교사 계정입니다.');
     error.code = 'ACCOUNT_INACTIVE';
     throw error;
@@ -145,14 +212,20 @@ function logoutTeacher_(sessionToken) {
   const token = String(sessionToken || '').trim();
   if (!token) return { loggedOut: true };
 
-  const cacheKey = 'session:' + sha256Hex_(token);
-  const raw = CacheService.getScriptCache().get(cacheKey);
+  const cacheKey = sessionCacheKeyV2_(token);
+  const propertyKey = sessionStorageKeyV2_(token);
+  const cache = CacheService.getScriptCache();
+  const props = PropertiesService.getScriptProperties();
+
+  const raw = cache.get(cacheKey) || props.getProperty(propertyKey);
   if (raw) {
     try {
       const session = JSON.parse(raw);
       appendAuditLog_(session.teacherId || '', 'LOGOUT', 'Teacher', session.teacherId || '', 'SUCCESS', '');
     } catch (e) {}
   }
-  CacheService.getScriptCache().remove(cacheKey);
+
+  cache.remove(cacheKey);
+  props.deleteProperty(propertyKey);
   return { loggedOut: true };
 }

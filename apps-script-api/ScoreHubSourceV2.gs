@@ -156,6 +156,51 @@ function scoreHubSyncInfoV2_(ss) {
   return out;
 }
 
+
+/**
+ * 성적 관리 화면용: 학생 반의 가장 최근 수업 진도 1건을 읽기 전용으로 반환한다.
+ * Lessons 전체를 새로 설계하지 않고 LessonServiceV2의 bounded recent-read helper를 재사용한다.
+ */
+function scoreHubLatestClassLessonV2_(ss, student) {
+  const classId = String(student && student.classId || '').trim();
+  if (!classId) return null;
+
+  try {
+    const classes = readSheetObjects_(ss, 'Classes');
+    const classRow = classes.find(function(item) {
+      return String(item.classId || '').trim() === classId;
+    }) || null;
+
+    const result = lessonReadRecentRowsV2_(ss, { classId: classId, limit: 1 });
+    const row = result && result.rows && result.rows.length ? result.rows[0] : null;
+    if (!row) return null;
+
+    const currentRaw = row.progressCurrentCount;
+    const current = currentRaw === '' || currentRaw === null || currentRaw === undefined
+      ? null
+      : Number(currentRaw);
+
+    return {
+      lessonId: String(row.lessonId || '').trim(),
+      date: String(row.date || '').trim().split('T')[0].split(' ')[0],
+      classId: classId,
+      className: classRow ? String(classRow.className || '').trim() : classId,
+      topic: String(row.topic || '').trim(),
+      content: String(row.content || '').trim(),
+      homework: String(row.homework || '').trim(),
+      nextPlan: String(row.nextPlan || '').trim(),
+      progressCurrentCount: Number.isFinite(current) ? current : null,
+      progressUnit: classRow ? String(classRow.targetProgressUnit || '').trim() : '',
+      targetProgressCount: classRow && Number.isFinite(Number(classRow.targetProgressCount))
+        ? Number(classRow.targetProgressCount)
+        : 0
+    };
+  } catch (e) {
+    // 현재 수업 진도는 보조 정보이므로 실패해도 기존 성적 조회는 계속 동작한다.
+    return null;
+  }
+}
+
 function getScoreHubSourcesV2_(auth) {
   return {
     version: 'phase3-all-local-sync-20261004',
@@ -183,6 +228,7 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
   }
 
   const localSs = getTeacherDataSpreadsheet_(auth.teacher);
+  const classLearning = { latestLesson: scoreHubLatestClassLessonV2_(localSs, student) };
   const tests = scoreHubReadLocalStudentRowsV2_(localSs, 'LearningTestResults', student);
   const snuRows = tests.filter(function(row) {
     return /^SNU-/.test(String(row.book || '')) && ['vocab','grammar','mixed'].indexOf(String(row.testType || '')) >= 0;
@@ -219,6 +265,7 @@ function getScoreHubStudentSummaryV2_(auth, studentId) {
     sourceMode:'V2_LOCAL_SYNC_ALL_SCORE_HUB',
     syncInfo:scoreHubSyncInfoV2_(localSs),
     student:student,
+    classLearning:classLearning,
     progress:progress ? {
       firstLoginAt:String(progress.firstLoginAt || ''), recentLoginAt:String(progress.recentLoginAt || ''),
       elapsedText:String(progress.elapsedText || ''), startBook:String(progress.startBook || ''),

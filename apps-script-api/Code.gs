@@ -63,8 +63,15 @@ function doPost(e) {
     if (action === 'attendance.holiday.clear') return okResponse_(requestId, clearAttendanceHolidayV2_(auth, body.holidayData || {}));
     if (action === 'scoreHub.sources') return okResponse_(requestId, getScoreHubSourcesV2_(auth));
     if (action === 'scoreHub.studentSummary') return okResponse_(requestId, getScoreHubStudentSummaryV2_(auth, body.studentId));
+    if (action === 'scores.manual.list') return okResponse_(requestId, listTeacherManualScoresV2_(auth, body.studentId));
+    if (action === 'scores.manual.save') return okResponse_(requestId, saveTeacherManualScoreV2_(auth, body.scoreData || {}));
+    if (action === 'scores.manual.delete') return okResponse_(requestId, deleteTeacherManualScoreV2_(auth, body.recordId));
     if (action === 'report.attendance.student') return okResponse_(requestId, getStudentAttendanceHistoryV2_(auth, body.studentId, body.options || {}));
     if (action === 'report.student.summary') return okResponse_(requestId, getStudentSummaryReportV2_(auth, body.studentId, body.options || {}));
+    if (action === 'report.class.summary') return okResponse_(requestId, getClassSummaryReportV2_(auth, body.classId, body.options || {}));
+    if (action === 'report.student.statusStats') return okResponse_(requestId, getStudentStatusStatsReportV2_(auth, body.options || {}));
+    if (action === 'report.email.contact') return okResponse_(requestId, getReportEmailContactV2_(auth, body.studentId));
+    if (action === 'report.email.prepare') return okResponse_(requestId, prepareReportEmailV2_(auth, body.emailData || {}));
     if (action === 'lessons.list') return okResponse_(requestId, getLessonsListV2_(auth, body.options || {}));
     if (action === 'lessons.previous') return okResponse_(requestId, getPreviousLessonV2_(auth, body.classId, body.beforeDate));
     if (action === 'lessons.get') return okResponse_(requestId, getLessonV2_(auth, body.lessonId));

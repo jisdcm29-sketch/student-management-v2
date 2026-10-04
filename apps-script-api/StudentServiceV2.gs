@@ -6,6 +6,12 @@ function normalizeStudentDateV2_(value) {
   return String(value || '').trim().split('T')[0].split(' ')[0];
 }
 
+function isValidStudentEmailV2_(value) {
+  const v = String(value || '').trim();
+  if (!v) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
 function isArchivedStudentStatusV2_(status) {
   const s = String(status || '').trim();
   return s === '휴학' || s === '중단' || s === '중도포기';
@@ -100,12 +106,19 @@ function getStudentV2_(auth, studentId) {
 function saveStudentV2_(auth, payload) {
   payload = payload || {};
   const ss = getTeacherDataSpreadsheet_(auth.teacher);
+  ensureReportEmailDataStructureV2_(ss);
   const sheet = getRequiredDataSheetV2_(ss, 'Students');
 
   let studentId = String(payload.studentId || '').trim();
   const classId = String(payload.classId || '').trim();
   const name = String(payload.name || '').trim();
   const phone = String(payload.phone || '').trim();
+  const hasStudentEmail = Object.prototype.hasOwnProperty.call(payload, 'studentEmail');
+  const hasGuardianName = Object.prototype.hasOwnProperty.call(payload, 'guardianName');
+  const hasGuardianEmail = Object.prototype.hasOwnProperty.call(payload, 'guardianEmail');
+  let studentEmail = String(payload.studentEmail || '').trim();
+  let guardianName = String(payload.guardianName || '').trim();
+  let guardianEmail = String(payload.guardianEmail || '').trim();
   const currentTopikLevel = String(payload.currentTopikLevel || '').trim();
   const targetTopikLevel = String(payload.targetTopikLevel || '').trim();
   const scholarshipType = String(payload.scholarshipType || '').trim();
@@ -143,6 +156,19 @@ function saveStudentV2_(auth, payload) {
     throw error;
   }
 
+  if (rowNumber >= 2) {
+    const emailHeaders = getSheetHeaderMapV2_(sheet);
+    if (!hasStudentEmail && emailHeaders.studentEmail != null) studentEmail = String(sheet.getRange(rowNumber, emailHeaders.studentEmail + 1).getDisplayValue() || '').trim();
+    if (!hasGuardianName && emailHeaders.guardianName != null) guardianName = String(sheet.getRange(rowNumber, emailHeaders.guardianName + 1).getDisplayValue() || '').trim();
+    if (!hasGuardianEmail && emailHeaders.guardianEmail != null) guardianEmail = String(sheet.getRange(rowNumber, emailHeaders.guardianEmail + 1).getDisplayValue() || '').trim();
+  }
+
+  if (!isValidStudentEmailV2_(studentEmail) || !isValidStudentEmailV2_(guardianEmail)) {
+    const error = new Error('학생 또는 보호자 이메일 주소 형식을 확인해 주세요.');
+    error.code = 'VALIDATION_ERROR';
+    throw error;
+  }
+
   if (!studentId) studentId = makeNextPrefixedIdV2_(sheet, 'studentId', 'S-', 3);
 
   let createdAt = new Date();
@@ -159,6 +185,9 @@ function saveStudentV2_(auth, payload) {
     photoUrl: photoUrl,
     name: name,
     phone: phone,
+    studentEmail: studentEmail,
+    guardianName: guardianName,
+    guardianEmail: guardianEmail,
     currentTopikLevel: currentTopikLevel,
     targetTopikLevel: targetTopikLevel,
     scholarshipType: scholarshipType,
