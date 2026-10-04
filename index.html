@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>학생관리시스템 V2</title>
+  <meta name="robots" content="noindex,nofollow">
+  <script>
+    (function () {
+      function clearAuthState(storage) {
+        if (!storage) return;
+        var remove = [];
+        for (var i = 0; i < storage.length; i++) {
+          var key = storage.key(i) || '';
+          var lower = key.toLowerCase();
+          if (lower === 'v2rememberteacherid') continue;
+          if (/^v2/.test(lower) && /(session|token|page|screen|route)/.test(lower)) {
+            remove.push(key);
+          }
+        }
+        for (var j = 0; j < remove.length; j++) storage.removeItem(remove[j]);
+
+        // Known session keys from Student Management V2.
+        storage.removeItem('v2SessionToken');
+        storage.removeItem('v2PersistentSessionToken');
+        storage.removeItem('v2CurrentPage');
+        storage.removeItem('v2LastPage');
+      }
+
+      try { clearAuthState(window.sessionStorage); } catch (e) {}
+      try { clearAuthState(window.localStorage); } catch (e) {}
+
+      window.location.replace('./public/index.html');
+    })();
+  </script>
+  <noscript>
+    <meta http-equiv="refresh" content="0; url=./public/index.html">
+  </noscript>
+</head>
+<body>
+  <p>학생관리시스템 V2 인증 화면으로 이동합니다.</p>
+</body>
+</html>
