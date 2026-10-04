@@ -575,7 +575,7 @@
 
 <script type="module">
 import {
-  login, logout,
+  login, logout, validateSession,
   listClasses, getClassDetail, saveClass, closeClass, deleteClass,
   listStudents, getStudentDetail, saveStudent, listArchivedStudents, restoreStudent,
   listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord,
@@ -584,7 +584,7 @@ import {
   getQrAttendanceSetup, startQrAttendanceSession, closeQrAttendanceSession
 } from '../src/api/api-client.js';
 
-let token=sessionStorage.getItem('v2SessionToken')||'';
+let token=sessionStorage.getItem('v2SessionToken')||localStorage.getItem('v2SessionTokenPersistent')||'';
 let currentTeacher=null;
 let classRows=[];
 let studentRows=[];
@@ -600,6 +600,10 @@ const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(
 
 function setLoggedIn(on){$('loginCard').classList.toggle('hidden',on);$('appArea').classList.toggle('hidden',!on)}
 const V2_REMEMBER_TEACHER_KEY='v2RememberTeacherId';
+const V2_CURRENT_PAGE_KEY='v2CurrentPage';
+const V2_PERSISTENT_TOKEN_KEY='v2SessionTokenPersistent';
+const V2_PERSISTENT_PAGE_KEY='v2CurrentPagePersistent';
+const V2_REFRESH_FIX_VERSION='2026-10-04-v5';
 function restoreRememberedTeacherId(){
   const saved=localStorage.getItem(V2_REMEMBER_TEACHER_KEY)||'';
   if(saved){$('teacherId').value=saved;$('rememberTeacherId').checked=true}
@@ -645,7 +649,29 @@ function updateHome(){
 
   $('homeAttentionBody').innerHTML='<tr><td colspan="4" class="dashboard-empty">출석·수업·진도 기능 이전 후 실제 확인 필요 학생을 자동 표시합니다.</td></tr>';
 }
+function persistV2SessionState(page){
+  if(token){
+    sessionStorage.setItem('v2SessionToken',token);
+    localStorage.setItem(V2_PERSISTENT_TOKEN_KEY,token);
+  }
+  if(page){
+    sessionStorage.setItem(V2_CURRENT_PAGE_KEY,page);
+    localStorage.setItem(V2_PERSISTENT_PAGE_KEY,page);
+  }
+}
+function clearV2SessionState(){
+  clearV2SessionState();
+  sessionStorage.removeItem(V2_CURRENT_PAGE_KEY);
+  localStorage.removeItem(V2_PERSISTENT_TOKEN_KEY);
+  localStorage.removeItem(V2_PERSISTENT_PAGE_KEY);
+}
+function isV2AuthError(error){
+  const code=String(error&&error.code||'');
+  return ['AUTH_REQUIRED','SESSION_INVALID','ACCOUNT_INACTIVE'].includes(code);
+}
+
 function switchPage(page){
+  persistV2SessionState(page);
   const realPage=['home','class','student','attendance','score','report'].includes(page)?page:'coming';
   const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
   $('homePage').classList.toggle('hidden',realPage!=='home');
@@ -1594,6 +1620,51 @@ function resetArchivedFilters(){
   $('archivedStudentListBox').textContent='보관 학생 조회 버튼을 눌러 목록을 확인합니다.';
 }
 
+async function restoreV2SessionAfterRefresh(){
+  const savedPage=sessionStorage.getItem(V2_CURRENT_PAGE_KEY)||localStorage.getItem(V2_PERSISTENT_PAGE_KEY)||'home';
+
+  if(!token){
+    currentTeacher=null;
+    updateAuthLabel();
+    setLoggedIn(false);
+    return;
+  }
+
+  // Do not show the login screen merely because F5 was pressed.
+  persistV2SessionState(savedPage);
+  setLoggedIn(true);
+  switchPage(savedPage);
+
+  try{
+    const session=await validateSession(token);
+    currentTeacher=session.teacher||null;
+    updateAuthLabel();
+    await refreshClasses();
+    await refreshStudents();
+    switchPage(savedPage);
+  }catch(e){
+    if(isV2AuthError(e)){
+      token='';
+      currentTeacher=null;
+      classRows=[];
+      studentRows=[];
+      clearV2SessionState();
+      updateAuthLabel();
+      setLoggedIn(false);
+      show('loginResult','세션이 만료되었습니다. 다시 로그인해 주세요.'+(e&&e.code?' ['+e.code+']':''));
+      return;
+    }
+
+    // Temporary API/network problems must not erase the browser session.
+    setLoggedIn(true);
+    switchPage(savedPage);
+    if($('refreshStatus')){
+      $('refreshStatus').className='refresh-status error';
+      $('refreshStatus').textContent='API 연결 확인';
+    }
+  }
+}
+
 async function submitV2Login(){
   if($('loginBtn').disabled)return;
   const teacherId=$('teacherId').value.trim();
@@ -1607,7 +1678,7 @@ async function submitV2Login(){
     else localStorage.removeItem(V2_REMEMBER_TEACHER_KEY);
     token=a.sessionToken;
     currentTeacher=a.teacher;
-    sessionStorage.setItem('v2SessionToken',token);
+    persistV2SessionState('home');
     updateAuthLabel();
     show('loginResult','인증되었습니다. 관리 화면을 불러오는 중입니다...');
     setLoggedIn(true);
@@ -1718,7 +1789,7 @@ $('saveStudentBtn').onclick=async()=>{
   try{const r=await saveStudent(token,data);show('studentResult',data.studentId?'학생 정보가 수정되었습니다.':'학생이 등록되었습니다. ID: '+r.studentId);resetStudentForm();await refreshStudents();if(isArchivedStatus(data.status)){$('studentSectionArchived').classList.add('open');await loadArchivedStudents()}else{$('studentSectionList').classList.add('open')}}catch(e){show('studentResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}
 };
 
-resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();resetAttendanceForm();setLoggedIn(false);
+resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();resetAttendanceForm();restoreV2SessionAfterRefresh();
 </script>
 </body>
 </html>
