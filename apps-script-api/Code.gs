@@ -42,6 +42,7 @@ function doPost(e) {
       });
     }
     if (action === 'bootstrap') return okResponse_(requestId, getBootstrapData_(auth));
+    if (action === 'home.dashboard') return okResponse_(requestId, getHomeDashboardV2_(auth, body.options || {}));
     if (action === 'classes.list') return okResponse_(requestId, listClassesV2_(auth, body.options || {}));
     if (action === 'classes.get') return okResponse_(requestId, getClassV2_(auth, body.classId));
     if (action === 'classes.save') return okResponse_(requestId, saveClassV2_(auth, body.classData || {}));
