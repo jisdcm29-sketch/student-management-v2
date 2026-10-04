@@ -153,6 +153,78 @@
     .qr-display-hint{position:absolute;bottom:18px;left:20px;right:20px;text-align:center;color:#7a8896;font-size:clamp(12px,1.15vw,16px)}
     @media(max-width:720px){.qr-display-overlay{padding:12px}.qr-display-top{top:10px;left:12px;right:12px}.qr-display-close{padding:8px 10px}.qr-display-code img,.qr-display-code canvas{max-width:86vmin!important;max-height:86vmin!important}}
     @media(max-width:720px){.attendance-qr-grid{grid-template-columns:1fr}.attendance-qr-session-layout{align-items:flex-start}}
+    /* Lesson content - Step 4 */
+    #lessonPage{width:100%}
+    #lessonPage .simple-page{padding:18px 20px}
+    .lesson-page-stack{width:100%;display:flex;flex-direction:column;gap:16px}
+    .lesson-page-stack .simple-page+.simple-page{margin-top:0}
+    .lesson-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+    .lesson-heading h2{margin:0 0 4px;color:#153f63}
+    .lesson-heading p{color:#667085;font-size:13px}
+    .lesson-form-grid{display:grid;grid-template-columns:minmax(260px,1fr) minmax(220px,.7fr);gap:12px 16px}
+    .lesson-form-grid .form-row-full{grid-column:1/-1}
+    .lesson-previous{margin-top:12px;border:1px solid #d7e3ee;border-radius:12px;background:#f8fbff;padding:12px 14px}
+    .lesson-previous-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .lesson-previous-title{font-weight:800;color:#153f63}
+    .lesson-previous-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+    .lesson-previous-item{padding:9px 10px;border:1px solid #e1e8f0;border-radius:9px;background:#fff}
+    .lesson-previous-item .k{font-size:11px;color:#778899;font-weight:700}
+    .lesson-previous-item .v{margin-top:3px;font-size:13px;color:#263746;font-weight:700;white-space:pre-wrap;word-break:break-word}
+    .lesson-progress-hint{margin-top:6px;font-size:12px;color:#667085}
+    .lesson-progress-hint strong{color:#245b83}
+    .lesson-draft-status{margin-top:10px;font-size:12px;color:#64748b}
+    .lesson-draft-status.ok{color:#2f7b59;font-weight:700}
+    .lesson-assignment-details{margin-top:14px;border:1px dashed #cbd8e6;border-radius:11px;background:#fbfdff;overflow:hidden}
+    .lesson-assignment-details>summary{cursor:pointer;list-style:none;padding:13px 14px;font-weight:800;color:#153f63;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .lesson-assignment-details>summary::-webkit-details-marker{display:none}
+    .lesson-assignment-details>summary::after{content:'⌄';font-size:14px;color:#60758a}
+    .lesson-assignment-details[open]>summary::after{content:'⌃'}
+    .lesson-assignment-body{padding:0 14px 14px;border-top:1px solid #e5ebf1}
+    .lesson-assignment-note{margin:11px 0 9px;color:#64748b;font-size:12px;line-height:1.55}
+    .lesson-assignment-status{margin:8px 0;padding:8px 10px;border-radius:8px;background:#f5f8fb;color:#60758a;font-size:12px}
+    .lesson-assignment-status.loading{background:#eef5fb;color:#24557d;font-weight:700}
+    .lesson-assignment-status.ok{background:#edf8f1;color:#2f7b59;font-weight:700}
+    .lesson-assignment-status.error{background:#fff1f0;color:#b42318;font-weight:700}
+    .lesson-assignment-list{display:flex;flex-direction:column;gap:7px}
+    .lesson-assignment-row{display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:10px;align-items:center}
+    .lesson-assignment-student{font-size:13px;font-weight:800;color:#294966;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lesson-assignment-row input{height:38px;padding:8px 10px;font-size:13px}
+    .lesson-assignment-empty{padding:12px;border:1px dashed #d5dee8;border-radius:9px;background:#fff;color:#718096;font-size:12px;text-align:center}
+    @media(max-width:720px){.lesson-assignment-row{grid-template-columns:1fr}.lesson-assignment-student{white-space:normal}}
+    .lesson-list-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(160px,.65fr) minmax(160px,.65fr) 120px auto;gap:10px;align-items:end;margin-bottom:12px}
+    .lesson-list-status{margin:8px 0 12px;padding:9px 11px;border-radius:9px;background:#f6f8fb;color:#667085;font-size:12px}
+    .lesson-list-status.loading{background:#eef5fb;color:#24557d;font-weight:700}
+    .lesson-list-status.error{background:#fff1f0;color:#b42318;font-weight:700}
+    .lesson-list-table{width:100%;border-collapse:collapse;table-layout:fixed}
+    .lesson-list-table th,.lesson-list-table td{border:1px solid #dbe3ee;padding:9px 10px;font-size:13px;text-align:left;vertical-align:top;word-break:break-word;white-space:normal}
+    .lesson-list-table th{background:#edf4fb;color:#153f63;font-weight:800}
+    .lesson-list-table th:nth-child(1){width:96px}
+    .lesson-list-table th:nth-child(2){width:150px}
+    .lesson-list-table th:nth-child(3){width:14%}
+    .lesson-list-table th:nth-child(4){width:20%}
+    .lesson-list-table th:nth-child(5){width:15%}
+    .lesson-list-table th:nth-child(6){width:17%}
+    .lesson-list-table th:nth-child(7){width:92px}
+    .lesson-list-table th:nth-child(8){width:72px}
+    .lesson-manage-actions{display:flex;gap:6px;flex-wrap:wrap}
+    .lesson-archive-details{margin-top:16px;border:1px solid #dbe3ee;border-radius:12px;background:#fbfdff;overflow:hidden}
+    .lesson-archive-details>summary{cursor:pointer;list-style:none;padding:13px 14px;font-weight:800;color:#153f63;display:flex;justify-content:space-between;align-items:center}
+    .lesson-archive-details>summary::-webkit-details-marker{display:none}
+    .lesson-archive-details>summary::after{content:'⌄';color:#60758a}
+    .lesson-archive-details[open]>summary::after{content:'⌃'}
+    .lesson-archive-body{padding:0 14px 14px;border-top:1px solid #e5ebf1}
+    .lesson-archive-note{margin:10px 0;color:#64748b;font-size:12px;line-height:1.5}
+    .lesson-row-test{background:#fffaf0}
+    .lesson-test-tag{display:inline-block;margin-left:5px;padding:2px 5px;border-radius:999px;background:#fff0c2;color:#8a5b00;font-size:10px;font-weight:800;vertical-align:1px}
+    .lesson-edit-banner{margin-bottom:12px;padding:10px 12px;border:1px solid #cbdbea;border-radius:10px;background:#f4f8fc;color:#214d72;font-size:13px;font-weight:700}
+    @media(max-width:1100px){
+      .lesson-form-grid{grid-template-columns:1fr}
+      .lesson-form-grid .form-row-full{grid-column:auto}
+      .lesson-list-toolbar{grid-template-columns:1fr 1fr}
+      .lesson-list-toolbar .lesson-toolbar-actions{grid-column:1/-1}
+      .lesson-previous-grid{grid-template-columns:1fr}
+      .lesson-list-table{min-width:1050px}
+    }
     .score-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) auto;gap:12px;align-items:end}
     .score-toolbar .form-row{margin:0}
     .score-toolbar button{min-height:44px}
@@ -547,6 +619,128 @@
         </section>
       </div>
 
+      <div id="lessonPage" class="page-panel hidden">
+        <div class="lesson-page-stack">
+          <section class="simple-page">
+            <div class="lesson-heading">
+              <div>
+                <h2>수업 내용</h2>
+                <p>반별 수업 내용과 누적 진도를 기록하고, 최근 기록을 필요한 범위만 조회합니다.</p>
+              </div>
+            </div>
+
+            <input type="hidden" id="editingLessonId">
+            <div id="lessonEditBanner" class="lesson-edit-banner hidden"></div>
+
+            <div class="lesson-form-grid">
+              <div class="form-row">
+                <label>반</label>
+                <select id="lessonClassId"><option value="">반 선택</option></select>
+              </div>
+              <div class="form-row">
+                <label>날짜</label>
+                <input type="date" id="lessonDate">
+              </div>
+
+              <div class="form-row form-row-full">
+                <div id="lessonPreviousBox" class="lesson-previous">
+                  <div class="lesson-previous-head">
+                    <div class="lesson-previous-title">지난 수업</div>
+                    <button id="lessonUsePreviousPlanBtn" class="btn-secondary btn-small" type="button" disabled>지난 계획을 학습 내용으로 불러오기</button>
+                  </div>
+                  <div id="lessonPreviousContent" class="muted" style="margin-top:8px">반을 선택하면 이전 수업 요약을 확인할 수 있습니다.</div>
+                </div>
+              </div>
+
+              <div class="form-row form-row-full">
+                <label>주제</label>
+                <input id="lessonTopic" placeholder="예: 자기소개, 가족 소개, TOPIK 어휘 정리">
+              </div>
+              <div class="form-row form-row-full">
+                <label>학습 내용</label>
+                <textarea id="lessonContent" rows="4" placeholder="예: 이름, 국적, 직업 말하기"></textarea>
+              </div>
+              <div class="form-row form-row-full">
+                <label>숙제</label>
+                <textarea id="lessonHomework" rows="3" placeholder="예: 자기소개 5문장 쓰기"></textarea>
+              </div>
+              <div class="form-row form-row-full">
+                <label>다음 계획</label>
+                <textarea id="lessonNextPlan" rows="3" placeholder="예: 가족 소개 / 문법 / 읽기 실전"></textarea>
+              </div>
+              <div class="form-row">
+                <label>누적 진도 수</label>
+                <input id="lessonProgressCurrentCount" type="number" min="0" step="1" placeholder="예: 8">
+                <div id="lessonProgressHint" class="lesson-progress-hint">반을 선택하면 목표 진도와 단위를 표시합니다.</div>
+              </div>
+            </div>
+
+            <details id="lessonAssignmentDetails" class="lesson-assignment-details">
+              <summary>학생별 과제 (선택)</summary>
+              <div class="lesson-assignment-body">
+                <div class="lesson-assignment-note">개별 과제가 필요한 경우에만 입력합니다. 비워 두면 저장하지 않으며, 학생 관리의 개별 지도 기록(StudentDailyRecords)과는 별도로 관리합니다.</div>
+                <div id="lessonAssignmentStatus" class="lesson-assignment-status">영역을 펼치면 선택한 반의 재학생만 표시합니다.</div>
+                <div id="lessonAssignmentList" class="lesson-assignment-list"></div>
+              </div>
+            </details>
+
+            <div class="action-row">
+              <button id="saveLessonBtn" class="btn-primary" type="button">수업 저장</button>
+              <button id="resetLessonBtn" class="btn-secondary" type="button">입력 초기화</button>
+            </div>
+            <div id="lessonDraftStatus" class="lesson-draft-status">임시저장 준비 중</div>
+            <div id="lessonResult" class="empty-box">수업을 입력하거나 기존 기록을 수정할 수 있습니다.</div>
+          </section>
+
+          <section class="simple-page">
+            <div class="lesson-heading">
+              <div>
+                <h2>저장된 수업 목록</h2>
+                <p>기본 30건만 불러오며 반과 날짜 범위를 지정해서 조회할 수 있습니다.</p>
+              </div>
+            </div>
+
+            <div class="lesson-list-toolbar">
+              <div class="form-row">
+                <label>반별 보기</label>
+                <select id="lessonListClassId"><option value="">전체</option></select>
+              </div>
+              <div class="form-row">
+                <label>시작일</label>
+                <input type="date" id="lessonListStartDate">
+              </div>
+              <div class="form-row">
+                <label>종료일</label>
+                <input type="date" id="lessonListEndDate">
+              </div>
+              <div class="form-row">
+                <label>조회 건수</label>
+                <select id="lessonListLimit"><option value="30">30건</option><option value="50">50건</option><option value="100">100건</option></select>
+              </div>
+              <div class="lesson-toolbar-actions" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+                <button id="loadLessonsBtn" class="btn-primary" type="button">조회</button>
+                <button id="resetLessonFilterBtn" class="btn-secondary" type="button">최근 30건</button>
+              </div>
+            </div>
+
+            <div id="lessonListStatus" class="lesson-list-status">수업 내용 메뉴를 열면 최근 기록만 불러옵니다.</div>
+            <div class="table-wrap"><div id="lessonListBox"></div></div>
+
+            <details id="lessonArchiveDetails" class="lesson-archive-details">
+              <summary>보관된 수업 기록</summary>
+              <div class="lesson-archive-body">
+                <div class="lesson-archive-note">수업 기록은 영구 삭제하지 않고 보관합니다. 보관된 기록은 필요할 때 다시 복원할 수 있습니다.</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                  <button id="loadArchivedLessonsBtn" class="btn-secondary" type="button">보관 기록 불러오기</button>
+                </div>
+                <div id="lessonArchiveStatus" class="lesson-list-status">필요할 때만 보관 기록을 조회합니다.</div>
+                <div class="table-wrap"><div id="lessonArchiveListBox"></div></div>
+              </div>
+            </details>
+          </section>
+        </div>
+      </div>
+
       <div id="reportPage" class="page-panel hidden">
         <iframe id="reportAttendanceFrame" src="./report_attendance.html" title="조회 / 출력 - 통합 출석 조회" style="display:block;width:100%;height:calc(100vh - 86px);min-height:900px;border:0;background:#f4f7fb"></iframe>
       </div>
@@ -581,6 +775,9 @@ import {
   listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord,
   loadAttendance, saveAttendance, saveAttendanceHoliday, clearAttendanceHoliday,
   getScoreHubSources, getScoreHubStudentSummary,
+  listLessons, getPreviousLesson, getLesson, saveLesson,
+  listLessonAssignments, saveLessonAssignments,
+  listArchivedLessons, archiveLesson, restoreArchivedLesson,
   getQrAttendanceSetup, startQrAttendanceSession, closeQrAttendanceSession
 } from '../src/api/api-client.js';
 
@@ -594,6 +791,13 @@ let attendanceLoadedRows=[];
 let attendanceHoliday=null;
 let qrAttendanceSetup=null;
 let qrDisplayUrl='';
+let lessonRows=[];
+let lessonArchiveRows=[];
+let lessonPrevious=null;
+let lessonPageInitialized=false;
+let lessonDraftTimer=null;
+let lessonAssignmentState={lessonId:'',loaded:false,touched:false,existingCount:0};
+const V2_LESSON_DRAFT_KEY='v2LessonDraft';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2);
@@ -660,7 +864,7 @@ function persistV2SessionState(page){
   }
 }
 function clearV2SessionState(){
-  clearV2SessionState();
+  sessionStorage.removeItem('v2SessionToken');
   sessionStorage.removeItem(V2_CURRENT_PAGE_KEY);
   localStorage.removeItem(V2_PERSISTENT_TOKEN_KEY);
   localStorage.removeItem(V2_PERSISTENT_PAGE_KEY);
@@ -672,13 +876,14 @@ function isV2AuthError(error){
 
 function switchPage(page){
   persistV2SessionState(page);
-  const realPage=['home','class','student','attendance','score','report'].includes(page)?page:'coming';
+  const realPage=['home','class','student','attendance','score','lesson','report'].includes(page)?page:'coming';
   const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
   $('homePage').classList.toggle('hidden',realPage!=='home');
   $('classPage').classList.toggle('hidden',realPage!=='class');
   $('studentPage').classList.toggle('hidden',realPage!=='student');
   $('attendancePage').classList.toggle('hidden',realPage!=='attendance');
   $('scorePage').classList.toggle('hidden',realPage!=='score');
+  $('lessonPage').classList.toggle('hidden',realPage!=='lesson');
   $('reportPage').classList.toggle('hidden',realPage!=='report');
   $('comingPage').classList.toggle('hidden',realPage!=='coming');
   document.querySelectorAll('.sidebar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
@@ -686,6 +891,7 @@ function switchPage(page){
   if(page==='student'){fillStudentClassOptions();renderStudentList();}
   if(page==='attendance'){fillAttendanceClassOptions();}
   if(page==='score'){fillScoreClassOptions();}
+  if(page==='lesson'&&currentTeacher){initLessonPage();}
   if(page==='home')updateHome();
   if(realPage==='coming'){
     $('comingTitle').textContent=titles[page]||'준비 중';
@@ -968,6 +1174,7 @@ async function refreshClasses(){
   const data=await listClasses(token,{includeClosed:true});
   classRows=data.classes||[];
   renderClassList();
+  if($('lessonClassId'))fillLessonClassOptions();
 }
 async function editClass(id){
   try{const d=await getClassDetail(token,id),i=d.classInfo||{};$('classId').value=i.classId||'';$('className').value=i.className||'';$('teacherName').value=i.teacherName||'';$('schedule').value=i.schedule||'';$('classroom').value=i.classroom||'';$('status').value=i.status||'운영중';$('targetProgressCount').value=i.targetProgressCount||'';$('targetProgressUnit').value=i.targetProgressUnit||'';$('scheduleGroups').innerHTML='';
@@ -1620,6 +1827,399 @@ function resetArchivedFilters(){
   $('archivedStudentListBox').textContent='보관 학생 조회 버튼을 눌러 목록을 확인합니다.';
 }
 
+
+function lessonActiveClasses(){
+  return classRows.filter(c=>String(c.status||'')!=='종료').slice().sort((a,b)=>String(a.className||'').localeCompare(String(b.className||''),'ko'));
+}
+function lessonClassInfo(classId){
+  return classRows.find(c=>String(c.classId||'')===String(classId||''))||null;
+}
+function fillLessonClassOptions(){
+  if(!$('lessonClassId')||!$('lessonListClassId'))return;
+  const active=lessonActiveClasses();
+  const editCurrent=$('lessonClassId').value;
+  const listCurrent=$('lessonListClassId').value;
+  const opts=active.map(c=>`<option value="${esc(c.classId)}">${esc(c.className||c.classId)} (${esc(c.classId)})</option>`).join('');
+  $('lessonClassId').innerHTML='<option value="">반 선택</option>'+opts;
+  $('lessonListClassId').innerHTML='<option value="">전체</option>'+opts;
+  if(editCurrent)$('lessonClassId').value=editCurrent;
+  if(listCurrent)$('lessonListClassId').value=listCurrent;
+  updateLessonProgressHint();
+}
+function lessonActiveStudents(classId){
+  return studentRows.filter(s=>String(s.status||'')==='재학'&&String(s.classId||'')===String(classId||''))
+    .slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ko'));
+}
+function resetLessonAssignmentUi(options={}){
+  lessonAssignmentState={lessonId:'',loaded:false,touched:false,existingCount:0};
+  const details=$('lessonAssignmentDetails');
+  const status=$('lessonAssignmentStatus');
+  const list=$('lessonAssignmentList');
+  if(details&&!options.keepOpen)details.open=false;
+  if(status){status.className='lesson-assignment-status';status.textContent='영역을 펼치면 선택한 반의 재학생만 표시합니다.'}
+  if(list)list.innerHTML='';
+}
+function renderLessonAssignmentInputs(existingMap={}){
+  const classId=$('lessonClassId').value;
+  const rows=lessonActiveStudents(classId);
+  const box=$('lessonAssignmentList');
+  if(!classId){box.innerHTML='<div class="lesson-assignment-empty">먼저 반을 선택해 주세요.</div>';return}
+  if(!rows.length){box.innerHTML='<div class="lesson-assignment-empty">선택한 반에 재학 중인 학생이 없습니다.</div>';return}
+  box.innerHTML=rows.map(s=>{
+    const old=existingMap[String(s.studentId||'')]||'';
+    return `<div class="lesson-assignment-row"><div class="lesson-assignment-student" title="${esc(s.name||s.studentId)}">${esc(s.name||s.studentId)}</div><input type="text" data-lesson-assignment-student="${esc(s.studentId)}" value="${esc(old)}" placeholder="개별 과제가 있을 때만 입력"></div>`;
+  }).join('');
+  box.querySelectorAll('[data-lesson-assignment-student]').forEach(el=>el.addEventListener('input',()=>{
+    lessonAssignmentState.touched=true;
+    const status=$('lessonAssignmentStatus');
+    status.className='lesson-assignment-status ok';
+    status.textContent='학생별 과제 변경사항이 있습니다. 수업 저장 시 함께 저장됩니다.';
+  }));
+}
+async function prepareLessonAssignments(){
+  const details=$('lessonAssignmentDetails');
+  if(!details||!details.open)return;
+  const classId=$('lessonClassId').value;
+  const lessonId=$('editingLessonId').value.trim();
+  if(!classId){renderLessonAssignmentInputs({});return}
+
+  if(!lessonId){
+    lessonAssignmentState={lessonId:'',loaded:true,touched:false,existingCount:0};
+    renderLessonAssignmentInputs({});
+    $('lessonAssignmentStatus').className='lesson-assignment-status';
+    $('lessonAssignmentStatus').textContent='새 수업입니다. 개별 과제가 필요한 학생만 입력하세요.';
+    return;
+  }
+
+  if(lessonAssignmentState.loaded&&lessonAssignmentState.lessonId===lessonId)return;
+  const status=$('lessonAssignmentStatus');
+  status.className='lesson-assignment-status loading';
+  status.textContent='저장된 학생별 과제를 불러오는 중입니다...';
+  try{
+    const data=await listLessonAssignments(token,lessonId);
+    const map={};
+    (data.assignments||[]).forEach(a=>{map[String(a.studentId||'')]=String(a.assignmentText||'')});
+    lessonAssignmentState={lessonId:lessonId,loaded:true,touched:false,existingCount:Number(data.count||0)};
+    renderLessonAssignmentInputs(map);
+    status.className='lesson-assignment-status ok';
+    status.textContent=data.count?`저장된 학생별 과제 ${data.count}건을 불러왔습니다.`:'저장된 학생별 과제가 없습니다.';
+  }catch(e){
+    lessonAssignmentState={lessonId:lessonId,loaded:false,touched:false,existingCount:0};
+    renderLessonAssignmentInputs({});
+    status.className='lesson-assignment-status error';
+    status.textContent='학생별 과제 불러오기 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+function collectLessonAssignments(){
+  return [...document.querySelectorAll('[data-lesson-assignment-student]')].map(el=>({
+    studentId:String(el.dataset.lessonAssignmentStudent||''),
+    assignmentText:String(el.value||'').trim()
+  }));
+}
+function resetLessonForm(options={}){
+  const keepDate=options.keepDate!==false;
+  const keepClass=options.keepClass===true;
+  const currentClass=keepClass&&$('lessonClassId')?$('lessonClassId').value:'';
+  $('editingLessonId').value='';
+  $('lessonClassId').value=currentClass;
+  $('lessonDate').value=keepDate?todayYmd():'';
+  $('lessonTopic').value='';
+  $('lessonContent').value='';
+  $('lessonHomework').value='';
+  $('lessonNextPlan').value='';
+  $('lessonProgressCurrentCount').value='';
+  $('lessonEditBanner').classList.add('hidden');
+  $('lessonEditBanner').textContent='';
+  lessonPrevious=null;
+  renderPreviousLesson(null);
+  resetLessonAssignmentUi();
+  updateLessonProgressHint();
+  clearLessonDraft();
+  if(currentClass)loadPreviousLesson();
+}
+function lessonDraftPayload(){
+  return {
+    lessonId:$('editingLessonId').value||'',
+    classId:$('lessonClassId').value||'',
+    date:$('lessonDate').value||'',
+    topic:$('lessonTopic').value||'',
+    content:$('lessonContent').value||'',
+    homework:$('lessonHomework').value||'',
+    nextPlan:$('lessonNextPlan').value||'',
+    progressCurrentCount:$('lessonProgressCurrentCount').value||'',
+    savedAt:Date.now()
+  };
+}
+function saveLessonDraft(){
+  if(!lessonPageInitialized)return;
+  const draft=lessonDraftPayload();
+  const hasText=draft.classId||draft.topic||draft.content||draft.homework||draft.nextPlan||draft.progressCurrentCount;
+  if(!hasText)return;
+  try{
+    localStorage.setItem(V2_LESSON_DRAFT_KEY,JSON.stringify(draft));
+    $('lessonDraftStatus').textContent='임시저장됨 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    $('lessonDraftStatus').className='lesson-draft-status ok';
+  }catch(e){}
+}
+function scheduleLessonDraft(){
+  clearTimeout(lessonDraftTimer);
+  lessonDraftTimer=setTimeout(saveLessonDraft,500);
+}
+function clearLessonDraft(){
+  clearTimeout(lessonDraftTimer);
+  try{localStorage.removeItem(V2_LESSON_DRAFT_KEY)}catch(e){}
+  if($('lessonDraftStatus')){
+    $('lessonDraftStatus').textContent='임시저장 준비됨';
+    $('lessonDraftStatus').className='lesson-draft-status';
+  }
+}
+function restoreLessonDraft(){
+  let draft=null;
+  try{draft=JSON.parse(localStorage.getItem(V2_LESSON_DRAFT_KEY)||'null')}catch(e){draft=null}
+  if(!draft||typeof draft!=='object')return;
+  const age=Date.now()-Number(draft.savedAt||0);
+  if(!Number.isFinite(age)||age>1000*60*60*24*7){clearLessonDraft();return}
+  if(draft.classId&&Array.from($('lessonClassId').options).some(o=>o.value===draft.classId))$('lessonClassId').value=draft.classId;
+  $('editingLessonId').value=draft.lessonId||'';
+  $('lessonDate').value=draft.date||todayYmd();
+  $('lessonTopic').value=draft.topic||'';
+  $('lessonContent').value=draft.content||'';
+  $('lessonHomework').value=draft.homework||'';
+  $('lessonNextPlan').value=draft.nextPlan||'';
+  $('lessonProgressCurrentCount').value=draft.progressCurrentCount||'';
+  if(draft.lessonId){$('lessonEditBanner').textContent='임시저장된 수정 초안을 복원했습니다: '+draft.lessonId;$('lessonEditBanner').classList.remove('hidden')}
+  $('lessonDraftStatus').textContent='임시저장 초안 복원됨';
+  $('lessonDraftStatus').className='lesson-draft-status ok';
+  updateLessonProgressHint();
+  if(draft.classId)loadPreviousLesson();
+}
+function updateLessonProgressHint(){
+  if(!$('lessonProgressHint'))return;
+  const info=lessonClassInfo($('lessonClassId').value);
+  if(!info){$('lessonProgressHint').textContent='반을 선택하면 목표 진도와 단위를 표시합니다.';return}
+  const unit=String(info.targetProgressUnit||'').trim()||'단위';
+  const target=Number(info.targetProgressCount||0);
+  const currentRaw=$('lessonProgressCurrentCount').value;
+  const current=currentRaw===''?null:Number(currentRaw);
+  let text='진도 단위: '+unit;
+  if(target>0){
+    text+=' · 목표 '+target+unit;
+    if(current!==null&&Number.isFinite(current))text+=' · 현재 '+current+unit+' / '+target+unit+' · '+Math.round((current/target)*1000)/10+'%';
+  }else if(current!==null&&Number.isFinite(current)){
+    text+=' · 현재 '+current+unit+' · 반 관리에서 목표 진도 수를 설정하면 진도율을 계산합니다.';
+  }else{
+    text+=' · 반 관리에서 목표 진도 수를 설정하면 진도율을 계산합니다.';
+  }
+  $('lessonProgressHint').innerHTML='<strong>'+esc(text)+'</strong>';
+}
+function renderPreviousLesson(row){
+  lessonPrevious=row||null;
+  const btn=$('lessonUsePreviousPlanBtn');
+  if(!row){
+    $('lessonPreviousContent').innerHTML='<span class="muted">'+($('lessonClassId').value?'이 날짜 이전의 수업 기록이 없습니다.':'반을 선택하면 이전 수업 요약을 확인할 수 있습니다.')+'</span>';
+    btn.disabled=true;
+    return;
+  }
+  const progress=row.progressCurrentCount===null||row.progressCurrentCount===''?'—':String(row.progressCurrentCount)+(row.progressUnit||'');
+  $('lessonPreviousContent').innerHTML=`<div class="lesson-previous-grid"><div class="lesson-previous-item"><div class="k">날짜 / 주제</div><div class="v">${esc(row.date||'—')} · ${esc(row.topic||'—')}</div></div><div class="lesson-previous-item"><div class="k">지난 누적 진도</div><div class="v">${esc(progress)}</div></div><div class="lesson-previous-item"><div class="k">지난 다음 계획</div><div class="v">${esc(row.nextPlan||'—')}</div></div></div>`;
+  btn.disabled=!String(row.nextPlan||'').trim();
+}
+async function loadPreviousLesson(){
+  const classId=$('lessonClassId').value;
+  const beforeDate=$('lessonDate').value||todayYmd();
+  updateLessonProgressHint();
+  if(!classId){renderPreviousLesson(null);return}
+  $('lessonPreviousContent').textContent='이전 수업을 확인하는 중입니다...';
+  $('lessonUsePreviousPlanBtn').disabled=true;
+  try{
+    const data=await getPreviousLesson(token,classId,beforeDate);
+    renderPreviousLesson(data.previousLesson||null);
+  }catch(e){
+    lessonPrevious=null;
+    $('lessonPreviousContent').textContent='이전 수업 확인 오류: '+e.message;
+  }
+}
+function lessonProgressText(row){
+  if(row.progressCurrentCount===null||row.progressCurrentCount==='')return '—';
+  let text=String(row.progressCurrentCount)+(row.progressUnit||'');
+  if(Number(row.targetProgressCount||0)>0&&row.progressPercent!==null&&row.progressPercent!==undefined)text+=' / '+row.targetProgressCount+(row.progressUnit||'')+' · '+row.progressPercent+'%';
+  return text;
+}
+function renderLessonList(){
+  const rows=lessonRows||[];
+  if(!rows.length){$('lessonListBox').innerHTML='<div class="empty-box">조회 조건에 해당하는 수업 기록이 없습니다.</div>';return}
+  $('lessonListBox').innerHTML=`<table class="lesson-list-table"><thead><tr><th>날짜</th><th>반</th><th>주제</th><th>학습 내용</th><th>숙제</th><th>다음 계획</th><th>누적 진도</th><th>관리</th></tr></thead><tbody>${rows.map(r=>{
+    const isTest=String(r.topic||'').includes('[STEP3 TEST]');
+    return `<tr class="${isTest?'lesson-row-test':''}"><td>${esc(r.date||'')}</td><td>${esc(r.className||r.classId||'')}</td><td>${esc(r.topic||'')}${isTest?'<span class="lesson-test-tag">진단행</span>':''}</td><td>${esc(r.content||'')}</td><td>${esc(r.homework||'')}</td><td>${esc(r.nextPlan||'')}</td><td>${esc(lessonProgressText(r))}</td><td><div class="lesson-manage-actions"><button class="btn-secondary btn-small" type="button" data-edit-lesson="${esc(r.lessonId||'')}">수정</button><button class="btn-secondary btn-small" type="button" data-archive-lesson="${esc(r.lessonId||'')}">보관</button></div></td></tr>`;
+  }).join('')}</tbody></table>`;
+  document.querySelectorAll('[data-edit-lesson]').forEach(b=>b.onclick=()=>editLesson(b.dataset.editLesson));
+  document.querySelectorAll('[data-archive-lesson]').forEach(b=>b.onclick=()=>archiveLessonFromList(b.dataset.archiveLesson));
+}
+function renderArchivedLessonList(){
+  const rows=lessonArchiveRows||[];
+  const box=$('lessonArchiveListBox');
+  if(!rows.length){box.innerHTML='<div class="empty-box">보관된 수업 기록이 없습니다.</div>';return}
+  box.innerHTML=`<table class="lesson-list-table"><thead><tr><th>날짜</th><th>반</th><th>주제</th><th>학습 내용</th><th>숙제</th><th>다음 계획</th><th>누적 진도</th><th>관리</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.date||'')}</td><td>${esc(r.className||r.classId||'')}</td><td>${esc(r.topic||'')}</td><td>${esc(r.content||'')}</td><td>${esc(r.homework||'')}</td><td>${esc(r.nextPlan||'')}</td><td>${esc(lessonProgressText(r))}</td><td><button class="btn-secondary btn-small" type="button" data-restore-lesson="${esc(r.lessonId||'')}">복원</button></td></tr>`).join('')}</tbody></table>`;
+  document.querySelectorAll('[data-restore-lesson]').forEach(b=>b.onclick=()=>restoreLessonFromArchive(b.dataset.restoreLesson));
+}
+async function loadArchivedLessonList(){
+  const status=$('lessonArchiveStatus');
+  status.className='lesson-list-status loading';
+  status.textContent='보관 기록을 불러오는 중입니다...';
+  try{
+    const data=await listArchivedLessons(token,{limit:30});
+    lessonArchiveRows=Array.isArray(data.rows)?data.rows:[];
+    renderArchivedLessonList();
+    status.className='lesson-list-status';
+    status.textContent=`${lessonArchiveRows.length}건 표시 · 전체 시트 읽기 ${data.diagnostics&&data.diagnostics.fullSheetRead===false?'안 함':'확인 필요'}`;
+  }catch(e){
+    status.className='lesson-list-status error';
+    status.textContent='보관 기록 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+async function archiveLessonFromList(lessonId){
+  const row=(lessonRows||[]).find(r=>String(r.lessonId||'')===String(lessonId||''));
+  if(!row)return;
+  if(!confirm(`이 수업 기록을 보관하시겠습니까?\n\n${row.date||''} · ${row.className||row.classId||''}\n${row.topic||''}\n\n영구 삭제하지 않으며 보관 목록에서 다시 복원할 수 있습니다.`))return;
+  try{
+    const data=await archiveLesson(token,lessonId);
+    show('lessonResult',`수업 기록을 보관했습니다. ID: ${data.lessonId}`);
+    await loadLessonList();
+    if($('lessonArchiveDetails').open)await loadArchivedLessonList();
+  }catch(e){show('lessonResult','수업 보관 오류: '+e.message+(e.code?' ['+e.code+']':''))}
+}
+async function restoreLessonFromArchive(lessonId){
+  const row=(lessonArchiveRows||[]).find(r=>String(r.lessonId||'')===String(lessonId||''));
+  if(!row)return;
+  if(!confirm(`이 수업 기록을 다시 복원하시겠습니까?\n\n${row.date||''} · ${row.className||row.classId||''}\n${row.topic||''}`))return;
+  try{
+    const data=await restoreArchivedLesson(token,lessonId);
+    show('lessonResult',`보관된 수업 기록을 복원했습니다. ID: ${data.lessonId}`);
+    await loadArchivedLessonList();
+    await loadLessonList();
+  }catch(e){show('lessonResult','수업 복원 오류: '+e.message+(e.code?' ['+e.code+']':''))}
+}
+
+async function loadLessonList(options={}){
+  const status=$('lessonListStatus');
+  const query={
+    classId:$('lessonListClassId').value||'',
+    startDate:$('lessonListStartDate').value||'',
+    endDate:$('lessonListEndDate').value||'',
+    limit:Number($('lessonListLimit').value||30)
+  };
+  status.className='lesson-list-status loading';
+  status.textContent='수업 기록을 불러오는 중입니다...';
+  try{
+    const data=await listLessons(token,query);
+    lessonRows=Array.isArray(data.rows)?data.rows:[];
+    renderLessonList();
+    status.className='lesson-list-status';
+    status.textContent=`${lessonRows.length}건 표시 · 서버 스캔 ${data.diagnostics&&data.diagnostics.scannedRows!=null?data.diagnostics.scannedRows:'—'}행 · 전체 시트 읽기 ${data.diagnostics&&data.diagnostics.fullSheetRead===false?'안 함':'확인 필요'}`;
+    if(options.scrollToList)$('lessonListBox').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    status.className='lesson-list-status error';
+    status.textContent='수업 목록 오류: '+e.message+(e.code?' ['+e.code+']':'');
+  }
+}
+async function editLesson(lessonId){
+  if(!lessonId)return;
+  try{
+    const data=await getLesson(token,lessonId);
+    const row=data.lesson||{};
+    $('editingLessonId').value=row.lessonId||'';
+    fillLessonClassOptions();
+    $('lessonClassId').value=row.classId||'';
+    $('lessonDate').value=row.date||todayYmd();
+    $('lessonTopic').value=row.topic||'';
+    $('lessonContent').value=row.content||'';
+    $('lessonHomework').value=row.homework||'';
+    $('lessonNextPlan').value=row.nextPlan||'';
+    $('lessonProgressCurrentCount').value=row.progressCurrentCount===null||row.progressCurrentCount===undefined?'':row.progressCurrentCount;
+    $('lessonEditBanner').textContent='현재 수정 중: '+(row.className||row.classId||'')+' / '+(row.date||'')+' / '+(row.lessonId||'');
+    $('lessonEditBanner').classList.remove('hidden');
+    resetLessonAssignmentUi();
+    $('lessonAssignmentStatus').textContent='이 수업의 학생별 과제가 필요하면 영역을 펼쳐 불러오세요.';
+    updateLessonProgressHint();
+    await loadPreviousLesson();
+    scheduleLessonDraft();
+    show('lessonResult','기존 수업 기록을 수정 모드로 불러왔습니다.');
+    $('lessonPage').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){show('lessonResult','수업 불러오기 오류: '+e.message+(e.code?' ['+e.code+']':''))}
+}
+async function saveLessonFromForm(){
+  const lessonData={
+    lessonId:$('editingLessonId').value.trim(),
+    classId:$('lessonClassId').value,
+    date:$('lessonDate').value,
+    topic:$('lessonTopic').value.trim(),
+    content:$('lessonContent').value.trim(),
+    homework:$('lessonHomework').value.trim(),
+    nextPlan:$('lessonNextPlan').value.trim(),
+    progressCurrentCount:$('lessonProgressCurrentCount').value
+  };
+  if(!lessonData.classId){show('lessonResult','반을 선택해 주세요.');return}
+  if(!lessonData.date){show('lessonResult','날짜를 선택해 주세요.');return}
+  if(!lessonData.topic){show('lessonResult','주제를 입력해 주세요.');return}
+  const btn=$('saveLessonBtn');
+  btn.disabled=true;
+  const old=btn.textContent;
+  btn.textContent='저장 중...';
+  try{
+    const assignmentTouched=lessonAssignmentState.touched;
+    const assignmentPayload=assignmentTouched?collectLessonAssignments():[];
+    const data=await saveLesson(token,lessonData);
+    let assignmentMessage='';
+    if(assignmentTouched){
+      try{
+        const ar=await saveLessonAssignments(token,{lessonId:data.lessonId,assignments:assignmentPayload});
+        assignmentMessage=` · 학생별 과제 ${ar.created||0}건 생성 / ${ar.updated||0}건 수정 / ${ar.deleted||0}건 삭제`;
+      }catch(ae){
+        $('editingLessonId').value=data.lessonId||lessonData.lessonId||'';
+        $('lessonEditBanner').textContent='수업 기록은 저장되었지만 학생별 과제 저장을 다시 확인해야 합니다: '+(data.lessonId||'');
+        $('lessonEditBanner').classList.remove('hidden');
+        show('lessonResult','수업 기록은 저장되었습니다. 학생별 과제 저장 오류: '+ae.message+(ae.code?' ['+ae.code+']':''));
+        return;
+      }
+    }
+    clearLessonDraft();
+    show('lessonResult',(data.mode==='updated'?'수업 기록을 수정했습니다.':'수업 기록을 저장했습니다.')+' ID: '+data.lessonId+assignmentMessage);
+    const savedClass=lessonData.classId;
+    resetLessonForm({keepDate:true,keepClass:true});
+    $('lessonClassId').value=savedClass;
+    $('lessonListClassId').value=savedClass;
+    await loadPreviousLesson();
+    await loadLessonList();
+  }catch(e){show('lessonResult','수업 저장 오류: '+e.message+(e.code?' ['+e.code+']':''))}
+  finally{btn.disabled=false;btn.textContent=old}
+}
+function resetLessonFilters(){
+  $('lessonListClassId').value='';
+  $('lessonListStartDate').value='';
+  $('lessonListEndDate').value='';
+  $('lessonListLimit').value='30';
+  loadLessonList();
+}
+function bindLessonDraftEvents(){
+  ['lessonClassId','lessonDate','lessonTopic','lessonContent','lessonHomework','lessonNextPlan','lessonProgressCurrentCount'].forEach(id=>{
+    const el=$(id);if(!el)return;
+    el.addEventListener('input',scheduleLessonDraft);
+    el.addEventListener('change',scheduleLessonDraft);
+  });
+}
+async function initLessonPage(){
+  fillLessonClassOptions();
+  if(!lessonPageInitialized){
+    lessonPageInitialized=true;
+    if(!$('lessonDate').value)$('lessonDate').value=todayYmd();
+    bindLessonDraftEvents();
+    restoreLessonDraft();
+    await loadLessonList();
+    return;
+  }
+  updateLessonProgressHint();
+}
+
 async function restoreV2SessionAfterRefresh(){
   const savedPage=sessionStorage.getItem(V2_CURRENT_PAGE_KEY)||localStorage.getItem(V2_PERSISTENT_PAGE_KEY)||'home';
 
@@ -1702,7 +2302,7 @@ $('passwordToggleBtn').onclick=()=>{
   input.type=showing?'password':'text';
   $('passwordToggleBtn').textContent=showing?'보기':'숨기기';
 };
-$('logoutBtn').onclick=async()=>{try{if(token)await logout(token)}catch(e){}token='';currentTeacher=null;classRows=[];studentRows=[];sessionStorage.removeItem('v2SessionToken');setLoggedIn(false);show('loginResult','로그아웃되었습니다.')};
+$('logoutBtn').onclick=async()=>{try{if(token)await logout(token)}catch(e){}token='';currentTeacher=null;classRows=[];studentRows=[];clearV2SessionState();updateAuthLabel();setLoggedIn(false);show('loginResult','로그아웃되었습니다.')};
 $('navHomeBtn').onclick=()=>switchPage('home');
 $('navClassBtn').onclick=()=>switchPage('class');
 $('navStudentBtn').onclick=()=>switchPage('student');
@@ -1722,6 +2322,17 @@ $('attendanceClassId').onchange=onAttendanceContextChanged;
 $('attendanceDate').onchange=onAttendanceContextChanged;
 $('navScoreBtn').onclick=()=>switchPage('score');
 $('navLessonBtn').onclick=()=>switchPage('lesson');
+$('lessonClassId').onchange=async()=>{resetLessonAssignmentUi();updateLessonProgressHint();scheduleLessonDraft();await loadPreviousLesson()};
+$('lessonAssignmentDetails').addEventListener('toggle',()=>{if($('lessonAssignmentDetails').open)prepareLessonAssignments()});
+$('lessonDate').onchange=async()=>{scheduleLessonDraft();await loadPreviousLesson()};
+$('lessonProgressCurrentCount').oninput=()=>{updateLessonProgressHint();scheduleLessonDraft()};
+$('lessonUsePreviousPlanBtn').onclick=()=>{if(!lessonPrevious||!lessonPrevious.nextPlan)return;$('lessonContent').value=lessonPrevious.nextPlan;scheduleLessonDraft();show('lessonResult','지난 수업의 다음 계획을 오늘 학습 내용에 불러왔습니다.')};
+$('saveLessonBtn').onclick=saveLessonFromForm;
+$('loadArchivedLessonsBtn').onclick=loadArchivedLessonList;
+$('lessonArchiveDetails').addEventListener('toggle',()=>{if($('lessonArchiveDetails').open&&!lessonArchiveRows.length)loadArchivedLessonList()});
+$('resetLessonBtn').onclick=()=>{resetLessonForm({keepDate:true,keepClass:false});show('lessonResult','수업 입력값을 초기화했습니다.')};
+$('loadLessonsBtn').onclick=()=>loadLessonList();
+$('resetLessonFilterBtn').onclick=resetLessonFilters;
 $('navReportBtn').onclick=()=>switchPage('report');
 $('navTeacherBtn').onclick=()=>switchPage('teacher');
 $('scoreClassId').onchange=()=>{fillScoreStudentOptions();};
@@ -1745,6 +2356,7 @@ $('refreshBtn').onclick=async()=>{
     updateHome();
     if(currentPage==='student'){fillStudentClassOptions();renderStudentList()}
     if(currentPage==='attendance'){fillAttendanceClassOptions()}
+    if(currentPage==='lesson'){fillLessonClassOptions();await loadLessonList()}
     status.className='refresh-status ok';
     status.textContent='최신 상태 반영';
     setTimeout(()=>{if(status.textContent==='최신 상태 반영')status.textContent=''},2200);
@@ -1789,7 +2401,7 @@ $('saveStudentBtn').onclick=async()=>{
   try{const r=await saveStudent(token,data);show('studentResult',data.studentId?'학생 정보가 수정되었습니다.':'학생이 등록되었습니다. ID: '+r.studentId);resetStudentForm();await refreshStudents();if(isArchivedStatus(data.status)){$('studentSectionArchived').classList.add('open');await loadArchivedStudents()}else{$('studentSectionList').classList.add('open')}}catch(e){show('studentResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}
 };
 
-resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();resetAttendanceForm();restoreV2SessionAfterRefresh();
+resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();resetAttendanceForm();if($('lessonDate'))$('lessonDate').value=todayYmd();restoreV2SessionAfterRefresh();
 </script>
 </body>
 </html>
