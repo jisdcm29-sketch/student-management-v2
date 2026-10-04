@@ -58,6 +58,7 @@ export const getScoreHubSources = sessionToken => callApi('scoreHub.sources', { 
 export const getScoreHubStudentSummary = (sessionToken, studentId) => callApi('scoreHub.studentSummary', { sessionToken, studentId });
 
 export const getStudentAttendanceHistory = (sessionToken, studentId, options = {}) => callApi('report.attendance.student', { sessionToken, studentId, options });
+export const getStudentSummaryReport = (sessionToken, studentId, options = {}) => callApi('report.student.summary', { sessionToken, studentId, options });
 
 export const getQrAttendanceSetup = (sessionToken, options = {}) => callApi('qrAttendance.setup', { sessionToken, options });
 export const startQrAttendanceSession = (sessionToken, sessionData) => callApi('qrAttendance.start', { sessionToken, sessionData });
