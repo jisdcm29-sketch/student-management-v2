@@ -60,6 +60,20 @@ export const getScoreHubStudentSummary = (sessionToken, studentId) => callApi('s
 export const getStudentAttendanceHistory = (sessionToken, studentId, options = {}) => callApi('report.attendance.student', { sessionToken, studentId, options });
 export const getStudentSummaryReport = (sessionToken, studentId, options = {}) => callApi('report.student.summary', { sessionToken, studentId, options });
 
+export const listLessons = (sessionToken, options = {}) => callApi('lessons.list', { sessionToken, options });
+export const getPreviousLesson = (sessionToken, classId, beforeDate = '') => callApi('lessons.previous', { sessionToken, classId, beforeDate });
+export const getLesson = (sessionToken, lessonId) => callApi('lessons.get', { sessionToken, lessonId });
+export const saveLesson = (sessionToken, lessonData) => callApi('lessons.save', { sessionToken, lessonData });
+export const listLessonAssignments = (sessionToken, lessonId) => callApi('lessons.assignments.list', { sessionToken, lessonId });
+export const saveLessonAssignments = (sessionToken, assignmentData) => callApi('lessons.assignments.save', { sessionToken, assignmentData });
+export const listArchivedLessons = (sessionToken, options = {}) => callApi('lessons.archive.list', { sessionToken, options });
+export const archiveLesson = (sessionToken, lessonId) => callApi('lessons.archive', { sessionToken, lessonId });
+export const restoreArchivedLesson = (sessionToken, lessonId) => callApi('lessons.restore', { sessionToken, lessonId });
+export const previewLessonMigrationStep7C = sessionToken => callApi('lessons.migration.preview', { sessionToken });
+export const executeLessonMigrationStep7C = (sessionToken, confirmText) => callApi('lessons.migration.execute', { sessionToken, confirmText });
+export const previewLessonTestCleanupStep7E = sessionToken => callApi('lessons.migration.cleanup.preview', { sessionToken });
+export const executeLessonTestCleanupStep7E = (sessionToken, confirmText) => callApi('lessons.migration.cleanup.execute', { sessionToken, confirmText });
+
 export const getQrAttendanceSetup = (sessionToken, options = {}) => callApi('qrAttendance.setup', { sessionToken, options });
 export const startQrAttendanceSession = (sessionToken, sessionData) => callApi('qrAttendance.start', { sessionToken, sessionData });
 export const closeQrAttendanceSession = (sessionToken, sessionData) => callApi('qrAttendance.close', { sessionToken, sessionData });
