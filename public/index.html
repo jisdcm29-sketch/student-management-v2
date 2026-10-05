@@ -1175,7 +1175,16 @@ import {
   getQrAttendanceSetup, startQrAttendanceSession, closeQrAttendanceSession
 } from '../src/api/api-client.js';
 
-let token=sessionStorage.getItem('v2SessionToken')||localStorage.getItem('v2SessionTokenPersistent')||'';
+const v2NavigationEntry=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];
+const v2NavigationType=v2NavigationEntry&&v2NavigationEntry.type?v2NavigationEntry.type:'navigate';
+if(v2NavigationType!=='reload'){
+  sessionStorage.removeItem('v2SessionToken');
+  sessionStorage.removeItem('v2CurrentPage');
+}
+// Remove legacy persistent login state. Teacher ID preference is kept separately.
+localStorage.removeItem('v2SessionTokenPersistent');
+localStorage.removeItem('v2CurrentPagePersistent');
+let token=sessionStorage.getItem('v2SessionToken')||'';
 let currentTeacher=null;
 let classRows=[];
 let studentRows=[];
@@ -1270,9 +1279,7 @@ const show=(id,msg)=>$(id).textContent=typeof msg==='string'?msg:JSON.stringify(
 function setLoggedIn(on){$('loginCard').classList.toggle('hidden',on);$('appArea').classList.toggle('hidden',!on)}
 const V2_REMEMBER_TEACHER_KEY='v2RememberTeacherId';
 const V2_CURRENT_PAGE_KEY='v2CurrentPage';
-const V2_PERSISTENT_TOKEN_KEY='v2SessionTokenPersistent';
-const V2_PERSISTENT_PAGE_KEY='v2CurrentPagePersistent';
-const V2_REFRESH_FIX_VERSION='2026-10-04-v5';
+const V2_REFRESH_FIX_VERSION='2026-10-05-session-fix1';
 function restoreRememberedTeacherId(){
   const saved=localStorage.getItem(V2_REMEMBER_TEACHER_KEY)||'';
   if(saved){$('teacherId').value=saved;$('rememberTeacherId').checked=true}
@@ -1398,20 +1405,15 @@ function updateHome(){
   else renderHomeFallback();
 }
 function persistV2SessionState(page){
-  if(token){
-    sessionStorage.setItem('v2SessionToken',token);
-    localStorage.setItem(V2_PERSISTENT_TOKEN_KEY,token);
-  }
-  if(page){
-    sessionStorage.setItem(V2_CURRENT_PAGE_KEY,page);
-    localStorage.setItem(V2_PERSISTENT_PAGE_KEY,page);
-  }
+  if(token)sessionStorage.setItem('v2SessionToken',token);
+  if(page)sessionStorage.setItem(V2_CURRENT_PAGE_KEY,page);
 }
 function clearV2SessionState(){
   sessionStorage.removeItem('v2SessionToken');
   sessionStorage.removeItem(V2_CURRENT_PAGE_KEY);
-  localStorage.removeItem(V2_PERSISTENT_TOKEN_KEY);
-  localStorage.removeItem(V2_PERSISTENT_PAGE_KEY);
+  // Clean up legacy persistent login values from earlier versions.
+  localStorage.removeItem('v2SessionTokenPersistent');
+  localStorage.removeItem('v2CurrentPagePersistent');
 }
 function isV2AuthError(error){
   const code=String(error&&error.code||'');
@@ -4076,7 +4078,7 @@ async function initLessonPage(){
 }
 
 async function restoreV2SessionAfterRefresh(){
-  const savedPage=sessionStorage.getItem(V2_CURRENT_PAGE_KEY)||localStorage.getItem(V2_PERSISTENT_PAGE_KEY)||'home';
+  const savedPage=sessionStorage.getItem(V2_CURRENT_PAGE_KEY)||'home';
 
   if(!token){
     currentTeacher=null;
