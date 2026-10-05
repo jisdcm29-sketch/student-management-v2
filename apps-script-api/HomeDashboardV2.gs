@@ -85,17 +85,31 @@ function homeExplicitClassBookV2_(lesson) {
   return homeNormalizeSnuBookV2_(lesson.topic);
 }
 
+function homeDefaultClassBookV2_(classId) {
+  const id = homeTextV2_(classId);
+  // Confirmed operating-class baselines (2026-10-06):
+  // C-014 = 3 PM class, SNU-2A; C-013 = 5 PM class, SNU-1A.
+  if (id === 'C-014') return 'SNU-2A';
+  if (id === 'C-013') return 'SNU-1A';
+  return '';
+}
+
+function homeResolvedClassBookV2_(lesson) {
+  if (!lesson) return '';
+  return homeExplicitClassBookV2_(lesson) || homeDefaultClassBookV2_(lesson.classId);
+}
+
 function homeClassProgressOrdinalV2_(lesson) {
   if (!lesson) return null;
   const raw = homeNumberV2_(lesson.progressCurrentCount, null);
   if (raw === null || raw <= 0) return null;
 
-  // Legacy advanced-class records can store the lesson number within a book
-  // (for example SNU-2A 6과 => 6), while newer records can store the cumulative
-  // SNU ordinal. If the topic explicitly names a book, normalize that legacy value.
-  const explicitBook = homeExplicitClassBookV2_(lesson);
-  if (explicitBook) {
-    const normalized = homeSnuProgressOrdinalV2_(explicitBook, raw);
+  // Some class records store the lesson number within that class's base book
+  // (for example C-014 SNU-2A 6과 => raw 6), while newer records can store the
+  // cumulative SNU ordinal. Resolve the class book first, then normalize safely.
+  const classBook = homeResolvedClassBookV2_(lesson);
+  if (classBook) {
+    const normalized = homeSnuProgressOrdinalV2_(classBook, raw);
     if (normalized !== null) return normalized;
   }
 
@@ -217,6 +231,11 @@ function homeProgressDisplayV2_(lesson) {
   if (!lesson) return '';
   const current = homeNumberV2_(lesson.progressCurrentCount, null);
   if (current !== null && current > 0) {
+    const classBook = homeResolvedClassBookV2_(lesson);
+    if (classBook) {
+      const normalized = homeSnuProgressOrdinalV2_(classBook, current);
+      if (normalized !== null) return classBook.replace('SNU-', '') + ' ' + current + '과';
+    }
     return String(current) + homeTextV2_(lesson.progressUnit || '');
   }
   return homeTextV2_(lesson.topic);
