@@ -66,7 +66,15 @@
     .dashboard-head-note{font-size:12px;color:#718096;text-align:right;white-space:nowrap}
     .home-attention-breakdown{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:7px}
     .home-mini-chip{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid #d9e3ee;border-radius:999px;background:#f8fbff;color:#466079;font-size:11px;font-weight:700}
-    .home-dashboard-status{font-size:12px;color:#718096;margin-top:8px;text-align:right}
+    
+    .home-loading-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;padding-top:110px;background:rgba(248,250,252,.88);backdrop-filter:blur(2px)}
+    .home-loading-overlay.hidden{display:none}
+    #homePage{position:relative;min-height:420px}
+    .home-loading-card{display:flex;align-items:center;gap:14px;min-width:300px;max-width:440px;padding:18px 22px;border:1px solid #dbe6f2;border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(18,56,91,.12)}
+    .home-loading-spinner{width:28px;height:28px;border:3px solid #dce8f4;border-top-color:#1f6fa8;border-radius:50%;animation:homeSpin .8s linear infinite;flex:0 0 auto}
+    .home-loading-title{font-weight:800;color:#12385b;font-size:15px}.home-loading-message{margin-top:4px;color:#64748b;font-size:13px;line-height:1.45}
+    @keyframes homeSpin{to{transform:rotate(360deg)}}
+.home-dashboard-status{font-size:12px;color:#718096;margin-top:8px;text-align:right}
     .home-dashboard-status.error{color:#b42318;font-weight:700}
 
     /* Teacher manual scores - Step 16A */
@@ -278,6 +286,14 @@
     .qr-display-code{display:flex;align-items:center;justify-content:center;background:#fff;padding:16px}
     .qr-display-code img,.qr-display-code canvas{display:block;max-width:78vmin!important;max-height:78vmin!important;width:auto!important;height:auto!important}
     .qr-display-hint{position:absolute;bottom:18px;left:20px;right:20px;text-align:center;color:#7a8896;font-size:clamp(12px,1.15vw,16px)}
+    .attendance-qr-live-notice{margin-top:12px;padding:14px 16px;border:1px solid #cfe0ef;border-radius:12px;background:#f6fbff;color:#173f63;font-weight:800;min-height:52px;display:flex;align-items:center;gap:10px}
+    .attendance-qr-live-notice .qr-live-dot{width:10px;height:10px;border-radius:50%;background:#77a7ca;box-shadow:0 0 0 5px rgba(62,130,180,.10);flex:0 0 auto}
+    .attendance-qr-live-notice.is-checkin{background:#eaf7ef;border-color:#b9dfc9;color:#17603a}
+    .attendance-qr-live-notice.is-late{background:#fff7e6;border-color:#f0d29b;color:#8a5a00}
+    .qr-display-live-notice{position:absolute;bottom:54px;left:50%;transform:translateX(-50%);z-index:2;min-width:min(720px,86vw);max-width:90vw;padding:18px 26px;border-radius:18px;background:rgba(20,78,120,.94);color:#fff;text-align:center;font-size:clamp(20px,2.6vw,34px);font-weight:900;box-shadow:0 12px 30px rgba(15,52,85,.22);opacity:.88}
+    .qr-display-live-notice.is-checkin{background:rgba(25,117,74,.96);opacity:1}
+    .qr-display-live-notice.is-late{background:rgba(165,103,0,.96);opacity:1}
+    .qr-display-live-name{font-size:1.18em;margin-right:.25em}
     @media(max-width:720px){.qr-display-overlay{padding:12px}.qr-display-top{top:10px;left:12px;right:12px}.qr-display-close{padding:8px 10px}.qr-display-code img,.qr-display-code canvas{max-width:86vmin!important;max-height:86vmin!important}}
     @media(max-width:720px){.attendance-qr-grid{grid-template-columns:1fr}.attendance-qr-session-layout{align-items:flex-start}}
     /* Lesson content - Step 4 */
@@ -487,6 +503,12 @@
         </div>
       </header>
       <div id="homePage" class="page-panel">
+        <div id="homeLoadingOverlay" class="home-loading-overlay hidden" aria-live="polite" aria-busy="true">
+          <div class="home-loading-card">
+            <span class="home-loading-spinner" aria-hidden="true"></span>
+            <div><div class="home-loading-title">홈 화면을 준비하고 있습니다.</div><div id="homeLoadingMessage" class="home-loading-message">반·학생·출결 현황을 확인하는 중입니다...</div></div>
+          </div>
+        </div>
         <section class="simple-page">
           <div class="dashboard-head">
             <p class="dashboard-intro">오늘 관리에 필요한 반·학생·출결 현황을 먼저 확인합니다.</p>
@@ -1158,6 +1180,7 @@
     <button id="qrDisplayCloseBtn" class="qr-display-close" type="button">닫기</button>
   </div>
   <div id="qrDisplayCode" class="qr-display-code"></div>
+  <div id="qrDisplayLiveNotice" class="qr-display-live-notice">학생 출석을 기다리는 중...</div>
   <div class="qr-display-hint">학생은 휴대전화 카메라로 QR 코드를 촬영하세요.</div>
 </div>
 
@@ -1202,6 +1225,15 @@ let attendanceHoliday=null;
 let qrAttendanceSetup=null;
 let qrSetupRequestSerial=0;
 let qrAvailabilityTimer=null;
+let qrLivePollTimer=null;
+let qrLivePolling=false;
+let qrLivePrimed=false;
+let qrLiveSessionKey='';
+let qrLiveSeenIds=new Set();
+let qrLiveAudioContext=null;
+const QR_LIVE_POLL_MS=4000;
+let qrAutoFinalizeBusy=false;
+let qrAutoFinalizeLastSessionId='';
 let qrDisplayUrl='';
 let lessonRows=[];
 let lessonArchiveRows=[];
@@ -1233,6 +1265,7 @@ let lessonDraftTimer=null;
 let lessonAssignmentState={lessonId:'',loaded:false,touched:false,existingCount:0};
 let homeDashboardData=null;
 let homeDashboardLoading=false;
+let homeDashboardPromise=null;
 let homeDashboardDirty=false;
 let homeAttentionQueriedClassId='';
 const V2_LESSON_DRAFT_KEY='v2LessonDraft';
@@ -1385,20 +1418,41 @@ function renderHomeDashboard(data){
   }
 }
 function markHomeDashboardDirty(){homeDashboardDirty=true}
+function setHomeLoading(on,message){
+  const overlay=$('homeLoadingOverlay');
+  const messageEl=$('homeLoadingMessage');
+  if(messageEl&&message)messageEl.textContent=message;
+  if(overlay){
+    const homeVisible=$('homePage')&&!$('homePage').classList.contains('hidden');
+    overlay.classList.toggle('hidden',!(on&&homeVisible));
+    overlay.setAttribute('aria-busy',on?'true':'false');
+  }
+}
 async function loadHomeDashboard(options={}){
-  if(!token||homeDashboardLoading)return;
+  if(!token)return null;
+  if(homeDashboardPromise)return homeDashboardPromise;
   const force=options.force===true||homeDashboardDirty===true;
   homeDashboardLoading=true;
   const status=$('homeDashboardStatus');
   if(status){status.className='home-dashboard-status';status.textContent='대시보드 데이터를 확인하는 중입니다...'}
-  try{
-    const data=await getHomeDashboard(token,{forceRefresh:force});
-    renderHomeDashboard(data);
-    homeDashboardDirty=false;
-  }catch(e){
-    renderHomeFallback();
-    if(status){status.className='home-dashboard-status error';status.textContent='대시보드 일부 데이터를 불러오지 못했습니다: '+e.message+(e.code?' ['+e.code+']':'')}
-  }finally{homeDashboardLoading=false}
+  setHomeLoading(true,force?'최신 홈 데이터를 다시 계산하는 중입니다...':'반·학생·출결 현황을 불러오는 중입니다...');
+  homeDashboardPromise=(async()=>{
+    try{
+      const data=await getHomeDashboard(token,{forceRefresh:force});
+      renderHomeDashboard(data);
+      homeDashboardDirty=false;
+      return data;
+    }catch(e){
+      renderHomeFallback();
+      if(status){status.className='home-dashboard-status error';status.textContent='대시보드 일부 데이터를 불러오지 못했습니다: '+e.message+(e.code?' ['+e.code+']':'')}
+      throw e;
+    }finally{
+      homeDashboardLoading=false;
+      setHomeLoading(false);
+    }
+  })();
+  try{return await homeDashboardPromise}
+  finally{homeDashboardPromise=null}
 }
 function updateHome(){
   if(homeDashboardData&&!homeDashboardDirty)renderHomeDashboard(homeDashboardData);
@@ -2261,11 +2315,23 @@ function resetScorePage(){
   resetManualScoreForm();
 }
 
+function resetHomeAttentionQuery(){
+  homeAttentionQueriedClassId='';
+  const classSel=$('homeAttentionClassId');
+  if(classSel)classSel.value='';
+  const body=$('homeAttentionBody');
+  if(body)body.innerHTML='<tr><td colspan="4" class="dashboard-empty">반을 선택하고 조회해 주세요.</td></tr>';
+}
+
 function switchPage(page){
+  const homeWasVisible=$('homePage')&&!$('homePage').classList.contains('hidden');
   const reportWasVisible=$('reportPage')&&!$('reportPage').classList.contains('hidden');
   const scoreWasVisible=$('scorePage')&&!$('scorePage').classList.contains('hidden');
+  const attendanceWasVisible=$('attendancePage')&&!$('attendancePage').classList.contains('hidden');
+  if(homeWasVisible&&page!=='home')resetHomeAttentionQuery();
   if(reportWasVisible&&page!=='report')resetReportPageR1();
   if(scoreWasVisible&&page!=='score')resetScorePage();
+  if(attendanceWasVisible&&page!=='attendance')resetAttendanceForm();
   persistV2SessionState(page);
   const realPage=['home','class','student','attendance','score','lesson','report'].includes(page)?page:'coming';
   const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
@@ -2284,7 +2350,7 @@ function switchPage(page){
   if(page==='score'){fillScoreClassOptions();}
   if(page==='lesson'&&currentTeacher){initLessonPage();}
   if(page==='report'&&currentTeacher){initReportPage();}
-  if(page==='home'){updateHome();if(currentTeacher)loadHomeDashboard({force:homeDashboardDirty});}
+  if(page==='home'){updateHome();if(currentTeacher&&(!homeDashboardData||homeDashboardDirty))loadHomeDashboard({force:homeDashboardDirty}).catch(()=>{});}
   if(realPage==='coming'){
     $('comingTitle').textContent=titles[page]||'준비 중';
   }
@@ -3257,9 +3323,175 @@ function updateQrAttendanceAvailability(){
   btn.title=reason;
   btn.setAttribute('aria-disabled',disabled?'true':'false');
 }
+function qrSessionEndedOnClient(session){
+  if(!session)return false;
+  const date=String(session.date||'').trim();
+  const endTime=String(session.endTime||'').trim();
+  if(!date||!endTime)return false;
+  const today=todayYmd();
+  if(date<today)return true;
+  if(date>today)return false;
+  const endMin=qrClientTimeToMinutes(endTime);
+  return endMin>=0&&qrCurrentMinutes()>=endMin;
+}
+async function checkQrAttendanceAutoFinalize(){
+  if(qrAutoFinalizeBusy||!token||!qrAttendanceSetup||!qrAttendanceSetup.activeSession)return;
+  const session=qrAttendanceSetup.activeSession;
+  if(!qrSessionEndedOnClient(session))return;
+  const sessionId=String(session.sessionId||'').trim();
+  if(sessionId&&sessionId===qrAutoFinalizeLastSessionId)return;
+  const classId=String(session.classId||'').trim();
+  const date=String(session.date||'').trim();
+  if(!classId||!date)return;
+
+  qrAutoFinalizeBusy=true;
+  try{
+    // getQrAttendanceSetup() invokes the existing server-side finalizer.
+    // That finalizer closes the ended PREPARED session and writes QR non-checkers as absences.
+    const data=await getQrAttendanceSetup(token,{classId,date});
+    qrAttendanceSetup=data;
+    if(sessionId)qrAutoFinalizeLastSessionId=sessionId;
+
+    if(data.activeSession)renderQrAttendanceSession(data.activeSession);
+    else hideQrAttendanceSession();
+    updateQrAttendanceAvailability();
+
+    const attendanceVisible=$('attendancePage')&&!$('attendancePage').classList.contains('hidden');
+    const sameContext=attendanceVisible&&$('attendanceClassId')&&$('attendanceDate')&&
+      String($('attendanceClassId').value||'')===classId&&String($('attendanceDate').value||'')===date;
+    if(sameContext){
+      const attendance=await loadAttendance(token,{classId,date});
+      renderAttendanceLoaded(attendance);
+      $('attendanceTopResult').textContent='수업 종료 후 QR 출석이 자동 정리되었습니다. 저장된 출석을 불러왔습니다.';
+    }
+  }catch(e){
+    console.warn('QR attendance auto-finalize failed',e);
+  }finally{
+    qrAutoFinalizeBusy=false;
+  }
+}
 function startQrAvailabilityTimer(){
   if(qrAvailabilityTimer)clearInterval(qrAvailabilityTimer);
-  qrAvailabilityTimer=setInterval(updateQrAttendanceAvailability,30000);
+  const tick=()=>{
+    updateQrAttendanceAvailability();
+    checkQrAttendanceAutoFinalize();
+  };
+  tick();
+  qrAvailabilityTimer=setInterval(tick,30000);
+}
+function qrLiveSessionKeyOf(session){
+  if(!session)return '';
+  return [String(session.sessionId||''),String(session.classId||''),String(session.date||'')].join('|');
+}
+function qrLiveCheckinTime(row){
+  const memo=String(row&&row.memo||'');
+  const m=memo.match(/QR 체크인\s+(\d{2}:\d{2}(?::\d{2})?)/);
+  if(m)return m[1];
+  const updated=String(row&&row.updatedAt||'');
+  const t=updated.match(/(\d{2}:\d{2}(?::\d{2})?)/);
+  return t?t[1]:'';
+}
+function ensureQrLiveAudioUnlocked(){
+  try{
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx)return;
+    if(!qrLiveAudioContext)qrLiveAudioContext=new Ctx();
+    if(qrLiveAudioContext.state==='suspended')qrLiveAudioContext.resume().catch(()=>{});
+  }catch(e){}
+}
+function playQrLiveCheckinTone(status){
+  try{
+    ensureQrLiveAudioUnlocked();
+    const ctx=qrLiveAudioContext;
+    if(!ctx||ctx.state!=='running')return;
+    const now=ctx.currentTime;
+    const notes=String(status||'')==='지각'?[659,523]:[784,988];
+    notes.forEach((freq,idx)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.type='sine';osc.frequency.setValueAtTime(freq,now+idx*.10);
+      gain.gain.setValueAtTime(.0001,now+idx*.10);
+      gain.gain.exponentialRampToValueAtTime(.16,now+idx*.10+.015);
+      gain.gain.exponentialRampToValueAtTime(.0001,now+idx*.10+.12);
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.start(now+idx*.10);osc.stop(now+idx*.10+.14);
+    });
+  }catch(e){}
+}
+function setQrLiveNotice(row){
+  const name=String(row&&row.studentName||row&&row.studentId||'학생');
+  const status=String(row&&row.status||'출석');
+  const time=qrLiveCheckinTime(row);
+  const text=name+' · '+status+(time?' · '+time:'');
+  const small=$('attendanceQrLiveNotice');
+  if(small){
+    small.className='attendance-qr-live-notice '+(status==='지각'?'is-late':'is-checkin');
+    small.innerHTML='<span class="qr-live-dot"></span><span><strong>'+esc(name)+'</strong> · '+esc(status)+(time?' · '+esc(time):'')+'</span>';
+  }
+  const big=$('qrDisplayLiveNotice');
+  if(big){
+    big.className='qr-display-live-notice '+(status==='지각'?'is-late':'is-checkin');
+    big.innerHTML='<span class="qr-display-live-name">'+esc(name)+'</span> '+esc(status)+' 완료'+(time?' · '+esc(time):'');
+  }
+  playQrLiveCheckinTone(status);
+}
+function resetQrLiveNotice(){
+  const small=$('attendanceQrLiveNotice');
+  if(small){small.className='attendance-qr-live-notice';small.innerHTML='<span class="qr-live-dot"></span><span>학생 출석을 기다리는 중...</span>';}
+  const big=$('qrDisplayLiveNotice');
+  if(big){big.className='qr-display-live-notice';big.textContent='학생 출석을 기다리는 중...';}
+}
+function stopQrLiveMonitor(options={}){
+  if(qrLivePollTimer){clearInterval(qrLivePollTimer);qrLivePollTimer=null;}
+  qrLivePolling=false;
+  qrLivePrimed=false;
+  qrLiveSessionKey='';
+  qrLiveSeenIds=new Set();
+  if(options.resetNotice!==false)resetQrLiveNotice();
+}
+async function pollQrLiveCheckins(){
+  if(qrLivePolling||!qrAttendanceSetup||!qrAttendanceSetup.activeSession||!token)return;
+  const session=qrAttendanceSetup.activeSession;
+  const sessionKey=qrLiveSessionKeyOf(session);
+  if(!sessionKey||sessionKey!==qrLiveSessionKey)return;
+  const classId=String(session.classId||$('attendanceClassId').value||'');
+  const date=String(session.date||$('attendanceDate').value||'');
+  if(!classId||!date)return;
+  qrLivePolling=true;
+  try{
+    const data=await loadAttendance(token,{classId,date});
+    if(sessionKey!==qrLiveSessionKey)return;
+    const qrRows=(data&&Array.isArray(data.savedRows)?data.savedRows:[]).filter(r=>String(r.memo||'').indexOf('QR 체크인 ')===0);
+    if(!qrLivePrimed){
+      qrRows.forEach(r=>{if(r.attendanceId)qrLiveSeenIds.add(String(r.attendanceId));});
+      qrLivePrimed=true;
+      return;
+    }
+    const fresh=qrRows.filter(r=>r.attendanceId&&!qrLiveSeenIds.has(String(r.attendanceId)));
+    fresh.forEach(r=>qrLiveSeenIds.add(String(r.attendanceId)));
+    if(fresh.length){
+      fresh.sort((a,b)=>String(a.updatedAt||'').localeCompare(String(b.updatedAt||'')));
+      fresh.forEach((row,idx)=>setTimeout(()=>setQrLiveNotice(row),idx*260));
+      if(!$('attendanceInputBox').classList.contains('empty-box')){
+        attendanceLoadedRows=data.rows||attendanceLoadedRows;
+        renderAttendanceLoaded(data);
+      }
+    }
+  }catch(e){
+    // 실시간 알림 실패가 기존 QR 출석 기능을 막지 않도록 조용히 다음 주기에 재시도한다.
+  }finally{
+    qrLivePolling=false;
+  }
+}
+function startQrLiveMonitor(session){
+  const key=qrLiveSessionKeyOf(session);
+  if(!key){stopQrLiveMonitor();return;}
+  if(qrLiveSessionKey!==key){
+    if(qrLivePollTimer)clearInterval(qrLivePollTimer);
+    qrLiveSessionKey=key;qrLivePrimed=false;qrLiveSeenIds=new Set();resetQrLiveNotice();
+  }
+  pollQrLiveCheckins();
+  if(!qrLivePollTimer)qrLivePollTimer=setInterval(pollQrLiveCheckins,QR_LIVE_POLL_MS);
 }
 function renderQrRulePreview(data){
   const box=$('attendanceQrRulePreview');
@@ -3280,6 +3512,7 @@ function renderQrRulePreview(data){
     configNote;
 }
 function hideQrAttendanceSession(){
+  stopQrLiveMonitor();
   $('attendanceQrSessionBox').classList.add('hidden');
   $('attendanceQrSessionBox').innerHTML='';
 }
@@ -3295,12 +3528,15 @@ function renderQrAttendanceSession(session){
       '<span class="attendance-chip">'+esc(session.date||'')+'</span>'+
     '</div>'+
     (publicUrl
-      ? '<div class="attendance-qr-session-layout"><div id="attendanceQrImage" class="attendance-qr-image"></div><div style="flex:1;min-width:240px"><div style="font-weight:700">학생용 QR</div><div class="muted" style="margin-top:5px">수업 중에는 QR 크게 보기를 사용하면 관리 화면을 숨기고 QR만 표시할 수 있습니다.</div><div class="action-row" style="margin-top:8px"><button id="openQrDisplayBtn" class="btn-primary" type="button">QR 크게 보기</button><a href="'+esc(publicUrl)+'" target="_blank" rel="noopener" style="align-self:center">학생 체크인 링크 열기</a></div></div></div>'
+      ? '<div class="attendance-qr-session-layout"><div id="attendanceQrImage" class="attendance-qr-image"></div><div style="flex:1;min-width:240px"><div style="font-weight:700">학생용 QR</div><div class="muted" style="margin-top:5px">수업 중에는 QR 크게 보기를 사용하면 관리 화면을 숨기고 QR만 표시할 수 있습니다.</div><div class="action-row" style="margin-top:8px"><button id="openQrDisplayBtn" class="btn-primary" type="button">QR 크게 보기</button><a href="'+esc(publicUrl)+'" target="_blank" rel="noopener" style="align-self:center">학생 체크인 링크 열기</a></div></div></div><div id="attendanceQrLiveNotice" class="attendance-qr-live-notice"><span class="qr-live-dot"></span><span>학생 출석을 기다리는 중...</span></div>'
       : '<div style="margin-top:8px;color:#a12c2c">학생용 공개 URL이 설정되지 않았습니다.</div>');
   if(publicUrl){
     renderQrCode(publicUrl);
     const displayBtn=$('openQrDisplayBtn');
     if(displayBtn) displayBtn.onclick=()=>openQrDisplay(session,publicUrl);
+    startQrLiveMonitor(session);
+  }else{
+    stopQrLiveMonitor();
   }
 }
 function renderQrCode(publicUrl){
@@ -3344,6 +3580,7 @@ function drawQrDisplayCode(publicUrl){
   script.onload=draw;script.onerror=draw;document.head.appendChild(script);
 }
 async function openQrDisplay(session,publicUrl){
+  ensureQrLiveAudioUnlocked();
   qrDisplayUrl=String(publicUrl||'');
   if(!qrDisplayUrl)return;
   $('qrDisplayClass').textContent=String(session.className||session.classId||'출석 QR');
@@ -3404,6 +3641,7 @@ async function loadQrAttendanceSetupFromForm(){
   }
 }
 async function prepareQrAttendanceSessionFromForm(){
+  ensureQrLiveAudioUnlocked();
   const classId=$('attendanceClassId').value;
   const date=$('attendanceDate').value;
   const startTime=$('attendanceQrStartTime').value;
@@ -3413,6 +3651,7 @@ async function prepareQrAttendanceSessionFromForm(){
   if(!confirm('이 반의 QR 출석 세션을 준비할까요? 수동 출석 기능은 그대로 유지됩니다.'))return;
   try{
     const data=await startQrAttendanceSession(token,{classId,date,startTime,endTime});
+    qrAutoFinalizeLastSessionId='';
     qrAttendanceSetup={...data,activeSession:data.session||null};
     renderQrRulePreview({...data,publicAppConfigured:true});
     renderQrAttendanceSession(data.session||{});
@@ -4141,7 +4380,16 @@ async function submitV2Login(){
     switchPage('home');
     resetClassForm();
     resetStudentForm();
-    await Promise.all([refreshClasses(),refreshStudents()]);
+    // HOME LOAD FIX1: let the dashboard finish first so login does not compete with
+    // the class/student directory requests for the same Apps Script connection.
+    await loadHomeDashboard({force:false});
+    Promise.all([refreshClasses(),refreshStudents()]).catch(e=>{
+      if($('refreshStatus')){
+        $('refreshStatus').className='refresh-status error';
+        $('refreshStatus').textContent='기본 목록 동기화 확인';
+      }
+      console.warn('Background directory refresh failed',e);
+    });
   }catch(e){
     setLoginBusy(false,'오류: '+e.message+(e.code?' ['+e.code+']':''));
     return;
@@ -4170,6 +4418,7 @@ $('resetAttendanceBtn').onclick=resetAttendanceForm;
 $('attendanceHolidayReason').onchange=toggleAttendanceHolidayMemo;
 $('attendanceQrDetails').addEventListener('toggle',()=>{
   if($('attendanceQrDetails').open){
+    ensureQrLiveAudioUnlocked();
     $('attendanceQrRulePreview').textContent='선택한 반과 날짜의 등록 시간표를 확인합니다.';
     loadQrAttendanceSetupFromForm();
   }else{
@@ -4294,6 +4543,7 @@ $('qrDisplayCloseBtn').onclick=closeQrDisplay;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('qrDisplayOverlay').classList.contains('hidden'))closeQrDisplay()});
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&!$('qrDisplayOverlay').classList.contains('hidden')){ /* overlay stays visible until close */ }});
 window.addEventListener('resize',()=>{if(qrDisplayUrl&&!$('qrDisplayOverlay').classList.contains('hidden'))drawQrDisplayCode(qrDisplayUrl)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkQrAttendanceAutoFinalize()});
 
 $('saveStudentBtn').onclick=async()=>{
   const data={studentId:$('editingStudentId').value.trim(),classId:$('studentClassId').value,name:$('studentName').value.trim(),phone:$('studentPhone').value.trim(),studentEmail:$('studentEmail').value.trim(),guardianName:$('studentGuardianName').value.trim(),guardianEmail:$('studentGuardianEmail').value.trim(),currentTopikLevel:$('studentCurrentTopikLevel').value.trim(),targetTopikLevel:$('studentTargetTopikLevel').value.trim(),scholarshipType:$('studentScholarshipType').value,scholarshipStartDate:$('studentScholarshipStartDate').value,scholarshipEndDate:$('studentScholarshipEndDate').value,paidUntilDate:$('studentPaidUntilDate').value,enrollmentDate:$('studentEnrollmentDate').value,status:$('studentStatus').value,stopDate:$('studentStopDate').value,note:$('studentNote').value.trim(),photoUrl:''};
