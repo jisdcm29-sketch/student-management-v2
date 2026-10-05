@@ -43,6 +43,15 @@
     .bad{display:block;background:#fff1f0;color:#a12c2c}
     .muted{font-size:clamp(14px,3.8vw,18px);color:#778899;margin-top:16px;line-height:1.55}
     .loading{padding:22px 0;color:#66788a;font-size:clamp(17px,4.5vw,22px)}
+    .checkin-success-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:#eaf7ef;color:#17603a;text-align:center}
+    .checkin-success-screen.hidden{display:none}
+    .checkin-success-screen.late{background:#fff7e6;color:#8a5a00}
+    .checkin-success-inner{width:min(760px,94vw)}
+    .checkin-success-icon{width:clamp(110px,27vw,190px);height:clamp(110px,27vw,190px);border-radius:50%;margin:0 auto clamp(20px,4vh,34px);display:flex;align-items:center;justify-content:center;background:#fff;font-size:clamp(68px,17vw,122px);font-weight:900;box-shadow:0 14px 36px rgba(15,52,85,.13)}
+    .checkin-success-name{font-size:clamp(36px,10vw,64px);line-height:1.12;font-weight:900;word-break:keep-all}
+    .checkin-success-title{margin-top:14px;font-size:clamp(28px,7.5vw,48px);line-height:1.25;font-weight:900;word-break:keep-all}
+    .checkin-success-meta{margin-top:18px;font-size:clamp(20px,5vw,30px);line-height:1.45;font-weight:700}
+    .checkin-success-note{margin-top:18px;font-size:clamp(16px,4vw,22px);line-height:1.45;opacity:.8}
     @media (min-width:900px){
       body:not(.mobile-ui) .wrap{padding:24px}
       body:not(.mobile-ui) .card{max-width:680px;padding:30px}
@@ -75,6 +84,15 @@
   </div>
   <div id="error" class="result bad"></div>
 </div></div>
+<div id="checkinSuccessScreen" class="checkin-success-screen hidden" role="status" aria-live="assertive">
+  <div class="checkin-success-inner">
+    <div id="checkinSuccessIcon" class="checkin-success-icon">✓</div>
+    <div id="checkinSuccessName" class="checkin-success-name"></div>
+    <div id="checkinSuccessTitle" class="checkin-success-title">출석이 등록되었습니다</div>
+    <div id="checkinSuccessMeta" class="checkin-success-meta"></div>
+    <div id="checkinSuccessNote" class="checkin-success-note"></div>
+  </div>
+</div>
 <script>
 const QR_TOKEN=<?!= JSON.stringify(qrToken || '') ?>;
 window.addEventListener('load',function(){
@@ -92,6 +110,18 @@ function showError(msg){
   document.getElementById('loading').style.display='none';
   const box=document.getElementById('error');box.textContent=msg;box.style.display='block';
 }
+function showCheckinSuccess(res){
+  const box=document.getElementById('checkinSuccessScreen');
+  const status=String(res&&res.status||'출석');
+  const already=!!(res&&res.alreadyRecorded);
+  box.className='checkin-success-screen'+(status==='지각'?' late':'');
+  document.getElementById('checkinSuccessIcon').textContent=status==='지각'?'!':'✓';
+  document.getElementById('checkinSuccessName').textContent=(res&&res.studentName?res.studentName+'님':'');
+  document.getElementById('checkinSuccessTitle').textContent=already?'이미 출석이 등록되어 있습니다':(status==='지각'?'지각으로 등록되었습니다':'출석이 등록되었습니다');
+  document.getElementById('checkinSuccessMeta').textContent=status+(res&&res.checkInTime?' · '+res.checkInTime:'');
+  document.getElementById('checkinSuccessNote').textContent=String(res&&res.message||'');
+  try{if(navigator.vibrate)navigator.vibrate([90,50,90]);}catch(e){}
+}
 function submitQr(){
   const phone=(document.getElementById('phone').value||'').trim();
   const btn=document.getElementById('submitBtn');
@@ -103,6 +133,7 @@ function submitQr(){
     if(res&&res.success){
       result.className='result ok';
       result.innerHTML='<b>'+escapeHtml(res.studentName||'')+'</b><br>'+escapeHtml(res.status||'')+' · '+escapeHtml(res.checkInTime||'')+'<br>'+escapeHtml(res.message||'');
+      showCheckinSuccess(res);
     }else{
       result.className='result bad';
       result.textContent=(res&&res.error)||'출석 처리에 실패했습니다.';
