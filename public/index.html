@@ -204,6 +204,7 @@
     textarea{resize:vertical}
     button{border:0;border-radius:8px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer}
     .btn-primary{background:var(--primary);color:#fff}.btn-secondary{background:var(--secondary);color:#fff}.btn-danger{background:var(--danger);color:#fff}
+    #prepareQrAttendanceBtn:disabled{background:#94a3b8!important;color:#fff!important;opacity:.58;cursor:not-allowed;box-shadow:none!important;filter:grayscale(.15)}
     .btn-small{padding:5px 8px;font-size:12px;line-height:1.2;min-width:44px}
     .toolbar,.action-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
     .empty-box,.result-box{margin-top:14px;padding:11px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;color:#475467;font-size:14px}
@@ -1190,6 +1191,8 @@ let dailyRecordRows=[];
 let attendanceLoadedRows=[];
 let attendanceHoliday=null;
 let qrAttendanceSetup=null;
+let qrSetupRequestSerial=0;
+let qrAvailabilityTimer=null;
 let qrDisplayUrl='';
 let lessonRows=[];
 let lessonArchiveRows=[];
@@ -2744,7 +2747,7 @@ function renderClassList(){
     updateHome();
     return;
   }
-  $('classList').innerHTML=`<div class="table-wrap"><table class="basic-table"><thead><tr><th>반ID</th><th>반명</th><th>강사</th><th>구분</th><th>수업시간</th><th>강의실</th><th>상태</th><th>목표 진도</th><th>관리</th></tr></thead><tbody>${classRows.map(r=>`<tr><td>${esc(r.classId)}</td><td>${esc(r.className)}</td><td>${esc(r.teacherName)}</td><td>${esc(r.schedule)}</td><td>${esc(scheduleSummary(r.schedules))}</td><td>${esc(r.classroom)}</td><td>${esc(r.status)}</td><td>${esc((r.targetProgressCount||'')+(r.targetProgressUnit||''))}</td><td class="manage-cell"><div class="manage-btn-group"><button class="btn-secondary btn-small" data-edit-class="${esc(r.classId)}">수정</button><button class="btn-secondary btn-small" data-close-class="${esc(r.classId)}" ${r.status==='종료'?'disabled':''}>폐강</button><button class="btn-secondary btn-small" data-delete-class="${esc(r.classId)}">삭제</button></div></td></tr>`).join('')}</tbody></table></div>`;
+  $('classList').innerHTML=`<div class="table-wrap"><table class="basic-table"><thead><tr><th>반ID</th><th>반명</th><th>강사</th><th>구분</th><th>수업시간</th><th>강의실</th><th>상태</th><th>목표 진도</th><th>관리</th></tr></thead><tbody>${classRows.map(r=>`<tr><td>${esc(r.classId)}</td><td>${esc(r.className)}</td><td>${esc(r.teacherName)}</td><td>${esc(r.schedule)}</td><td>${esc(scheduleSummary(r.schedules))}</td><td>${esc(r.classroom)}</td><td>${esc(r.status)}</td><td>${esc((r.targetProgressCount||'')+(r.targetProgressUnit||''))}</td><td class="manage-cell"><div class="manage-btn-group"><button class="btn-secondary btn-small" data-edit-class="${esc(r.classId)}">수정</button><button class="btn-secondary btn-small" data-close-class="${esc(r.classId)}" ${r.status==='종료'?'disabled':''}>폐강</button>${currentTeacher&&currentTeacher.role==='SUPER_ADMIN'?`<button class="btn-secondary btn-small" data-delete-class="${esc(r.classId)}">삭제</button>`:''}</div></td></tr>`).join('')}</tbody></table></div>`;
   document.querySelectorAll('[data-edit-class]').forEach(b=>b.onclick=()=>editClass(b.dataset.editClass));
   document.querySelectorAll('[data-close-class]').forEach(b=>b.onclick=()=>closeOne(b.dataset.closeClass));
   document.querySelectorAll('[data-delete-class]').forEach(b=>b.onclick=()=>deleteOne(b.dataset.deleteClass));
@@ -3209,6 +3212,53 @@ function fillQrHalfHourOptions(){
     if(current && [...el.options].some(o=>o.value===current)) el.value=current;
   });
 }
+function qrCurrentMinutes(){
+  const now=new Date();
+  return now.getHours()*60+now.getMinutes();
+}
+function updateQrAttendanceAvailability(){
+  const btn=$('prepareQrAttendanceBtn');
+  if(!btn)return;
+  const classId=$('attendanceClassId')?$('attendanceClassId').value:'';
+  const date=$('attendanceDate')?$('attendanceDate').value:'';
+  const start=$('attendanceQrStartTime')?$('attendanceQrStartTime').value:'';
+  const end=$('attendanceQrEndTime')?$('attendanceQrEndTime').value:'';
+  let disabled=true;
+  let reason='반과 날짜를 선택해 주세요.';
+
+  if(classId&&date){
+    if(date!==todayYmd()){
+      reason='오늘 날짜에서만 QR 세션을 준비할 수 있습니다.';
+    }else if(qrAttendanceSetup&&qrAttendanceSetup.activeSession){
+      reason='이미 준비된 QR 세션이 있습니다.';
+    }else if(!start||!end){
+      reason='수업 시작시간과 종료시간을 확인해 주세요.';
+    }else{
+      const startMin=qrClientTimeToMinutes(start);
+      const endMin=qrClientTimeToMinutes(end);
+      const nowMin=qrCurrentMinutes();
+      const openMin=startMin>=0?startMin-30:-1;
+      if(startMin<0||endMin<0||endMin<=startMin){
+        reason='수업시간을 확인해 주세요.';
+      }else if(nowMin<openMin){
+        reason='QR 세션은 수업 시작 30분 전부터 준비할 수 있습니다.';
+      }else if(nowMin>=endMin){
+        reason='수업 종료 시간이 지나 QR 세션을 준비할 수 없습니다.';
+      }else{
+        disabled=false;
+        reason='QR 세션 준비 가능 시간입니다.';
+      }
+    }
+  }
+
+  btn.disabled=disabled;
+  btn.title=reason;
+  btn.setAttribute('aria-disabled',disabled?'true':'false');
+}
+function startQrAvailabilityTimer(){
+  if(qrAvailabilityTimer)clearInterval(qrAvailabilityTimer);
+  qrAvailabilityTimer=setInterval(updateQrAttendanceAvailability,30000);
+}
 function renderQrRulePreview(data){
   const box=$('attendanceQrRulePreview');
   if(!box)return;
@@ -3321,22 +3371,34 @@ async function closeQrDisplay(){
 async function loadQrAttendanceSetupFromForm(){
   const classId=$('attendanceClassId').value;
   const date=$('attendanceDate').value;
+  const requestSerial=++qrSetupRequestSerial;
   if(!classId||!date){
+    qrAttendanceSetup=null;
+    $('attendanceQrStartTime').value='';
+    $('attendanceQrEndTime').value='';
     $('attendanceQrRulePreview').textContent='반과 날짜를 먼저 선택해 주세요.';
     hideQrAttendanceSession();
+    updateQrAttendanceAvailability();
     return;
   }
   try{
     const data=await getQrAttendanceSetup(token,{classId,date});
+    if(requestSerial!==qrSetupRequestSerial)return;
     qrAttendanceSetup=data;
     $('attendanceQrStartTime').value=data.startTime||'';
     $('attendanceQrEndTime').value=data.endTime||'';
     renderQrRulePreview(data);
     if(data.activeSession)renderQrAttendanceSession(data.activeSession);
     else hideQrAttendanceSession();
+    updateQrAttendanceAvailability();
   }catch(e){
+    if(requestSerial!==qrSetupRequestSerial)return;
+    qrAttendanceSetup=null;
+    $('attendanceQrStartTime').value='';
+    $('attendanceQrEndTime').value='';
     $('attendanceQrRulePreview').textContent='QR 설정 불러오기 오류: '+e.message+(e.code?' ['+e.code+']':'');
     hideQrAttendanceSession();
+    updateQrAttendanceAvailability();
   }
 }
 async function prepareQrAttendanceSessionFromForm(){
@@ -3349,9 +3411,10 @@ async function prepareQrAttendanceSessionFromForm(){
   if(!confirm('이 반의 QR 출석 세션을 준비할까요? 수동 출석 기능은 그대로 유지됩니다.'))return;
   try{
     const data=await startQrAttendanceSession(token,{classId,date,startTime,endTime});
-    qrAttendanceSetup=data;
+    qrAttendanceSetup={...data,activeSession:data.session||null};
     renderQrRulePreview({...data,publicAppConfigured:true});
     renderQrAttendanceSession(data.session||{});
+    updateQrAttendanceAvailability();
   }catch(e){
     $('attendanceQrRulePreview').textContent='QR 세션 준비 오류: '+e.message+(e.code?' ['+e.code+']':'');
   }
@@ -3363,8 +3426,10 @@ async function closeQrAttendanceSessionFromForm(){
   if(!confirm('이 QR 출석 세션을 닫을까요?'))return;
   try{
     await closeQrAttendanceSession(token,{classId,date});
+    qrAttendanceSetup=null;
     hideQrAttendanceSession();
-    $('attendanceQrRulePreview').innerHTML='<strong>QR 세션이 닫혔습니다.</strong> 필요하면 다시 준비할 수 있습니다.';
+    $('attendanceQrRulePreview').innerHTML='<strong>QR 세션이 닫혔습니다.</strong> 등록 시간표를 다시 확인합니다.';
+    await loadQrAttendanceSetupFromForm();
   }catch(e){
     $('attendanceQrRulePreview').textContent='QR 세션 닫기 오류: '+e.message+(e.code?' ['+e.code+']':'');
   }
@@ -3374,8 +3439,15 @@ function onAttendanceContextChanged(){
   $('attendanceInputBox').className='empty-box';
   $('attendanceInputBox').textContent='출석 대상 학생을 불러오면 여기에 표시됩니다.';
   $('saveAttendanceBtn').classList.add('hidden');
+  qrAttendanceSetup=null;
+  $('attendanceQrStartTime').value='';
+  $('attendanceQrEndTime').value='';
   hideQrAttendanceSession();
-  if($('attendanceQrRulePreview'))$('attendanceQrRulePreview').textContent='반과 날짜를 선택한 뒤 QR 정보 조회를 눌러 등록 시간표와 현재 세션을 확인합니다.';
+  if($('attendanceQrRulePreview'))$('attendanceQrRulePreview').textContent='선택한 반과 날짜의 등록 시간표를 확인합니다.';
+  updateQrAttendanceAvailability();
+  if($('attendanceQrDetails')&&$('attendanceQrDetails').open){
+    loadQrAttendanceSetupFromForm();
+  }
 }
 
 async function loadArchivedStudents(){
@@ -4096,14 +4168,18 @@ $('resetAttendanceBtn').onclick=resetAttendanceForm;
 $('attendanceHolidayReason').onchange=toggleAttendanceHolidayMemo;
 $('attendanceQrDetails').addEventListener('toggle',()=>{
   if($('attendanceQrDetails').open){
-    $('attendanceQrRulePreview').textContent='반과 날짜를 선택한 뒤 QR 정보 조회를 눌러 주세요.';
-  }else hideQrAttendanceSession();
+    $('attendanceQrRulePreview').textContent='선택한 반과 날짜의 등록 시간표를 확인합니다.';
+    loadQrAttendanceSetupFromForm();
+  }else{
+    hideQrAttendanceSession();
+  }
+  updateQrAttendanceAvailability();
 });
 $('loadQrAttendanceSetupBtn').onclick=loadQrAttendanceSetupFromForm;
 $('prepareQrAttendanceBtn').onclick=prepareQrAttendanceSessionFromForm;
 $('closeQrAttendanceBtn').onclick=closeQrAttendanceSessionFromForm;
-$('attendanceQrStartTime').onchange=()=>renderQrRulePreview(qrAttendanceSetup||{});
-$('attendanceQrEndTime').onchange=()=>renderQrRulePreview(qrAttendanceSetup||{});
+$('attendanceQrStartTime').onchange=()=>{renderQrRulePreview(qrAttendanceSetup||{});updateQrAttendanceAvailability()};
+$('attendanceQrEndTime').onchange=()=>{renderQrRulePreview(qrAttendanceSetup||{});updateQrAttendanceAvailability()};
 $('attendanceClassId').onchange=onAttendanceContextChanged;
 $('attendanceDate').onchange=onAttendanceContextChanged;
 $('navScoreBtn').onclick=()=>switchPage('score');
@@ -4226,7 +4302,7 @@ $('saveStudentBtn').onclick=async()=>{
   try{const r=await saveStudent(token,data);markHomeDashboardDirty();show('studentResult',data.studentId?'학생 정보가 수정되었습니다.':'학생이 등록되었습니다. ID: '+r.studentId);resetStudentForm();await refreshStudents();studentListQueried=false;renderStudentList();if(isArchivedStatus(data.status)){$('studentSectionArchived').classList.add('open');$('archivedStudentListBox').className='empty-box';$('archivedStudentListBox').textContent='학생 상태가 변경되었습니다. 조건을 확인한 뒤 보관 학생 조회를 눌러 주세요.'}else{$('studentSectionList').classList.add('open')}}catch(e){show('studentResult','오류: '+e.message+(e.code?' ['+e.code+']':''))}
 };
 
-resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();resetAttendanceForm();if($('lessonDate'))$('lessonDate').value=todayYmd();restoreV2SessionAfterRefresh();
+resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordForm();resetAttendanceForm();startQrAvailabilityTimer();updateQrAttendanceAvailability();if($('lessonDate'))$('lessonDate').value=todayYmd();restoreV2SessionAfterRefresh();
 </script>
 </body>
 </html>
