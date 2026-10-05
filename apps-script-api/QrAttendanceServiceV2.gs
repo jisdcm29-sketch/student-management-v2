@@ -140,6 +140,14 @@ function publicQrAppUrlV2_() {
   return String(PropertiesService.getScriptProperties().getProperty(V2_QR_PUBLIC_URL_PROPERTY) || '').trim();
 }
 
+
+function sanitizeQrSessionForClientV2_(session) {
+  if (!session) return null;
+  const safeSession = Object.assign({}, session);
+  delete safeSession.dataSpreadsheetId;
+  return safeSession;
+}
+
 function getQrAttendanceSetupV2_(auth, options) {
   options = options || {};
   const ss = getTeacherDataSpreadsheet_(auth.teacher);
@@ -183,7 +191,7 @@ function getQrAttendanceSetupV2_(auth, options) {
     lateFrom: rules.lateFrom,
     lateUntil: rules.lateUntil,
     publicAppConfigured: !!publicQrAppUrlV2_(),
-    activeSession: activeSession
+    activeSession: sanitizeQrSessionForClientV2_(activeSession)
   };
 }
 
@@ -389,7 +397,7 @@ function startQrAttendanceSessionV2_(auth, payload) {
   );
 
   return {
-    session: session,
+    session: sanitizeQrSessionForClientV2_(session),
     scheduleFound: !!schedule,
     scheduleSource: schedule ? schedule.source : '',
     startTime: startTime,
