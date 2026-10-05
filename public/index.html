@@ -3830,10 +3830,36 @@ function reportSnuMappedProgress(book,lesson){
   const mapped=snuProgressFromOrdinal(ordinal);
   return mapped?{...mapped,ordinal}:null;
 }
+function classDefaultSnuBookId(classId){
+  const id=String(classId||'').trim();
+  // Confirmed operating-class baselines (2026-10-06).
+  if(id==='C-014')return 'SNU-2A'; // 3 PM class
+  if(id==='C-013')return 'SNU-1A'; // 5 PM class
+  return '';
+}
+function classTopicSnuBookId(topic){
+  const text=String(topic||'').toUpperCase().replace(/\s+/g,'');
+  const m=text.match(/(?:SNU[-_]?)?([1-4][AB])/);
+  return m?'SNU-'+m[1]:'';
+}
 function reportClassMappedProgress(classLearning){
   const lesson=classLearning&&classLearning.latestLesson?classLearning.latestLesson:null;
   if(!lesson)return null;
-  return snuProgressFromOrdinal(lesson.progressCurrentCount);
+  const raw=Number(lesson.progressCurrentCount);
+  if(!Number.isFinite(raw)||raw<=0)return null;
+
+  // Older class lesson rows can store a book-local lesson number instead of the
+  // cumulative 1A~4B ordinal. Prefer an explicit topic book, then the confirmed
+  // class baseline. This keeps C-014 2A 6과 from being misread as 1A 6과.
+  const bookId=classTopicSnuBookId(lesson.topic)||classDefaultSnuBookId(lesson.classId);
+  if(bookId){
+    const ordinal=snuProgressOrdinal(bookId,raw);
+    if(ordinal!==null){
+      const mapped=snuProgressFromOrdinal(ordinal);
+      if(mapped)return mapped;
+    }
+  }
+  return snuProgressFromOrdinal(raw);
 }
 function reportProgressComparison(classLearning,progress){
   const classMapped=reportClassMappedProgress(classLearning);
