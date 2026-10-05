@@ -50,6 +50,59 @@ function homeLessonNumberV2_(value) {
   return match ? Number(match[0]) : null;
 }
 
+
+const HOME_SNU_PROGRESS_BOOKS_V2_ = Object.freeze([
+  { id:'SNU-1A', lessonStart:1,  lessonEnd:8,  ordinalOffset:0 },
+  { id:'SNU-1B', lessonStart:9,  lessonEnd:16, ordinalOffset:0 },
+  { id:'SNU-2A', lessonStart:1,  lessonEnd:9,  ordinalOffset:16 },
+  { id:'SNU-2B', lessonStart:10, lessonEnd:18, ordinalOffset:16 },
+  { id:'SNU-3A', lessonStart:1,  lessonEnd:9,  ordinalOffset:34 },
+  { id:'SNU-3B', lessonStart:10, lessonEnd:18, ordinalOffset:34 },
+  { id:'SNU-4A', lessonStart:1,  lessonEnd:9,  ordinalOffset:52 },
+  { id:'SNU-4B', lessonStart:10, lessonEnd:18, ordinalOffset:52 }
+]);
+
+function homeNormalizeSnuBookV2_(value) {
+  const text = homeTextV2_(value).toUpperCase().replace(/\s+/g, '');
+  if (!text) return '';
+  const match = text.match(/(?:SNU[-_]?)?([1-4][AB])/);
+  return match ? 'SNU-' + match[1] : '';
+}
+
+function homeSnuProgressOrdinalV2_(book, lesson) {
+  const bookId = homeNormalizeSnuBookV2_(book);
+  const lessonNo = homeLessonNumberV2_(lesson);
+  if (!bookId || lessonNo === null) return null;
+  const info = HOME_SNU_PROGRESS_BOOKS_V2_.find(function(item) { return item.id === bookId; });
+  if (!info || lessonNo < info.lessonStart || lessonNo > info.lessonEnd) return null;
+  return info.ordinalOffset + lessonNo;
+}
+
+function homeExplicitClassBookV2_(lesson) {
+  if (!lesson) return '';
+  // Only the current lesson topic is used as an explicit book hint.
+  // This avoids accidentally treating a next-plan reference as the current book.
+  return homeNormalizeSnuBookV2_(lesson.topic);
+}
+
+function homeClassProgressOrdinalV2_(lesson) {
+  if (!lesson) return null;
+  const raw = homeNumberV2_(lesson.progressCurrentCount, null);
+  if (raw === null || raw <= 0) return null;
+
+  // Legacy advanced-class records can store the lesson number within a book
+  // (for example SNU-2A 6과 => 6), while newer records can store the cumulative
+  // SNU ordinal. If the topic explicitly names a book, normalize that legacy value.
+  const explicitBook = homeExplicitClassBookV2_(lesson);
+  if (explicitBook) {
+    const normalized = homeSnuProgressOrdinalV2_(explicitBook, raw);
+    if (normalized !== null) return normalized;
+  }
+
+  // Otherwise the saved class progress is already the cumulative SNU ordinal.
+  return raw;
+}
+
 function homeDaysSinceV2_(value) {
   const date = homeDateV2_(value);
   if (!date) return null;
@@ -195,10 +248,9 @@ function homeAttentionItemV2_(student, classInfo, latestLesson, progressRow, att
       reasons.push('최근 ' + inactiveDays + '일 미사용');
     }
 
-    const classProgress = latestLesson ? homeNumberV2_(latestLesson.progressCurrentCount, null) : null;
-    const currentBook = homeTextV2_(progressRow.currentBook).toUpperCase();
-    const studentProgress = homeLessonNumberV2_(progressRow.currentLesson);
-    if (classProgress !== null && classProgress > 0 && studentProgress !== null && /^SNU/.test(currentBook)) {
+    const classProgress = homeClassProgressOrdinalV2_(latestLesson);
+    const studentProgress = homeSnuProgressOrdinalV2_(progressRow.currentBook, progressRow.currentLesson);
+    if (classProgress !== null && classProgress > 0 && studentProgress !== null) {
       const gap = Math.floor(classProgress - studentProgress);
       if (gap >= HOME_DASHBOARD_V2_.PROGRESS_DELAY_LESSONS) {
         flags.progressDelay = true;
@@ -286,7 +338,7 @@ function homeBuildDashboardV2_(auth) {
   });
 
   return {
-    version: 'home-dashboard-v2-20261004',
+    version: 'home-dashboard-v2-20261006-progress-fix1',
     generatedAt: new Date().toISOString(),
     stats: {
       operatingClassCount: operatingClasses.length,
