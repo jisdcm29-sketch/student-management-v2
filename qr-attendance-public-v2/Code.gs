@@ -1,4 +1,4 @@
-const V2_PUBLIC_QR_CONFIG = {
+﻿const V2_PUBLIC_QR_CONFIG = {
   registrySpreadsheetId: '14UljkUze6SSG8nIu8oC5LWTdI30fwNTOJQo0ERCytaE',
   sessionSheet: 'QrAttendanceSessions',
   teachersSheet: 'Teachers',
@@ -8,6 +8,7 @@ const V2_PUBLIC_QR_CONFIG = {
   deviceLockSheet: 'QrAttendanceDeviceLocks',
   openBeforeMinutes: 30,
   lateFromMinutes: 20,
+  closeBeforeEndMinutes: 20,
 };
 
 const V2_PUBLIC_QR_SESSION_HEADERS = [
@@ -53,7 +54,7 @@ function getPublicQrSessionInfoV2(publicToken) {
     if (!session) throw new Error('유효하지 않거나 종료된 QR 출석 세션입니다.');
     assertPublicQrTeacherRouteV2_(session);
     if (publicQrSessionEndedV2_(session)) {
-      throw new Error('수업이 종료되어 QR 출석이 마감되었습니다.');
+      throw new Error('QR 출석 시간이 마감되었습니다.');
     }
     return {
       success: true,
@@ -99,15 +100,16 @@ function submitPublicQrAttendanceV2(payload) {
     }
     const nowMinutes = Number(Utilities.formatDate(now, tz, 'H')) * 60 + Number(Utilities.formatDate(now, tz, 'm'));
     const elapsed = nowMinutes - startMinutes;
+    const closeMinutes = Math.max(
+      startMinutes,
+      endMinutes - V2_PUBLIC_QR_CONFIG.closeBeforeEndMinutes
+    );
 
     if (elapsed < -V2_PUBLIC_QR_CONFIG.openBeforeMinutes) {
       throw new Error('아직 QR 출석 시간이 아닙니다. 수업 시작 30분 전부터 가능합니다.');
     }
-    if (nowMinutes < startMinutes) {
-      throw new Error('수업 시작 전입니다. 출석 체크는 수업 시작 시각부터 가능합니다.');
-    }
-    if (nowMinutes >= endMinutes) {
-      throw new Error('수업이 종료되어 QR 출석이 마감되었습니다. 미체크 학생은 결석 처리됩니다.');
+    if (nowMinutes >= closeMinutes) {
+      throw new Error('QR 출석은 수업 종료 20분 전에 마감되었습니다. 미체크 학생은 수업 종료 후 결석 처리됩니다.');
     }
 
     const dataSpreadsheetId = String(teacher.dataSpreadsheetId || '').trim();
@@ -214,13 +216,18 @@ function publicQrSessionEndedV2_(session) {
   const tz = Session.getScriptTimeZone() || 'Asia/Ulaanbaatar';
   const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
   const sessionDate = normalizePublicQrDateV2_(session.date);
+  const startMinutes = publicQrTimeToMinutesV2_(session.startTime);
   const endMinutes = publicQrTimeToMinutesV2_(session.endTime);
-  if (!sessionDate || endMinutes < 0) return false;
+  if (!sessionDate || startMinutes < 0 || endMinutes < 0) return false;
   if (today > sessionDate) return true;
   if (today < sessionDate) return false;
+  const closeMinutes = Math.max(
+    startMinutes,
+    endMinutes - V2_PUBLIC_QR_CONFIG.closeBeforeEndMinutes
+  );
   const nowMinutes = Number(Utilities.formatDate(new Date(), tz, 'H')) * 60 +
     Number(Utilities.formatDate(new Date(), tz, 'm'));
-  return nowMinutes >= endMinutes;
+  return nowMinutes >= closeMinutes;
 }
 
 function registrySpreadsheetV2_() {
@@ -539,3 +546,4 @@ function extractPublicQrMemoTimeV2_(memo) {
   const m=String(memo || '').match(/QR 체크인\s+(\d{2}:\d{2}:\d{2})/);
   return m ? m[1] : '';
 }
+
