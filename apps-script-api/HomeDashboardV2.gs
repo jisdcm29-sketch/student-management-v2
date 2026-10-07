@@ -212,18 +212,88 @@ function homeBuildLearningProgressV2_(ss) {
   return { byStudentId: byStudentId, byPhone: byPhone };
 }
 
-function homeLatestLessonByClassV2_(auth, classes) {
+function homeLatestLessonByClassV2_(ss, classes) {
   const out = {};
+  const classMap = {};
+  let remaining = 0;
+
   (classes || []).forEach(function(classInfo) {
     const classId = homeTextV2_(classInfo.classId);
-    if (!classId) return;
-    try {
-      const data = getLessonsListV2_(auth, { classId: classId, limit: 1 });
-      out[classId] = data && data.rows && data.rows.length ? data.rows[0] : null;
-    } catch (e) {
-      out[classId] = null;
-    }
+    if (!classId || classMap[classId]) return;
+    classMap[classId] = classInfo;
+    out[classId] = null;
+    remaining++;
   });
+
+  if (!remaining) return out;
+
+  const sheet = ss.getSheetByName('Lessons');
+  if (!sheet) return out;
+
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow < 2 || lastColumn < 1) return out;
+
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0].map(function(v) {
+    return homeTextV2_(v);
+  });
+  const classIdIndex = headers.indexOf('classId');
+  const lessonIdIndex = headers.indexOf('lessonId');
+  if (classIdIndex < 0 || lessonIdIndex < 0) return out;
+
+  // SPEED FIX2:
+  // The previous implementation called getLessonsListV2_ once per operating class.
+  // Each call could rescan the Lessons sheet tail and reread Classes.
+  // Scan the Lessons tail only once, newest row first, and stop as soon as one
+  // latest lesson has been found for every operating class.
+  const chunkSize = 200;
+  const maxScanRows = 4000;
+  let scannedRows = 0;
+  let endRow = lastRow;
+
+  while (endRow >= 2 && scannedRows < maxScanRows && remaining > 0) {
+    const available = endRow - 1;
+    const size = Math.min(chunkSize, available, maxScanRows - scannedRows);
+    const startRow = endRow - size + 1;
+    const values = sheet.getRange(startRow, 1, size, lastColumn).getDisplayValues();
+
+    for (let i = values.length - 1; i >= 0 && remaining > 0; i--) {
+      scannedRows++;
+      const row = values[i];
+      const lessonId = homeTextV2_(row[lessonIdIndex]);
+      const classId = homeTextV2_(row[classIdIndex]);
+      if (!lessonId || !classId || !classMap[classId] || out[classId]) continue;
+
+      const raw = {};
+      headers.forEach(function(header, index) {
+        if (header) raw[header] = row[index];
+      });
+
+      const classInfo = classMap[classId] || {};
+      const current = homeNumberV2_(raw.progressCurrentCount, null);
+      const target = homeNumberV2_(classInfo.targetProgressCount, 0);
+
+      out[classId] = {
+        lessonId: homeTextV2_(raw.lessonId),
+        date: homeDateV2_(raw.date),
+        classId: classId,
+        className: homeTextV2_(classInfo.className) || classId,
+        topic: homeTextV2_(raw.topic),
+        content: homeTextV2_(raw.content),
+        homework: homeTextV2_(raw.homework),
+        nextPlan: homeTextV2_(raw.nextPlan),
+        progressCurrentCount: current,
+        progressUnit: homeTextV2_(classInfo.targetProgressUnit),
+        targetProgressCount: target,
+        progressPercent: current !== null && target > 0 ? Math.round((current / target) * 1000) / 10 : null,
+        createdAt: homeTextV2_(raw.createdAt)
+      };
+      remaining--;
+    }
+
+    endRow = startRow - 1;
+  }
+
   return out;
 }
 
@@ -309,7 +379,7 @@ function homeBuildDashboardV2_(auth) {
 
   const attendance = homeBuildAttendanceV2_(ss, activeStudentMap);
   const learning = homeBuildLearningProgressV2_(ss);
-  const latestByClass = homeLatestLessonByClassV2_(auth, operatingClasses);
+  const latestByClass = homeLatestLessonByClassV2_(ss, operatingClasses);
 
   const classSummaries = operatingClasses.map(function(classInfo) {
     const classId = homeTextV2_(classInfo.classId);
@@ -357,7 +427,7 @@ function homeBuildDashboardV2_(auth) {
   });
 
   return {
-    version: 'home-dashboard-v2-20261006-progress-fix1',
+    version: 'home-dashboard-v2-20261008-speed-fix2',
     generatedAt: new Date().toISOString(),
     stats: {
       operatingClassCount: operatingClasses.length,
