@@ -1,5 +1,6 @@
-const V2_QR_OPEN_BEFORE_MINUTES = 30;
+﻿const V2_QR_OPEN_BEFORE_MINUTES = 30;
 const V2_QR_LATE_FROM_MINUTES = 20;
+const V2_QR_CLOSE_BEFORE_END_MINUTES = 20;
 const V2_QR_SESSION_SHEET = 'QrAttendanceSessions';
 const V2_QR_PUBLIC_URL_PROPERTY = 'V2_QR_PUBLIC_APP_URL';
 const V2_QR_SESSION_HEADERS = [
@@ -45,11 +46,14 @@ function buildQrRuleTimesV2_(startTime, endTime) {
     return { openTime:'', onTimeUntil:'', lateFrom:'', lateUntil:'' };
   }
   const lateFromMin = startMin + V2_QR_LATE_FROM_MINUTES;
+  const closeMin = endMin > startMin
+    ? Math.max(lateFromMin, endMin - V2_QR_CLOSE_BEFORE_END_MINUTES)
+    : -1;
   return {
     openTime: qrMinutesToTimeV2_(startMin - V2_QR_OPEN_BEFORE_MINUTES),
     onTimeUntil: qrMinutesToTimeV2_(lateFromMin),
     lateFrom: qrMinutesToTimeV2_(lateFromMin),
-    lateUntil: endMin > startMin ? qrMinutesToTimeV2_(endMin) : ''
+    lateUntil: closeMin >= 0 ? qrMinutesToTimeV2_(closeMin) : ''
   };
 }
 
@@ -446,3 +450,5 @@ function closeQrAttendanceSessionV2_(auth, payload) {
     autoAbsentCount:Number(finalization.absentCount || 0)
   };
 }
+
+
