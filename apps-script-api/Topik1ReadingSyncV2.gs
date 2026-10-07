@@ -1,4 +1,4 @@
-const TOPIK1_READING_SYNC_V2_ = Object.freeze({
+﻿const TOPIK1_READING_SYNC_V2_ = Object.freeze({
   SOURCE_ID: '18HXty992Riii2-csrB2aHpQ7vVt8qD2NOWFMp1yG63M',
   SOURCE_SHEET: 'All_Results',
   TARGET_SHEET: 'Topik1ReadingResults',
@@ -311,6 +311,24 @@ function installTopik1ReadingAutoSync5MinV2() {
   return result;
 }
 
+function installTopik1ReadingAutoSync15MinV2() {
+  const deletedExisting = topik1ReadingSyncDeleteAutoTriggersV2_();
+  const trigger = ScriptApp.newTrigger(TOPIK1_READING_SYNC_V2_.AUTO_HANDLER)
+    .timeBased()
+    .everyMinutes(15)
+    .create();
+
+  const result = {
+    installed: true,
+    handler: TOPIK1_READING_SYNC_V2_.AUTO_HANDLER,
+    everyMinutes: 15,
+    deletedExisting: deletedExisting,
+    triggerId: trigger.getUniqueId(),
+    note: '학생관리 웹앱과의 자원 경쟁을 줄이기 위한 15분 자동 동기화'
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
 function removeTopik1ReadingAutoSyncV2() {
   const deleted = topik1ReadingSyncDeleteAutoTriggersV2_();
   const result = { removed: true, handler: TOPIK1_READING_SYNC_V2_.AUTO_HANDLER, deleted: deleted };
@@ -332,3 +350,4 @@ function getTopik1ReadingAutoSyncStatusV2() {
   console.log(JSON.stringify(result, null, 2));
   return result;
 }
+

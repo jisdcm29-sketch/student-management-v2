@@ -1,4 +1,4 @@
-const LEARNING_SYNC_V2_ = Object.freeze({
+﻿const LEARNING_SYNC_V2_ = Object.freeze({
   LEGACY_STUDENT_MANAGEMENT_ID: '1Y5qoA0mQp-7EAQoXM7GsOF6y3MkdT5XhVEmjGjQc_TY',
   MOBILE_ID: '1y4xaZD8SQUVLztDhBSytvi-_naVCGYX5gTOyZqmhMUE',
   ACTIVE_CLASS_STATUS: '운영중',
@@ -1015,6 +1015,24 @@ function installMobileLearningAutoSync5MinV2() {
   return result;
 }
 
+function installMobileLearningAutoSync10MinV2() {
+  const deletedExisting = learningSyncDeleteAutoTriggersV2_();
+  const trigger = ScriptApp.newTrigger('runAutomaticMobileLearningSyncV2')
+    .timeBased()
+    .everyMinutes(10)
+    .create();
+
+  const result = {
+    installed: true,
+    handler: 'runAutomaticMobileLearningSyncV2',
+    everyMinutes: 10,
+    deletedExisting: deletedExisting,
+    triggerId: trigger.getUniqueId(),
+    note: '학생관리 웹앱과의 자원 경쟁을 줄이기 위한 10분 자동 동기화'
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
 function removeMobileLearningAutoSyncV2() {
   const deleted = learningSyncDeleteAutoTriggersV2_();
   const result = {
@@ -1040,3 +1058,4 @@ function getMobileLearningAutoSyncStatusV2() {
   console.log(JSON.stringify(result, null, 2));
   return result;
 }
+
