@@ -5,6 +5,7 @@ const V2_PUBLIC_QR_CONFIG = {
   auditSheet: 'AuditLog',
   studentsSheet: 'Students',
   attendanceSheet: 'Attendance',
+  deviceLockSheet: 'QrAttendanceDeviceLocks',
   openBeforeMinutes: 30,
   lateFromMinutes: 20,
 };
@@ -25,10 +26,12 @@ function doGet(e) {
 
 function setupPublicQrAttendanceV2App() {
   const sheet = ensurePublicQrSessionSheetV2_();
+  const deviceLockSheet = ensurePublicQrDeviceLockSheetV2_();
   return {
     success: true,
     message: 'V2 QR 공개 체크인 앱 준비가 완료되었습니다.',
-    sheetName: sheet.getName()
+    sheetName: sheet.getName(),
+    deviceLockSheetName: deviceLockSheet.getName()
   };
 }
 
@@ -62,8 +65,10 @@ function submitPublicQrAttendanceV2(payload) {
     payload = payload || {};
     const publicToken = String(payload.publicToken || '').trim();
     const phone = normalizePublicQrPhoneV2_(payload.phone);
+    const deviceId = normalizePublicQrDeviceIdV2_(payload.deviceId);
     if (!publicToken) throw new Error('QR 출석 세션 정보가 없습니다.');
     if (!phone) throw new Error('전화번호를 입력해 주세요.');
+    if (!deviceId) throw new Error('기기 확인 정보를 만들 수 없습니다. 브라우저 저장 기능을 허용한 뒤 QR을 다시 열어 주세요.');
 
     const session = findPublicQrSessionV2_(publicToken);
     if (!session) throw new Error('유효하지 않거나 종료된 QR 출석 세션입니다.');
@@ -103,6 +108,23 @@ function submitPublicQrAttendanceV2(payload) {
     if (!lock.tryLock(10000)) throw new Error('출석 저장이 처리 중입니다. 잠시 후 다시 시도해 주세요.');
     locked = true;
 
+    const deviceLockSheet = ensurePublicQrDeviceLockSheetV2_();
+    const deviceHash = publicQrDeviceHashV2_(deviceId);
+    const sessionId = String(session.sessionId || '').trim();
+    if (!sessionId) throw new Error('QR 출석 세션 식별정보가 없습니다. 새 QR을 사용해 주세요.');
+    const existingDeviceLock = findPublicQrDeviceLockV2_(deviceLockSheet, sessionId, deviceHash);
+    if (existingDeviceLock && String(existingDeviceLock.studentId || '').trim() !== String(student.studentId || '').trim()) {
+      appendPublicQrAuditV2_(
+        String(session.teacherId || ''),
+        'QR_ATTENDANCE_DEVICE_BLOCK',
+        'QrAttendanceDeviceLocks',
+        String(existingDeviceLock.lockId || ''),
+        'BLOCKED',
+        'bound=' + String(existingDeviceLock.studentId || '') + ' / attempted=' + String(student.studentId || '')
+      );
+      throw new Error('이 기기에서는 이번 수업에 이미 다른 학생의 출석을 확인했습니다. 본인 기기로 출석해 주세요.');
+    }
+
     const attendanceSheet = ss.getSheetByName(V2_PUBLIC_QR_CONFIG.attendanceSheet);
     if (!attendanceSheet) throw new Error('Attendance 시트를 찾을 수 없습니다.');
     const headers = publicQrHeadersV2_(attendanceSheet);
@@ -117,6 +139,9 @@ function submitPublicQrAttendanceV2(payload) {
     const checkInTime = Utilities.formatDate(now, tz, 'HH:mm:ss');
 
     if (existing) {
+      if (!existingDeviceLock) {
+        appendPublicQrDeviceLockV2_(deviceLockSheet, session, deviceHash, student, sessionDate, now, tz);
+      }
       return {
         success: true,
         alreadyRecorded: true,
@@ -125,6 +150,10 @@ function submitPublicQrAttendanceV2(payload) {
         checkInTime: extractPublicQrMemoTimeV2_(existing.memo) || checkInTime,
         message: '이미 출석 기록이 있습니다. 중복 저장하지 않았습니다.'
       };
+    }
+
+    if (!existingDeviceLock) {
+      appendPublicQrDeviceLockV2_(deviceLockSheet, session, deviceHash, student, sessionDate, now, tz);
     }
 
     const status = elapsed >= V2_PUBLIC_QR_CONFIG.lateFromMinutes ? '지각' : '출석';
@@ -206,6 +235,86 @@ function ensurePublicQrSessionSheetV2_() {
     }
   });
   return sheet;
+}
+
+function ensurePublicQrDeviceLockSheetV2_() {
+  const ss = registrySpreadsheetV2_();
+  let sheet = ss.getSheetByName(V2_PUBLIC_QR_CONFIG.deviceLockSheet);
+  if (!sheet) sheet = ss.insertSheet(V2_PUBLIC_QR_CONFIG.deviceLockSheet);
+
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1,1,1,V2_PUBLIC_QR_DEVICE_LOCK_HEADERS.length).setValues([V2_PUBLIC_QR_DEVICE_LOCK_HEADERS]);
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+
+  const current = sheet.getRange(1,1,1,Math.max(1,sheet.getLastColumn())).getDisplayValues()[0]
+    .map(function(v){ return String(v || '').trim(); });
+  V2_PUBLIC_QR_DEVICE_LOCK_HEADERS.forEach(function(h){
+    if (current.indexOf(h) < 0) {
+      sheet.getRange(1,sheet.getLastColumn()+1).setValue(h);
+      current.push(h);
+    }
+  });
+  return sheet;
+}
+
+function findPublicQrDeviceLockV2_(sheet, sessionId, deviceHash) {
+  const sid = String(sessionId || '').trim();
+  const hash = String(deviceHash || '').trim();
+  if (!sid || !hash || !sheet || sheet.getLastRow() < 2) return null;
+
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0]
+    .map(function(v){ return String(v || '').trim(); });
+  const idx = publicQrIndexMapV2_(headers);
+  if (idx.sessionId < 0 || idx.deviceHash < 0) return null;
+
+  const values = sheet.getRange(2,1,sheet.getLastRow()-1,sheet.getLastColumn()).getDisplayValues();
+  for (let i=values.length-1;i>=0;i--) {
+    const row = values[i];
+    if (String(row[idx.sessionId] || '').trim() !== sid) continue;
+    if (String(row[idx.deviceHash] || '').trim() !== hash) continue;
+    const obj = {};
+    headers.forEach(function(h,j){ if (h) obj[h] = row[j]; });
+    return obj;
+  }
+  return null;
+}
+
+function appendPublicQrDeviceLockV2_(sheet, session, deviceHash, student, sessionDate, now, tz) {
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0]
+    .map(function(v){ return String(v || '').trim(); });
+  const timestamp = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm:ss');
+  const rowObj = {
+    lockId: 'QDL-' + Utilities.getUuid(),
+    sessionId: String(session.sessionId || '').trim(),
+    deviceHash: String(deviceHash || '').trim(),
+    studentId: String(student.studentId || '').trim(),
+    studentName: String(student.name || '').trim(),
+    classId: String(session.classId || '').trim(),
+    date: String(sessionDate || '').trim(),
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+  const row = headers.map(function(h){ return rowObj[h] == null ? '' : rowObj[h]; });
+  sheet.getRange(sheet.getLastRow()+1,1,1,headers.length).setValues([row]);
+  SpreadsheetApp.flush();
+  return rowObj;
+}
+
+function normalizePublicQrDeviceIdV2_(value) {
+  const text = String(value == null ? '' : value).trim();
+  if (text.length < 16 || text.length > 180) return '';
+  return /^[A-Za-z0-9._:-]+$/.test(text) ? text : '';
+}
+
+function publicQrDeviceHashV2_(deviceId) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(deviceId || ''),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function(b){ return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
 }
 
 function findPublicQrSessionV2_(publicToken) {

@@ -80,7 +80,7 @@
     <input id="phone" inputmode="tel" autocomplete="tel" placeholder="전화번호를 입력하세요">
     <button id="submitBtn" onclick="submitQr()">출석 체크</button>
     <div id="result" class="result"></div>
-    <div class="muted">학생관리 시스템에 등록된 본인의 전화번호를 사용합니다. 같은 QR을 다시 열어도 출석 기록은 중복 저장되지 않습니다.</div>
+    <div class="muted">학생관리 시스템에 등록된 본인의 전화번호를 사용합니다. 같은 QR을 다시 열어도 출석 기록은 중복 저장되지 않습니다. 같은 수업에서는 한 기기당 한 학생만 출석할 수 있습니다.</div>
   </div>
   <div id="error" class="result bad"></div>
 </div></div>
@@ -95,6 +95,8 @@
 </div>
 <script>
 const QR_TOKEN=<?!= JSON.stringify(qrToken || '') ?>;
+const QR_DEVICE_STORAGE_KEY='v2QrDeviceIdV1';
+let QR_DEVICE_MEMORY_ID='';
 window.addEventListener('load',function(){
   if(!QR_TOKEN){showError('QR 출석 세션 정보가 없습니다.');return;}
   google.script.run.withSuccessHandler(function(res){
@@ -122,11 +124,46 @@ function showCheckinSuccess(res){
   document.getElementById('checkinSuccessNote').textContent=String(res&&res.message||'');
   try{if(navigator.vibrate)navigator.vibrate([90,50,90]);}catch(e){}
 }
+function createQrDeviceId(){
+  try{
+    if(window.crypto&&typeof window.crypto.randomUUID==='function')return 'qrdev-'+window.crypto.randomUUID();
+  }catch(e){}
+  return 'qrdev-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);
+}
+function readQrDeviceCookie(){
+  try{
+    const key=QR_DEVICE_STORAGE_KEY+'=';
+    const parts=String(document.cookie||'').split(';');
+    for(let i=0;i<parts.length;i++){
+      const item=parts[i].trim();
+      if(item.indexOf(key)===0)return decodeURIComponent(item.slice(key.length));
+    }
+  }catch(e){}
+  return '';
+}
+function writeQrDeviceCookie(value){
+  try{
+    document.cookie=QR_DEVICE_STORAGE_KEY+'='+encodeURIComponent(value)+'; Max-Age=31536000; Path=/; SameSite=Lax; Secure';
+  }catch(e){}
+}
+function getQrDeviceId(){
+  let value='';
+  try{value=localStorage.getItem(QR_DEVICE_STORAGE_KEY)||'';}catch(e){}
+  if(!value)value=readQrDeviceCookie();
+  if(!value)value=QR_DEVICE_MEMORY_ID;
+  if(!value)value=createQrDeviceId();
+  QR_DEVICE_MEMORY_ID=value;
+  try{localStorage.setItem(QR_DEVICE_STORAGE_KEY,value);}catch(e){}
+  writeQrDeviceCookie(value);
+  return value;
+}
 function submitQr(){
   const phone=(document.getElementById('phone').value||'').trim();
   const btn=document.getElementById('submitBtn');
   const result=document.getElementById('result');
+  const deviceId=getQrDeviceId();
   if(!phone){result.className='result bad';result.textContent='전화번호를 입력해 주세요.';return;}
+  if(!deviceId){result.className='result bad';result.textContent='기기 확인 정보를 만들 수 없습니다. 브라우저 저장 기능을 허용한 뒤 다시 시도해 주세요.';return;}
   btn.disabled=true;btn.textContent='확인 중...';
   google.script.run.withSuccessHandler(function(res){
     btn.disabled=false;btn.textContent='출석 체크';
@@ -141,7 +178,7 @@ function submitQr(){
   }).withFailureHandler(function(e){
     btn.disabled=false;btn.textContent='출석 체크';
     result.className='result bad';result.textContent=(e&&e.message)||String(e);
-  }).submitPublicQrAttendanceV2({publicToken:QR_TOKEN,phone:phone});
+  }).submitPublicQrAttendanceV2({publicToken:QR_TOKEN,phone:phone,deviceId:deviceId});
 }
 function escapeHtml(v){
   return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];});
