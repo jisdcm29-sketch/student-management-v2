@@ -16,6 +16,18 @@ const V2_PUBLIC_QR_SESSION_HEADERS = [
   'lateFrom','lateUntil','status','createdAt','createdBy','closedAt','updatedAt'
 ];
 
+const V2_PUBLIC_QR_DEVICE_LOCK_HEADERS = [
+  'lockId',
+  'sessionId',
+  'deviceHash',
+  'studentId',
+  'studentName',
+  'classId',
+  'date',
+  'createdAt',
+  'updatedAt'
+];
+
 function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.qrToken = e && e.parameter ? String(e.parameter.qr || '').trim() : '';
