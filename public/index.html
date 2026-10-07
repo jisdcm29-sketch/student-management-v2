@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -1186,7 +1186,7 @@
 
 <script type="module">
 import {
-  login, logout, validateSession, getHomeDashboard,
+  login, logout, validateSession, health, getHomeDashboard,
   listClasses, getClassDetail, saveClass, closeClass, deleteClass,
   listStudents, getStudentDetail, saveStudent, listArchivedStudents, restoreStudent,
   listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord,
@@ -4394,6 +4394,14 @@ async function submitV2Login(){
   if(!password){show('loginResult','V2 비밀번호를 입력해 주세요.');$('password').focus();return}
   setLoginBusy(true,'교사 인증을 확인하고 있습니다...');
   try{
+    // LOGIN API WARMUP FIX1: warm up Apps Script with safe read-only health checks.
+    // The actual login POST itself is still sent only once.
+    try{
+      await health();
+    }catch(_warmup1){
+      await new Promise(resolve=>setTimeout(resolve,700));
+      try{await health();}catch(_warmup2){}
+    }
     const a=await login(teacherId,password);
     if($('rememberTeacherId').checked)localStorage.setItem(V2_REMEMBER_TEACHER_KEY,teacherId);
     else localStorage.removeItem(V2_REMEMBER_TEACHER_KEY);
@@ -4584,3 +4592,4 @@ resetClassForm();resetStudentForm();resetDailyRecordFilter();resetDailyRecordFor
 </script>
 </body>
 </html>
+
