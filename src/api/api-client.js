@@ -1,21 +1,99 @@
 import { API_BASE_URL } from '../config.js';
 
-async function callApi(action, payload = {}) {
-  if (!API_BASE_URL) throw new Error('API_BASE_URL이 설정되지 않았습니다.');
-  const response = await fetch(API_BASE_URL, {
+const READ_RETRY_ACTIONS = new Set([
+  'session',
+  'bootstrap',
+  'home.dashboard',
+  'classes.list',
+  'classes.get',
+  'students.list',
+  'students.get',
+  'students.archived.list',
+  'dailyRecords.list',
+  'dailyRecords.get',
+  'attendance.load',
+  'scoreHub.sources',
+  'scoreHub.studentSummary',
+  'scores.manual.list',
+  'report.attendance.student',
+  'report.student.summary',
+  'report.class.summary',
+  'report.student.statusStats',
+  'report.email.contact',
+  'lessons.list',
+  'lessons.previous',
+  'lessons.get',
+  'lessons.assignments.list',
+  'lessons.archive.list',
+  'lessons.migration.preview',
+  'lessons.migration.cleanup.preview',
+  'qrAttendance.setup'
+]);
+
+const RETRYABLE_HTTP_STATUS = new Set([404, 408, 429, 502, 503, 504]);
+const READ_RETRY_DELAY_MS = 800;
+
+function sleep_(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryableReadAction_(action) {
+  return READ_RETRY_ACTIONS.has(String(action || ''));
+}
+
+async function fetchApiOnce_(action, payload) {
+  return fetch(API_BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ action, ...payload }),
     redirect: 'follow'
   });
-  if (!response.ok) throw new Error('API HTTP 오류: ' + response.status);
-  const result = await response.json();
-  if (!result || result.ok !== true) {
-    const error = new Error(result && result.error && result.error.message ? result.error.message : 'API 요청에 실패했습니다.');
-    error.code = result && result.error ? result.error.code : 'API_ERROR';
-    throw error;
+}
+
+async function callApi(action, payload = {}) {
+  if (!API_BASE_URL) throw new Error('API_BASE_URL이 설정되지 않았습니다.');
+
+  const allowRetry = isRetryableReadAction_(action);
+  const maxAttempts = allowRetry ? 2 : 1;
+  let lastNetworkError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let response;
+
+    try {
+      response = await fetchApiOnce_(action, payload);
+      lastNetworkError = null;
+    } catch (error) {
+      lastNetworkError = error;
+      if (attempt < maxAttempts) {
+        await sleep_(READ_RETRY_DELAY_MS);
+        continue;
+      }
+      throw error;
+    }
+
+    if (!response.ok) {
+      if (
+        attempt < maxAttempts &&
+        RETRYABLE_HTTP_STATUS.has(response.status)
+      ) {
+        await sleep_(READ_RETRY_DELAY_MS);
+        continue;
+      }
+      throw new Error('API HTTP 오류: ' + response.status);
+    }
+
+    const result = await response.json();
+    if (!result || result.ok !== true) {
+      const error = new Error(result && result.error && result.error.message ? result.error.message : 'API 요청에 실패했습니다.');
+      error.code = result && result.error ? result.error.code : 'API_ERROR';
+      throw error;
+    }
+    return result.data;
   }
-  return result.data;
+
+  if (lastNetworkError) throw lastNetworkError;
+  throw new Error('API 요청에 실패했습니다.');
 }
 
 export async function health() {
