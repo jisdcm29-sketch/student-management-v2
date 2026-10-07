@@ -190,49 +190,69 @@ function learningSyncMobilePhoneSetV2_(mobileSs) {
 }
 
 function learningSyncEligiblePhonesV2_(targetSs, legacySs, mobileSs) {
-  const legacyClasses = learningSyncReadSheetV2_(legacySs, 'Classes').rows;
+  // V2 is the authoritative roster for current linking. The legacy roster is kept
+  // only as optional metadata so students newly created in V2 can be linked too.
+  const targetStudents = learningSyncReadSheetV2_(targetSs, 'Students').rows;
+  const targetClasses = learningSyncReadSheetV2_(targetSs, 'Classes').rows;
   const legacyStudents = learningSyncReadSheetV2_(legacySs, 'Students').rows;
   const mobilePhones = learningSyncMobilePhoneSetV2_(mobileSs);
-  const targetByPhone = learningSyncGetTargetStudentMapV2_(targetSs);
 
-  const activeClassIds = {};
-  legacyClasses.forEach(function(row) {
+  const activeTargetClassIds = {};
+  targetClasses.forEach(function(row) {
     if (learningSyncTextV2_(row.status) === LEARNING_SYNC_V2_.ACTIVE_CLASS_STATUS) {
-      activeClassIds[learningSyncTextV2_(row.classId)] = true;
+      activeTargetClassIds[learningSyncTextV2_(row.classId)] = true;
     }
+  });
+
+  const legacyByPhone = {};
+  legacyStudents.forEach(function(row) {
+    const phone = learningSyncPhoneV2_(row.phone);
+    if (!phone) return;
+    if (!legacyByPhone[phone]) legacyByPhone[phone] = [];
+    legacyByPhone[phone].push(row);
+  });
+
+  const candidatesByPhone = {};
+  targetStudents.forEach(function(row) {
+    const phone = learningSyncPhoneV2_(row.phone);
+    const classId = learningSyncTextV2_(row.classId);
+    const status = learningSyncTextV2_(row.status);
+    if (!phone || !mobilePhones[phone]) return;
+    if (status !== LEARNING_SYNC_V2_.ACTIVE_STUDENT_STATUS) return;
+    if (!activeTargetClassIds[classId]) return;
+    if (!candidatesByPhone[phone]) candidatesByPhone[phone] = [];
+    candidatesByPhone[phone].push(row);
   });
 
   const eligible = {};
   const unresolved = [];
 
-  legacyStudents.forEach(function(row) {
-    const classId = learningSyncTextV2_(row.classId);
-    const status = learningSyncTextV2_(row.status);
-    const phone = learningSyncPhoneV2_(row.phone);
-
-    if (!activeClassIds[classId]) return;
-    if (status !== LEARNING_SYNC_V2_.ACTIVE_STUDENT_STATUS) return;
-    if (!phone || !mobilePhones[phone]) return;
-
-    const targetRows = targetByPhone[phone] || [];
+  Object.keys(candidatesByPhone).forEach(function(phone) {
+    const targetRows = candidatesByPhone[phone] || [];
     if (targetRows.length !== 1) {
       unresolved.push({
         phone: phone,
-        legacyStudentId: learningSyncTextV2_(row.studentId),
-        legacyName: learningSyncTextV2_(row.name),
+        legacyStudentId: '',
+        legacyName: '',
         targetMatchCount: targetRows.length
       });
       return;
     }
 
+    const target = targetRows[0];
+    const legacyRows = legacyByPhone[phone] || [];
+    const legacy = legacyRows.find(function(row) {
+      return learningSyncTextV2_(row.status) === LEARNING_SYNC_V2_.ACTIVE_STUDENT_STATUS;
+    }) || legacyRows[0] || {};
+
     eligible[phone] = {
       phone: phone,
-      studentId: targetRows[0].studentId,
-      targetClassId: targetRows[0].classId,
-      targetName: targetRows[0].name,
-      legacyStudentId: learningSyncTextV2_(row.studentId),
-      legacyClassId: classId,
-      legacyName: learningSyncTextV2_(row.name)
+      studentId: learningSyncTextV2_(target.studentId),
+      targetClassId: learningSyncTextV2_(target.classId),
+      targetName: learningSyncTextV2_(target.name),
+      legacyStudentId: learningSyncTextV2_(legacy.studentId),
+      legacyClassId: learningSyncTextV2_(legacy.classId),
+      legacyName: learningSyncTextV2_(legacy.name)
     };
   });
 
