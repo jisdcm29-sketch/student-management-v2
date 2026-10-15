@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -1537,6 +1537,7 @@ function reportTopikReadingScore(reading){
   return reportScore(s.bestScore);
 }
 function reportNum(v){
+  if(v===null||v===undefined||String(v).trim()==='')return null;
   const n=Number(v);return Number.isFinite(n)?n:null;
 }
 function reportFmtDateTime(v){
@@ -1558,7 +1559,7 @@ function reportSnuMasteryRows(snu){
     const n=reportNum(r.bestScore);if(n!==null&&(byKey[key][type]===null||n>byKey[key][type]))byKey[key][type]=n;
     byKey[key].totalAttempts+=Number(r.attemptsToday||0)||0;
   });
-  return Object.values(byKey).map(r=>({...r,status:(Number(r.vocab)>=90&&Number(r.grammar)>=90&&Number(r.mixed)>=90)?'PASS':'RETRY'}))
+  return Object.values(byKey).map(r=>({...r,status:(['vocab','grammar','mixed'].every(k=>r[k]!==null&&r[k]>=90))?'PASS':'RETRY'}))
     .sort((a,b)=>String(a.book).localeCompare(String(b.book),'en')||(Number(a.lesson)||0)-(Number(b.lesson)||0));
 }
 function reportRenderSnuChart(snu){
@@ -1584,8 +1585,19 @@ function reportRenderSnuChart(snu){
 function reportRenderSnuDetail(snu){
   const box=$('reportSnuDetail');if(!box)return;
   const rows=reportSnuMasteryRows(snu);
-  if(!rows.length){box.innerHTML='<div class="report-chart-empty">SNU 단원 성적 기록이 없습니다.</div>';return;}
-  box.innerHTML='<div class="report-mini-note">각 과의 최고점과 통과 상태를 표시합니다.</div><div class="report-table-wrap"><table class="report-table"><thead><tr><th>과정</th><th>과</th><th>어휘</th><th>문법</th><th>종합</th><th>통과</th><th>응시</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.book||'—')+'</td><td class="num">'+esc(r.lesson||'—')+'</td><td class="num">'+esc(r.vocab===null?'—':r.vocab+'점')+'</td><td class="num">'+esc(r.grammar===null?'—':r.grammar+'점')+'</td><td class="num">'+esc(r.mixed===null?'—':r.mixed+'점')+'</td><td class="num '+(String(r.status).toUpperCase()==='PASS'?'report-status-pass':'report-status-retry')+'">'+esc(String(r.status).toUpperCase()==='PASS'?'통과':'진행 중')+'</td><td class="num">'+esc(r.totalAttempts||0)+'</td></tr>').join('')+'</tbody></table></div>';
+  const daily=(snu&&Array.isArray(snu.rows))?snu.rows:[];
+  let html=rows.length
+    ? '<div class="report-mini-note">각 과의 최고점과 통과 상태를 표시합니다.</div><div class="report-table-wrap"><table class="report-table"><thead><tr><th>과정</th><th>과</th><th>어휘</th><th>문법</th><th>종합</th><th>통과</th><th>응시</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.book||'—')+'</td><td class="num">'+esc(r.lesson||'—')+'</td><td class="num">'+esc(r.vocab===null?'—':r.vocab+'점')+'</td><td class="num">'+esc(r.grammar===null?'—':r.grammar+'점')+'</td><td class="num">'+esc(r.mixed===null?'—':r.mixed+'점')+'</td><td class="num '+(String(r.status).toUpperCase()==='PASS'?'report-status-pass':'report-status-retry')+'">'+esc(String(r.status).toUpperCase()==='PASS'?'통과':'진행 중')+'</td><td class="num">'+esc(r.totalAttempts||0)+'</td></tr>').join('')+'</tbody></table></div>'
+    : '<div class="report-chart-empty">SNU 단원별 누적 성적이 없습니다.</div>';
+  // Daily best rows are historical records, not separate raw scores for every reattempt.
+  html+=reportRowsTable('SNU 일별 시험 이력 · 전체 '+daily.length+'건 (일별 최고점)',daily.slice().reverse(),[
+    ['응시일',r=>reportFmtDateTime(r.date)],['과정',r=>reportText(r.book)],['과',r=>reportText(r.lesson)],
+    ['시험',r=>({vocab:'어휘',grammar:'문법',mixed:'종합'})[r.testType]||reportText(r.testType)],
+    ['당일 최고점',r=>reportScore(r.bestScore)],['당일 응시',r=>reportText(r.attemptsToday)],
+    ['정답',r=>r.bestCorrect!==''&&r.bestCorrect!==null&&r.bestCorrect!==undefined&&r.total!==''&&r.total!==null&&r.total!==undefined?String(r.bestCorrect)+'/'+String(r.total):'—'],
+    ['당일 상태',r=>reportText(r.status)]
+  ]);
+  box.innerHTML=html;
 }
 function reportRowsTable(title,rows,cols){
   if(!rows||!rows.length)return '<div class="report-mini-note">'+esc(title)+'</div><div class="report-chart-empty">기록이 없습니다.</div>';
@@ -1597,15 +1609,41 @@ function reportRenderTopikDetail(learning){
   const gram=learning.topik1Grammar&&learning.topik1Grammar.rows||[];
   const readExam=learning.topik1Reading&&learning.topik1Reading.exam&&learning.topik1Reading.exam.rows||[];
   const readPractice=learning.topik1Reading&&learning.topik1Reading.practice&&learning.topik1Reading.practice.rows||[];
-  const cols=[['구분',r=>reportText(r.result_type||r.testType||r.type)],['점수',r=>reportScore(r.section_score_100??r.bestScore??r.score)],['상태',r=>reportText(r.status)],['응시일',r=>reportFmtDateTime(r.submittedAt||r.timestamp||r.createdAt||r.updatedAt)]];
-  box.innerHTML=reportRowsTable('TOPIK I 연어',coll.slice().reverse(),cols)+reportRowsTable('TOPIK I 문법',gram.slice().reverse(),cols)+reportRowsTable('TOPIK I 읽기 · 실전',readExam.slice().reverse(),cols)+reportRowsTable('TOPIK I 읽기 · 연습',readPractice.slice().reverse(),cols);
+  const stages=learning.topik1MobileStages&&learning.topik1MobileStages.rows||[];
+  // Independent IBT uses recorded_at/submitted_at; TOPIK vocabulary and grammar use date.
+  const cols=[['구분',r=>reportText(r.result_type||r.testType||r.type)],
+    ['내용',r=>reportText(r.generated_exam_label||r.test_scope||r.lesson)],
+    ['점수',r=>reportScore(r.section_score_100??r.bestScore??r.score)],
+    ['상태',r=>reportText(r.status||r.result_type)],
+    ['응시일',r=>reportFmtDateTime(r.recorded_at||r.submitted_at||r.date||r.submittedAt||r.timestamp||r.createdAt||r.updatedAt)]];
+  const stageCols=[
+    ['유형',r=>'유형 '+reportText(r.typeNumber)],
+    ['단계',r=>({basic:'기초',develop:'발전',real:'실전'})[String(r.stageId||'')]||reportText(r.stageId)],
+    ['최초 점수',r=>reportScore(r.firstScore)],
+    ['현재 상태',r=>String(r.currentPassStatus||'').toUpperCase()==='PASS'?'통과':(String(r.currentPassStatus||'').toUpperCase()==='RETRY'?'재도전':reportText(r.currentPassStatus))],
+    ['최초 응시일',r=>reportFmtDateTime(r.firstCompletedAt)],
+    ['통과시각',r=>reportFmtDateTime(r.firstPassedAt)]
+  ];
+  box.innerHTML=reportRowsTable('TOPIK I 연어',coll.slice().reverse(),cols)+
+    reportRowsTable('TOPIK I 문법',gram.slice().reverse(),cols)+
+    reportRowsTable('TOPIK I 읽기 · 실전',readExam.slice().reverse(),cols)+
+    reportRowsTable('TOPIK I 읽기 · 연습',readPractice.slice().reverse(),cols)+
+    reportRowsTable('TOPIK I 읽기 · 유형별 단계 (최초 점수 / 현재 통과상태)',stages.slice().reverse(),stageCols);
 }
 function reportRenderWorkbookDetail(learning){
   const box=$('reportWorkbookDetail');if(!box)return;
   const reading=learning.workbookReading&&learning.workbookReading.rows||[];
   const listening=learning.workbookListening&&learning.workbookListening.rows||[];
-  const cols=[['교재',r=>reportText(r['교재']||r.book)],['복습',r=>reportText(r['복습']||r.review)],['점수',r=>reportScore(r['점수(100)']??r.score)],['정답',r=>{const c=r['정답수']??r.correct,t=r['전체문항']??r.total;return (c!==undefined&&t!==undefined)?String(c)+'/'+String(t):'—';}],['응시일',r=>reportFmtDateTime(r['제출시각']||r.submittedAt)]];
-  box.innerHTML=reportRowsTable('워크북 읽기',reading.slice().reverse(),cols)+reportRowsTable('워크북 듣기',listening.slice().reverse(),cols);
+  const pending=learning.workbookListening&&learning.workbookListening.inProgressRows||[];
+  const cols=[['교재',r=>reportText(r['교재']||r.book)],['복습',r=>reportText(r['복습']||r.review)],
+    ['점수',r=>reportScore(r['점수(100)']??r.score)],
+    ['정답',r=>{const c=r['정답수']??r.correct,t=r['전체문항']??r.total;return (c!==''&&c!==undefined&&c!==null&&t!==''&&t!==undefined&&t!==null)?String(c)+'/'+String(t):'—';}],
+    ['응시일',r=>reportFmtDateTime(r['제출시각']||r.submittedAt)]];
+  const pendingCols=[['교재',r=>reportText(r['교재']||r.book)],['복습',r=>reportText(r['복습']||r.review)],
+    ['상태',()=> '진행 중'],['점수',()=> '—'],['시작일',r=>reportFmtDateTime(r['시작시각']||r.startedAt)]];
+  box.innerHTML=reportRowsTable('워크북 읽기',reading.slice().reverse(),cols)+
+    reportRowsTable('워크북 듣기 · 제출 완료',listening.slice().reverse(),cols)+
+    (pending.length?reportRowsTable('워크북 듣기 · 진행 중 (미채점)',pending.slice().reverse(),pendingCols):'');
 }
 function reportTeacherScoreEvalLabel(row){
   row=row||{};
@@ -2002,7 +2040,7 @@ function renderStudentSummaryReportR1(data){
     reportOverviewCard('출석률',(Number(att.total||0)>0?reportText(att.attendanceRate,0)+'%':'기록 없음'),'전체 출결 '+reportText(att.total,0)+'회','attendance'),
     reportOverviewCard('SNU 누적 통과',passed+'개 과','어휘·문법·종합 각각 90점 이상','assessment'),
     reportOverviewCard('최근 학습 점수',recentScore,progress.recentTest||'최근 시험 기록 없음','assessment'),
-    reportOverviewCard('학습 활동',reportText(activity.totalEvents,0)+'건','현재 V2 동기화 기록 기준','learning')
+    reportOverviewCard('학습 활동',reportText(activity.totalEvents,0)+'건','V2 연동 평가 이력 기준 · 모든 클릭/세션 기록은 아님','learning')
   ].join('');
 
   const wbReadAttempts=Number(wbRead.attempts||0);
@@ -2722,8 +2760,9 @@ function renderScoreHub(data){
   const reviewRows=[];
   (data.workbookReading?.rows||[]).forEach(r=>reviewRows.push({kind:'읽기',book:r['교재'],review:r['복습'],score:r['점수(100)'],correct:r['정답수'],total:r['전체문항'],duration:r['응시시간(초)'],date:r['제출시각']}));
   (data.workbookListening?.rows||[]).forEach(r=>reviewRows.push({kind:'듣기',book:r['교재'],review:r['복습'],score:r['점수(100)'],correct:r['정답수'],total:r['전체문항'],duration:r['응시시간(초)'],date:r['제출시각']}));
-  $('scoreHubReviewTable').innerHTML=reviewRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>영역</th><th>교재</th><th>복습 범위</th><th>점수</th><th>정답</th><th>응시시간</th><th>제출</th></tr></thead><tbody>'+
-    reviewRows.slice(-40).reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td>'+esc(r.book||'')+'</td><td class="left">'+esc(r.review||'')+'</td><td><strong>'+esc(scoreFmt(r.score))+'</strong></td><td>'+esc(scoreFmt(r.correct))+'/'+esc(scoreFmt(r.total))+'</td><td>'+esc(scoreFmt(r.duration))+'초</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
+  (data.workbookListening?.inProgressRows||[]).forEach(r=>reviewRows.push({kind:'듣기 (진행 중)',book:r['교재'],review:r['복습'],score:null,correct:null,total:null,duration:null,date:r['시작시각']}));
+  $('scoreHubReviewTable').innerHTML=reviewRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>영역</th><th>교재</th><th>복습 범위</th><th>점수</th><th>정답</th><th>응시시간</th><th>제출/시작</th></tr></thead><tbody>'+
+    reviewRows.slice().reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td>'+esc(r.book||'')+'</td><td class="left">'+esc(r.review||'')+'</td><td><strong>'+esc(scoreFmt(r.score))+'</strong></td><td>'+esc(r.correct===null?'—':scoreFmt(r.correct)+'/'+scoreFmt(r.total))+'</td><td>'+esc(r.duration===null?'—':scoreFmt(r.duration)+'초')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
     '</tbody></table></div>':'<div class="score-empty">복습 읽기·듣기 평가 기록이 없습니다.</div>';
 
   const topikRows=[];
@@ -2733,8 +2772,16 @@ function renderScoreHub(data){
     const label={exam:'읽기 실전',practice:'읽기 연습',review:'읽기 오답복습'}[key];
     (data.topik1Reading?.[key]?.rows||[]).forEach(r=>topikRows.push({kind:label,label:r.generated_exam_label||r.test_scope||'',score:r.section_score_100,attempts:1,status:r.result_type,date:r.recorded_at||r.submitted_at}));
   });
+  // Type/stage results are first-attempt grades, not independent IBT exam scores.
+  (data.topik1MobileStages?.rows||[]).forEach(r=>{
+    const stageName=({basic:'기초',develop:'발전',real:'실전'})[String(r.stageId||'')]||String(r.stageId||'');
+    const passedAt=r.firstPassedAt?' · 통과 '+r.firstPassedAt:'';
+    topikRows.push({kind:'읽기 유형별',label:'유형 '+String(r.typeNumber||'')+' · '+stageName,
+      score:r.firstScore,attempts:'—',status:String(r.currentPassStatus||'')+passedAt,
+      date:r.firstCompletedAt||'',firstAttempt:true});
+  });
   $('scoreHubTopikTable').innerHTML=topikRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>구분</th><th>내용</th><th>점수</th><th>응시</th><th>상태/유형</th><th>일시</th></tr></thead><tbody>'+
-    topikRows.slice(-50).reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td class="left">'+esc(r.label||'')+'</td><td><strong>'+esc(scoreFmt(r.score))+'</strong></td><td>'+esc(scoreFmt(r.attempts))+'</td><td>'+esc(r.status||'')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
+    topikRows.slice().reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td class="left">'+esc(r.label||'')+'</td><td><strong>'+esc(scoreFmt(r.score)+(r.firstAttempt?'점 (최초)':''))+'</strong></td><td>'+esc(scoreFmt(r.attempts))+'</td><td>'+esc(r.status||'')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
     '</tbody></table></div>':'<div class="score-empty">TOPIK I 기록이 없습니다.</div>';
 }
 async function loadScoreHubStudent(){
