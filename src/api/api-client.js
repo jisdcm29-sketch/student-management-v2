@@ -31,7 +31,7 @@ const READ_RETRY_ACTIONS = new Set([
 ]);
 
 const RETRYABLE_HTTP_STATUS = new Set([404, 408, 429, 502, 503, 504]);
-const READ_RETRY_DELAY_MS = 800;
+const READ_RETRY_DELAY_MS = 600; // Applies only to known read-only actions.
 
 function sleep_(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -54,7 +54,7 @@ async function callApi(action, payload = {}) {
   if (!API_BASE_URL) throw new Error('API_BASE_URL이 설정되지 않았습니다.');
 
   const allowRetry = isRetryableReadAction_(action);
-  const maxAttempts = allowRetry ? 2 : 1;
+  const maxAttempts = allowRetry ? 3 : 1; // Never automatically repeat login/write actions.
   let lastNetworkError = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -66,7 +66,7 @@ async function callApi(action, payload = {}) {
     } catch (error) {
       lastNetworkError = error;
       if (attempt < maxAttempts) {
-        await sleep_(READ_RETRY_DELAY_MS);
+        await sleep_(READ_RETRY_DELAY_MS * attempt);
         continue;
       }
       throw error;
@@ -77,7 +77,7 @@ async function callApi(action, payload = {}) {
         attempt < maxAttempts &&
         RETRYABLE_HTTP_STATUS.has(response.status)
       ) {
-        await sleep_(READ_RETRY_DELAY_MS);
+        await sleep_(READ_RETRY_DELAY_MS * attempt);
         continue;
       }
       throw new Error('API HTTP 오류: ' + response.status);
