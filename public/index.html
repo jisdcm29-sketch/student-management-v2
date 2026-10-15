@@ -1530,7 +1530,16 @@ function reportPassedLessonCount(snu){
   });
   return Object.values(byKey).filter(x=>Number(x.vocab)>=90&&Number(x.grammar)>=90&&Number(x.mixed)>=90).length;
 }
-function reportTopikReadingScore(reading){
+function topikMobileStageSummary(rows){
+  const items=Array.isArray(rows)?rows:[];
+  const scores=items.map(r=>reportNum(r&&r.firstScore)).filter(n=>n!==null);
+  return {count:items.length,
+    passed:items.filter(r=>String(r&&r.currentPassStatus||'').toUpperCase()==='PASS').length,
+    bestScore:scores.length?Math.max(...scores):null};
+}
+function reportTopikReadingScore(reading, stages){
+  const mobile=topikMobileStageSummary(stages);
+  if(mobile.count)return reportScore(mobile.bestScore);
   const s=reading&&reading.exam&&reading.exam.summary?reading.exam.summary:{};
   const attempts=Number(s.attempts||s.count||s.totalAttempts||0);
   if(attempts<=0)return '기록 없음';
@@ -2045,10 +2054,12 @@ function renderStudentSummaryReportR1(data){
 
   const wbReadAttempts=Number(wbRead.attempts||0);
   const wbListenAttempts=Number(wbListen.attempts||0);
+  const mobileRead=topikMobileStageSummary(learning.topik1MobileStages&&learning.topik1MobileStages.rows);
+  const readSummarySub=mobileRead.count?('유형별 '+mobileRead.count+'단계 · 현재 통과 '+mobileRead.passed+'단계 (최초 점수 기준)'):('별도 실전 응시 기록 기준');
   $('reportAssessmentGrid').innerHTML=[
     reportOverviewCard('워크북 읽기',reportAttemptedScore(wbRead.bestScore,wbReadAttempts),wbReadAttempts>0?'최근 '+reportScore(wbRead.latestScore)+' · 응시 '+wbReadAttempts+'회':'응시 기록 없음','assessment'),
     reportOverviewCard('워크북 듣기',reportAttemptedScore(wbListen.bestScore,wbListenAttempts),wbListenAttempts>0?'최근 '+reportScore(wbListen.latestScore)+' · 응시 '+wbListenAttempts+'회':'응시 기록 없음','assessment'),
-    reportOverviewCard('TOPIK I 읽기',reportTopikReadingScore(learning.topik1Reading),'실전 응시 기록 기준','assessment'),
+    reportOverviewCard('TOPIK I 읽기',reportTopikReadingScore(learning.topik1Reading, learning.topik1MobileStages&&learning.topik1MobileStages.rows),readSummarySub,'assessment'),
     reportOverviewCard('교사 입력 평가',teacherScoreRows.length?teacherScoreRows.length+'건':'기록 없음',teacherScoreRows.length?('최근 '+reportText(teacherScoreRows[teacherScoreRows.length-1].date)+' · '+reportTeacherScoreEvalLabel(teacherScoreRows[teacherScoreRows.length-1])):(teacherScores.error?'교사 입력 기록 조회 실패':'Scores · TEACHER_MANUAL'),'assessment')
   ].join('');
 
@@ -2644,6 +2655,7 @@ function renderScoreHub(data){
   const topikReadExam=data.topik1Reading?.exam?.summary||{};
   const topikReadPractice=data.topik1Reading?.practice?.summary||{};
   const topikReadReview=data.topik1Reading?.review?.summary||{};
+  const mobileTopikSummary=topikMobileStageSummary(data.topik1MobileStages&&data.topik1MobileStages.rows);
 
   function specificCard(title,big,sub,meta,status){
     const statusHtml=status?'<span class="score-pill '+(status==='PASS'?'pass':status==='RETRY'?'retry':'')+'">'+esc(status)+'</span>':'';
@@ -2740,9 +2752,14 @@ function renderScoreHub(data){
     ),
     specificCard(
       'TOPIK I 읽기',
-      topikReadExam.attempts?('실전 최고 '+scoreFmt(topikReadExam.bestScore)+'점'):'실전 기록 없음',
-      '연습 '+esc(scoreFmt(topikReadPractice.attempts||0))+'회 · 오답복습 '+esc(scoreFmt(topikReadReview.attempts||0))+'회',
-      '<span>실전 응시 '+esc(scoreFmt(topikReadExam.attempts||0))+'회</span>',
+      mobileTopikSummary.count
+        ? (mobileTopikSummary.bestScore===null?('유형별 '+mobileTopikSummary.count+'단계')
+          : ('유형별 최초 최고 '+scoreFmt(mobileTopikSummary.bestScore)+'점'))
+        : (topikReadExam.attempts?('별도 실전 최고 '+scoreFmt(topikReadExam.bestScore)+'점'):'기록 없음'),
+      mobileTopikSummary.count
+        ? ('유형별 '+mobileTopikSummary.count+'단계 · 현재 통과 '+mobileTopikSummary.passed+'단계')
+        : ('연습 '+esc(scoreFmt(topikReadPractice.attempts||0))+'회'),
+      '<span>별도 실전 응시 '+esc(scoreFmt(topikReadExam.attempts||0))+'회</span>',
       ''
     )
   ];
