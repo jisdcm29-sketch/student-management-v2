@@ -1186,7 +1186,7 @@
 
 <script type="module">
 import {
-  login, logout, validateSession, health, getHomeDashboard,
+  login, logout, validateSession, getHomeDashboard,
   listClasses, getClassDetail, saveClass, closeClass, deleteClass,
   listStudents, getStudentDetail, saveStudent, listArchivedStudents, restoreStudent,
   listDailyRecords, getDailyRecord, saveDailyRecord, deleteDailyRecord,
@@ -1210,6 +1210,7 @@ localStorage.removeItem('v2CurrentPagePersistent');
 let token=sessionStorage.getItem('v2SessionToken')||'';
 let currentTeacher=null;
 let classRows=[];
+let classesLoaded=false;
 let studentRows=[];
 let studentsLoaded=false;
 let studentsLoadPromise=null;
@@ -1267,6 +1268,9 @@ let homeDashboardData=null;
 let homeDashboardLoading=false;
 let homeDashboardPromise=null;
 let homeDashboardDirty=false;
+// During login or session restore, load the class/student directory first.
+// This keeps the home page from competing for the same Apps Script connection.
+let homeInitialSyncPending=false;
 let homeAttentionQueriedClassId='';
 const V2_LESSON_DRAFT_KEY='v2LessonDraft';
 const V2_REPORT_DIRECTORY_CACHE_KEY='v2ReportDirectoryCacheV1';
@@ -1336,11 +1340,12 @@ function renderHomeFallback(){
   const activeClasses=classRows.filter(c=>String(c.status||'')==='운영중');
   const activeClassIds=new Set(activeClasses.map(c=>String(c.classId||'')));
   const activeStudents=studentRows.filter(s=>String(s.status||'')==='재학'&&activeClassIds.has(String(s.classId||'')));
-  $('homeClassCount').textContent=String(activeClasses.length);
-  $('homeActiveStudentCount').textContent=String(activeStudents.length);
+  // Unknown (not loaded or failed) must not be presented as a real zero.
+  $('homeClassCount').textContent=classesLoaded?String(activeClasses.length):'—';
+  $('homeActiveStudentCount').textContent=(classesLoaded&&studentsLoaded)?String(activeStudents.length):'—';
   if(!homeDashboardData){
     $('homeAttendanceRate').textContent='—';
-    $('homeAttentionCount').textContent='0';
+    $('homeAttentionCount').textContent='—';
   }
 }
 function fillHomeAttentionClassOptions(classes){
@@ -2399,7 +2404,7 @@ function switchPage(page){
   if(page==='score'){fillScoreClassOptions();}
   if(page==='lesson'&&currentTeacher){initLessonPage();}
   if(page==='report'&&currentTeacher){initReportPage();}
-  if(page==='home'){updateHome();if(currentTeacher&&(!homeDashboardData||homeDashboardDirty))loadHomeDashboard({force:homeDashboardDirty}).catch(()=>{});}
+  if(page==='home'){updateHome();if(!homeInitialSyncPending&&currentTeacher&&(!homeDashboardData||homeDashboardDirty))loadHomeDashboard({force:homeDashboardDirty}).catch(()=>{});}
   if(realPage==='coming'){
     $('comingTitle').textContent=titles[page]||'준비 중';
   }
@@ -2890,6 +2895,7 @@ function renderClassList(){
 async function refreshClasses(){
   const data=await listClasses(token,{includeClosed:true});
   classRows=data.classes||[];
+  classesLoaded=true;
   reportDirectoryClasses=classRows.filter(c=>String(c.status||'')!=='종료').map(c=>({classId:c.classId||'',className:c.className||'',status:c.status||''}));
   renderClassList();
   if($('lessonClassId'))fillLessonClassOptions();
@@ -4406,6 +4412,28 @@ async function initLessonPage(){
   updateLessonProgressHint();
 }
 
+// Limited to initial login / F5 session recovery. No writes to student records.
+async function loadInitialDirectoryV2_(expectedToken){
+  const results=await Promise.allSettled([refreshClasses(),refreshStudents()]);
+  if(token!==expectedToken)return;
+  homeInitialSyncPending=false;
+  const failed=results.filter(function(item){return item.status==='rejected';});
+  if(failed.length){
+    const status=$('refreshStatus');
+    if(status){
+      status.className='refresh-status error';
+      status.textContent='반·학생 목록 일부 연결 실패 · 새로고침으로 다시 조회할 수 있습니다.';
+    }
+    console.warn('Initial directory load failed',failed.map(function(item){
+      return String(item.reason&&item.reason.message||item.reason||'API 연결 오류');
+    }));
+  }
+  if(currentTeacher&&$('homePage')&&!$('homePage').classList.contains('hidden')){
+    try{await loadHomeDashboard({force:false});}
+    catch(e){console.warn('Initial home dashboard load failed',e);}
+  }
+}
+
 async function restoreV2SessionAfterRefresh(){
   const savedPage=sessionStorage.getItem(V2_CURRENT_PAGE_KEY)||'home';
 
@@ -4416,7 +4444,8 @@ async function restoreV2SessionAfterRefresh(){
     return;
   }
 
-  // Do not show the login screen merely because F5 was pressed.
+  // Keep the existing browser session on reload; never clear it for a transient 404.
+  homeInitialSyncPending=true;
   persistV2SessionState(savedPage);
   setLoggedIn(true);
   switchPage(savedPage);
@@ -4425,14 +4454,19 @@ async function restoreV2SessionAfterRefresh(){
     const session=await validateSession(token);
     currentTeacher=session.teacher||null;
     updateAuthLabel();
-    await Promise.all([refreshClasses(),refreshStudents()]);
-    switchPage(savedPage);
+    // Do not block the visible page while loading class/student/home data.
+    loadInitialDirectoryV2_(token).catch(function(e){
+      homeInitialSyncPending=false;
+      console.warn('Session data load failed',e);
+    });
   }catch(e){
+    homeInitialSyncPending=false;
     if(isV2AuthError(e)){
       token='';
       currentTeacher=null;
-      classRows=[];
-      studentRows=[];studentsLoaded=false;studentsLoadedAt=0;reportResultCache.clear();reportResetPrefetchState();clearReportDirectoryCache();
+      classRows=[];classesLoaded=false;
+      studentRows=[];studentsLoaded=false;studentsLoadedAt=0;homeDashboardData=null;
+      reportResultCache.clear();reportResetPrefetchState();clearReportDirectoryCache();
       clearV2SessionState();
       updateAuthLabel();
       setLoggedIn(false);
@@ -4440,12 +4474,11 @@ async function restoreV2SessionAfterRefresh(){
       return;
     }
 
-    // Temporary API/network problems must not erase the browser session.
     setLoggedIn(true);
     switchPage(savedPage);
     if($('refreshStatus')){
       $('refreshStatus').className='refresh-status error';
-      $('refreshStatus').textContent='API 연결 확인';
+      $('refreshStatus').textContent='API 연결 확인 · 잠시 후 새로고침으로 재조회해 주세요.';
     }
   }
 }
@@ -4458,41 +4491,36 @@ async function submitV2Login(){
   if(!password){show('loginResult','V2 비밀번호를 입력해 주세요.');$('password').focus();return}
   setLoginBusy(true,'교사 인증을 확인하고 있습니다...');
   try{
-    // LOGIN API WARMUP FIX1: warm up Apps Script with safe read-only health checks.
-    // The actual login POST itself is still sent only once.
-    try{
-      await health();
-    }catch(_warmup1){
-      await new Promise(resolve=>setTimeout(resolve,700));
-      try{await health();}catch(_warmup2){}
-    }
+    // One login POST only. Removed two blocking health probes before authentication.
+    // Login/writes are never automatically retried to avoid duplicate sessions/actions.
     const a=await login(teacherId,password);
     if($('rememberTeacherId').checked)localStorage.setItem(V2_REMEMBER_TEACHER_KEY,teacherId);
     else localStorage.removeItem(V2_REMEMBER_TEACHER_KEY);
     token=a.sessionToken;
     currentTeacher=a.teacher;
+    homeDashboardData=null;homeDashboardDirty=false;
+    classRows=[];classesLoaded=false;
+    studentRows=[];studentsLoaded=false;studentsLoadedAt=0;
+    homeInitialSyncPending=true;
     persistV2SessionState('home');
     updateAuthLabel();
-    show('loginResult','인증되었습니다. 관리 화면을 불러오는 중입니다...');
     setLoggedIn(true);
     switchPage('home');
     resetClassForm();
     resetStudentForm();
-    // HOME LOAD FIX1: let the dashboard finish first so login does not compete with
-    // the class/student directory requests for the same Apps Script connection.
-    await loadHomeDashboard({force:false});
-    Promise.all([refreshClasses(),refreshStudents()]).catch(e=>{
-      if($('refreshStatus')){
-        $('refreshStatus').className='refresh-status error';
-        $('refreshStatus').textContent='기본 목록 동기화 확인';
-      }
-      console.warn('Background directory refresh failed',e);
+    setLoginBusy(false,'인증되었습니다. 기본 목록을 불러오는 중입니다...');
+    if($('homeDashboardStatus')){
+      $('homeDashboardStatus').className='home-dashboard-status';
+      $('homeDashboardStatus').textContent='반·학생 기본 목록을 불러오는 중입니다...';
+    }
+    // Show the authenticated screen immediately. Read-only data loads in background.
+    loadInitialDirectoryV2_(token).catch(function(e){
+      homeInitialSyncPending=false;
+      console.warn('Login data load failed',e);
     });
   }catch(e){
     setLoginBusy(false,'오류: '+e.message+(e.code?' ['+e.code+']':''));
-    return;
   }
-  setLoginBusy(false,'인증되었습니다.');
 }
 $('loginBtn').onclick=submitV2Login;
 $('password').addEventListener('keydown',e=>{if(e.key==='Enter')submitV2Login()});
@@ -4503,7 +4531,7 @@ $('passwordToggleBtn').onclick=()=>{
   input.type=showing?'password':'text';
   $('passwordToggleBtn').textContent=showing?'보기':'숨기기';
 };
-$('logoutBtn').onclick=async()=>{try{if(token)await logout(token)}catch(e){}token='';currentTeacher=null;classRows=[];studentRows=[];studentsLoaded=false;studentsLoadedAt=0;reportResultCache.clear();reportResetPrefetchState();clearReportDirectoryCache();clearV2SessionState();updateAuthLabel();setLoggedIn(false);show('loginResult','로그아웃되었습니다.')};
+$('logoutBtn').onclick=async()=>{try{if(token)await logout(token)}catch(e){}token='';currentTeacher=null;classRows=[];classesLoaded=false;studentRows=[];studentsLoaded=false;studentsLoadedAt=0;homeDashboardData=null;homeInitialSyncPending=false;reportResultCache.clear();reportResetPrefetchState();clearReportDirectoryCache();clearV2SessionState();updateAuthLabel();setLoggedIn(false);show('loginResult','로그아웃되었습니다.')};
 $('navHomeBtn').onclick=()=>switchPage('home');
 $('navClassBtn').onclick=()=>switchPage('class');
 $('navStudentBtn').onclick=()=>switchPage('student');
