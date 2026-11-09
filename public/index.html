@@ -13,7 +13,7 @@
     .sidebar{position:sticky;top:0;height:100vh;background:#143f63;color:#fff;padding:18px 12px 12px;display:flex;flex-direction:column;gap:12px}
     .sidebar-brand{padding:2px 2px 10px}.sidebar-brand strong{display:block;font-size:19px;line-height:1.3}.sidebar-brand span{font-size:13px;color:#d7e3ee}
     .sidebar-nav{display:flex;flex-direction:column;gap:9px}.sidebar-nav button{width:100%;text-align:center;background:#53759b;color:#fff;padding:14px 10px;border-radius:9px;font-size:15px;min-height:50px}
-    .sidebar-nav button.active{background:#2f8d87}.sidebar-nav button[data-page="score"]{background:#735ba1}.sidebar-nav button[data-page="lesson"]{background:#5d8b61}.sidebar-nav button[data-page="report"]{background:#94704c}.sidebar-nav button[data-page="teacher"]{background:#955a8e}
+    .sidebar-nav button.active{background:#2f8d87}.sidebar-nav button[data-page="score"]{background:#735ba1}.sidebar-nav button[data-page="lesson"]{background:#5d8b61}.sidebar-nav button[data-page="report"]{background:#94704c}
     .content-area{min-width:0;width:100%;padding:0 16px 32px;background:var(--bg)}
     .topbar{position:sticky;top:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;margin:0 -16px 14px;padding:10px 18px;background:rgba(255,255,255,.98);border-bottom:1px solid var(--border);box-shadow:0 2px 9px rgba(15,23,42,.06);backdrop-filter:blur(6px)}
     .topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
@@ -487,7 +487,6 @@
         <button id="navScoreBtn" data-page="score" type="button">성적 관리</button>
         <button id="navLessonBtn" data-page="lesson" type="button">수업 내용</button>
         <button id="navReportBtn" data-page="report" type="button">조회 / 출력</button>
-        <button id="navTeacherBtn" data-page="teacher" type="button">교사 업무 관리</button>
       </nav>
     </aside>
     <div class="content-area">
@@ -1136,11 +1135,6 @@
         </div>
       </div>
 
-      <div id="comingPage" class="page-panel hidden">
-        <section class="simple-page">
-          <div class="page-title"><h2 id="comingTitle">교사 업무 관리</h2><p class="muted">교사 업무 관리 기능을 준비 중입니다.</p></div>
-        </section>
-      </div>
     </div>
   </div>
 </main>
@@ -1198,12 +1192,8 @@ import {
   getQrAttendanceSetup, startQrAttendanceSession, closeQrAttendanceSession
 } from '../src/api/api-client.js';
 
-const v2NavigationEntry=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];
-const v2NavigationType=v2NavigationEntry&&v2NavigationEntry.type?v2NavigationEntry.type:'navigate';
-if(v2NavigationType!=='reload'){
-  sessionStorage.removeItem('v2SessionToken');
-  sessionStorage.removeItem('v2CurrentPage');
-}
+// Keep the session within the same browser tab across navigation and refresh.
+// The server validates the token on load; closing the tab clears sessionStorage.
 // Remove legacy persistent login state. Teacher ID preference is kept separately.
 localStorage.removeItem('v2SessionTokenPersistent');
 localStorage.removeItem('v2CurrentPagePersistent');
@@ -1211,9 +1201,12 @@ let token=sessionStorage.getItem('v2SessionToken')||'';
 let currentTeacher=null;
 let classRows=[];
 let classesLoaded=false;
+let classesLoadPromise=null;
+let classesLoadToken="";
 let studentRows=[];
 let studentsLoaded=false;
 let studentsLoadPromise=null;
+let studentsLoadToken="";
 let studentsLoadedAt=0;
 let reportDirectoryStudents=[];
 let reportDirectoryClasses=[];
@@ -1267,6 +1260,7 @@ let lessonAssignmentState={lessonId:'',loaded:false,touched:false,existingCount:
 let homeDashboardData=null;
 let homeDashboardLoading=false;
 let homeDashboardPromise=null;
+let homeDashboardToken="";
 let homeDashboardDirty=false;
 // During login or session restore, load the class/student directory first.
 // This keeps the home page from competing for the same Apps Script connection.
@@ -1435,29 +1429,35 @@ function setHomeLoading(on,message){
 }
 async function loadHomeDashboard(options={}){
   if(!token)return null;
-  if(homeDashboardPromise)return homeDashboardPromise;
+  const requestToken=token;
+  if(homeDashboardPromise&&homeDashboardToken===requestToken)return homeDashboardPromise;
   const force=options.force===true||homeDashboardDirty===true;
   homeDashboardLoading=true;
   const status=$('homeDashboardStatus');
   if(status){status.className='home-dashboard-status';status.textContent='대시보드 데이터를 확인하는 중입니다...'}
   setHomeLoading(true,force?'최신 홈 데이터를 다시 계산하는 중입니다...':'반·학생·출결 현황을 불러오는 중입니다...');
-  homeDashboardPromise=(async()=>{
+  const promise=(async()=>{
     try{
-      const data=await getHomeDashboard(token,{forceRefresh:force});
+      const data=await getHomeDashboard(requestToken,{forceRefresh:force});
+      if(token!==requestToken)return null;
       renderHomeDashboard(data);
       homeDashboardDirty=false;
       return data;
     }catch(e){
+      if(token!==requestToken)return null;
       renderHomeFallback();
       if(status){status.className='home-dashboard-status error';status.textContent='대시보드 일부 데이터를 불러오지 못했습니다: '+e.message+(e.code?' ['+e.code+']':'')}
       throw e;
     }finally{
-      homeDashboardLoading=false;
-      setHomeLoading(false);
+      if(token===requestToken){
+        homeDashboardLoading=false;
+        setHomeLoading(false);
+      }
     }
   })();
-  try{return await homeDashboardPromise}
-  finally{homeDashboardPromise=null}
+  homeDashboardPromise=promise;homeDashboardToken=requestToken;
+  try{return await promise}
+  finally{if(homeDashboardPromise===promise){homeDashboardPromise=null;homeDashboardToken="";}}
 }
 function updateHome(){
   if(homeDashboardData&&!homeDashboardDirty)renderHomeDashboard(homeDashboardData);
@@ -2378,6 +2378,9 @@ function resetHomeAttentionQuery(){
 }
 
 function switchPage(page){
+  // Previous versions may have persisted the removed teacher placeholder page.
+  const validPages=['home','class','student','attendance','score','lesson','report'];
+  if(!validPages.includes(page))page='home';
   const homeWasVisible=$('homePage')&&!$('homePage').classList.contains('hidden');
   const reportWasVisible=$('reportPage')&&!$('reportPage').classList.contains('hidden');
   const scoreWasVisible=$('scorePage')&&!$('scorePage').classList.contains('hidden');
@@ -2387,8 +2390,8 @@ function switchPage(page){
   if(scoreWasVisible&&page!=='score')resetScorePage();
   if(attendanceWasVisible&&page!=='attendance')resetAttendanceForm();
   persistV2SessionState(page);
-  const realPage=['home','class','student','attendance','score','lesson','report'].includes(page)?page:'coming';
-  const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력',teacher:'교사 업무 관리'};
+  const realPage=page;
+  const titles={home:'홈',class:'반 관리',student:'학생 관리',attendance:'출석 관리',score:'성적 관리',lesson:'수업 내용',report:'조회 / 출력'};
   $('homePage').classList.toggle('hidden',realPage!=='home');
   $('classPage').classList.toggle('hidden',realPage!=='class');
   $('studentPage').classList.toggle('hidden',realPage!=='student');
@@ -2396,7 +2399,6 @@ function switchPage(page){
   $('scorePage').classList.toggle('hidden',realPage!=='score');
   $('lessonPage').classList.toggle('hidden',realPage!=='lesson');
   $('reportPage').classList.toggle('hidden',realPage!=='report');
-  $('comingPage').classList.toggle('hidden',realPage!=='coming');
   document.querySelectorAll('.sidebar-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   $('topbarPageTitle').textContent=titles[page]||'학생관리시스템 V2';
   if(page==='student'){fillStudentClassOptions();studentListQueried=false;renderStudentList();}
@@ -2405,9 +2407,6 @@ function switchPage(page){
   if(page==='lesson'&&currentTeacher){initLessonPage();}
   if(page==='report'&&currentTeacher){initReportPage();}
   if(page==='home'){updateHome();if(!homeInitialSyncPending&&currentTeacher&&(!homeDashboardData||homeDashboardDirty))loadHomeDashboard({force:homeDashboardDirty}).catch(()=>{});}
-  if(realPage==='coming'){
-    $('comingTitle').textContent=titles[page]||'준비 중';
-  }
 }
 function todayYmd(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function daysAgoYmd(days){const d=new Date();d.setDate(d.getDate()-Number(days||0));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -2893,14 +2892,24 @@ function renderClassList(){
   updateHome();
 }
 async function refreshClasses(){
-  const data=await listClasses(token,{includeClosed:true});
-  classRows=data.classes||[];
-  classesLoaded=true;
-  reportDirectoryClasses=classRows.filter(c=>String(c.status||'')!=='종료').map(c=>({classId:c.classId||'',className:c.className||'',status:c.status||''}));
-  renderClassList();
-  if($('lessonClassId'))fillLessonClassOptions();
-  if(reportPageInitialized)fillReportClassOptions();
-  if(studentRows.length)saveReportDirectoryCache();
+  const requestToken=token;
+  if(classesLoadPromise&&classesLoadToken===requestToken)return classesLoadPromise;
+  const promise=(async()=>{
+    const data=await listClasses(requestToken,{includeClosed:true});
+    if(token!==requestToken)return data; // Ignore responses from an earlier session.
+    classRows=data.classes||[];
+    classesLoaded=true;
+    reportDirectoryClasses=classRows.filter(c=>String(c.status||'')!=='종료').map(c=>({classId:c.classId||'',className:c.className||'',status:c.status||''}));
+    renderClassList();
+    if($('lessonClassId'))fillLessonClassOptions();
+    if(reportPageInitialized)fillReportClassOptions();
+    if(studentRows.length)saveReportDirectoryCache();
+    return data;
+  })();
+  classesLoadPromise=promise;
+  classesLoadToken=requestToken;
+  try{return await promise;}
+  finally{if(classesLoadPromise===promise){classesLoadPromise=null;classesLoadToken='';}}
 }
 async function editClass(id){
   try{const d=await getClassDetail(token,id),i=d.classInfo||{};$('classId').value=i.classId||'';$('className').value=i.className||'';$('teacherName').value=i.teacherName||'';$('schedule').value=i.schedule||'';$('classroom').value=i.classroom||'';$('status').value=i.status||'운영중';$('targetProgressCount').value=i.targetProgressCount||'';$('targetProgressUnit').value=i.targetProgressUnit||'';$('scheduleGroups').innerHTML='';
@@ -2951,22 +2960,25 @@ function resetStudentForm(){
   $('studentEnrollmentDate').value=todayYmd();$('studentScholarshipType').value='';$('studentStatus').value='재학';$('studentEditInfo').classList.add('hidden');toggleStopDate();
 }
 async function refreshStudents(){
-  if(studentsLoadPromise)return studentsLoadPromise;
-  studentsLoadPromise=(async()=>{
-    try{
-      const data=await listStudents(token,{currentOnly:true});
-      studentRows=data.students||[];
-      reportResultCache.clear();reportResetPrefetchState();
-      studentsLoaded=true;studentsLoadedAt=Date.now();
-      reportDirectoryStudents=studentRows.filter(s=>String(s.status||'')==='재학').map(s=>({studentId:s.studentId||'',name:s.name||'',classId:s.classId||'',status:s.status||''}));
-      rebuildReportDirectoryIndex();saveReportDirectoryCache();
-      fillExistingStudentOptions();updateHome();fillDailyRecordStudentOptions();fillDailyRecordFilterStudentOptions();
-      if(studentListQueried)renderStudentList();
-      if(reportPageInitialized)fillReportStudentOptions();
-      return data;
-    }finally{studentsLoadPromise=null;}
+  const requestToken=token;
+  if(studentsLoadPromise&&studentsLoadToken===requestToken)return studentsLoadPromise;
+  const promise=(async()=>{
+    const data=await listStudents(requestToken,{currentOnly:true});
+    if(token!==requestToken)return data; // Do not display another session's students.
+    studentRows=data.students||[];
+    reportResultCache.clear();reportResetPrefetchState();
+    studentsLoaded=true;studentsLoadedAt=Date.now();
+    reportDirectoryStudents=studentRows.filter(s=>String(s.status||'')==='재학').map(s=>({studentId:s.studentId||'',name:s.name||'',classId:s.classId||'',status:s.status||''}));
+    rebuildReportDirectoryIndex();saveReportDirectoryCache();
+    fillExistingStudentOptions();updateHome();fillDailyRecordStudentOptions();fillDailyRecordFilterStudentOptions();
+    if(studentListQueried)renderStudentList();
+    if(reportPageInitialized)fillReportStudentOptions();
+    return data;
   })();
-  return studentsLoadPromise;
+  studentsLoadPromise=promise;
+  studentsLoadToken=requestToken;
+  try{return await promise;}
+  finally{if(studentsLoadPromise===promise){studentsLoadPromise=null;studentsLoadToken='';}}
 }
 function filteredStudents(){
   let rows=studentRows.filter(s=>!isArchivedStatus(s.status));
@@ -4589,7 +4601,6 @@ $('lessonListDetails').addEventListener('toggle',()=>{
 $('loadLessonsBtn').onclick=()=>loadLessonList();
 $('resetLessonFilterBtn').onclick=resetLessonFilters;
 $('navReportBtn').onclick=()=>switchPage('report');
-$('navTeacherBtn').onclick=()=>switchPage('teacher');
 $('scoreClassId').onchange=()=>{fillScoreStudentOptions();manualScoreRows=[];if($('manualScoreTable'))$('manualScoreTable').innerHTML='';resetManualScoreForm();};
 $('scoreStudentId').onchange=()=>{manualScoreRows=[];if($('manualScoreTable'))$('manualScoreTable').innerHTML='';resetManualScoreForm({keepStatus:true});manualScoreSetStatus($('scoreStudentId').value?'학생을 선택했습니다. 점수를 입력하거나 직접입력 기록 조회를 눌러 주세요.':'반과 학생을 선택하면 교사 직접 입력 성적을 저장하거나 조회할 수 있습니다.');};
 $('loadScoreHubBtn').onclick=loadScoreHubStudent;
