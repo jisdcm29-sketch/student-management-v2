@@ -1642,6 +1642,10 @@ function reportRenderTopikDetail(learning){
   const gram=learning.topik1Grammar&&learning.topik1Grammar.rows||[];
   const readExam=learning.topik1Reading&&learning.topik1Reading.exam&&learning.topik1Reading.exam.rows||[];
   const readPractice=learning.topik1Reading&&learning.topik1Reading.practice&&learning.topik1Reading.practice.rows||[];
+  const readLevel=learning.topik1Reading&&learning.topik1Reading.level&&learning.topik1Reading.level.rows||[];
+  const listenExam=learning.topik1Listening&&learning.topik1Listening.exam&&learning.topik1Listening.exam.rows||[];
+  const listenPractice=learning.topik1Listening&&learning.topik1Listening.practice&&learning.topik1Listening.practice.rows||[];
+  const listenLevel=learning.topik1Listening&&learning.topik1Listening.level&&learning.topik1Listening.level.rows||[];
   const stages=learning.topik1MobileStages&&learning.topik1MobileStages.rows||[];
   // Independent IBT uses recorded_at/submitted_at; TOPIK vocabulary and grammar use date.
   const cols=[['구분',r=>reportText(r.result_type||r.testType||r.type)],
@@ -1649,6 +1653,13 @@ function reportRenderTopikDetail(learning){
     ['점수',r=>reportScore(r.section_score_100??r.bestScore??r.score)],
     ['상태',r=>reportText(r.status||r.result_type)],
     ['응시일',r=>reportFmtDateTime(r.recorded_at||r.submitted_at||r.date||r.submittedAt||r.timestamp||r.createdAt||r.updatedAt)]];
+  const ibtCols=[['구분',r=>reportText(r.result_type)],
+    ['시험/유형명',r=>reportText(r.generated_exam_label||r.test_scope||r.test_name)],
+    ['원본 점수',r=>reportScore(r.section_score_100)],
+    ['정답/오답/미응답',r=>r.correct_count!==undefined?String(r.correct_count||0)+' / '+String(r.wrong_count||0)+' / '+String(r.unanswered_count||0):'—'],
+    ['문항 수',r=>r.total_questions!==undefined?reportText(r.total_questions):'—'],
+    ['응시일',r=>reportFmtDateTime(r.recorded_at||r.submitted_at)],
+    ['응시횟수',()=> '1회']];
   const stageCols=[
     ['유형',r=>'유형 '+reportText(r.typeNumber)],
     ['단계',r=>reportTopikStageLabel(r.typeNumber,r.stageId)],
@@ -1662,9 +1673,13 @@ function reportRenderTopikDetail(learning){
     : '';
   box.innerHTML=reportRowsTable('TOPIK I 연어',coll.slice().reverse(),cols)+
     reportRowsTable('TOPIK I 문법',gram.slice().reverse(),cols)+
-    reportRowsTable('TOPIK I 읽기 · 실전',readExam.slice().reverse(),cols)+
-    reportRowsTable('TOPIK I 읽기 · 연습',readPractice.slice().reverse(),cols)+
-    stageNote+reportRowsTable('TOPIK I 읽기 · 유형별 단계 (최초 점수 / 현재 통과상태)',stages.slice().reverse(),stageCols);
+    stageNote+reportRowsTable('모바일 TOPIK I 읽기 27단계 · 최초 점수 / 현재 통과상태',stages.slice().reverse(),stageCols)+
+    reportRowsTable('TOPIK I 읽기 IBT · 유형별 연습',readPractice.slice().reverse(),ibtCols)+
+    reportRowsTable('TOPIK I 읽기 IBT · '+(readExam.length?'실전 모의고사':'실전 모의고사 기록 없음'),readExam.slice().reverse(),ibtCols)+
+    (readLevel.length?reportRowsTable('TOPIK I 읽기 IBT · 레벨테스트',readLevel.slice().reverse(),ibtCols):'')+
+    reportRowsTable('TOPIK I 듣기 IBT · 유형별 연습',listenPractice.slice().reverse(),ibtCols)+
+    reportRowsTable('TOPIK I 듣기 IBT · '+(listenExam.length?'실전 모의고사':'실전 모의고사 기록 없음'),listenExam.slice().reverse(),ibtCols)+
+    (listenLevel.length?reportRowsTable('TOPIK I 듣기 IBT · 레벨테스트',listenLevel.slice().reverse(),ibtCols):'');
 }
 function reportRenderWorkbookDetail(learning){
   const box=$('reportWorkbookDetail');if(!box)return;
@@ -2088,7 +2103,9 @@ function renderStudentSummaryReportR1(data){
   $('reportAssessmentGrid').innerHTML=[
     reportOverviewCard('워크북 읽기',reportAttemptedScore(wbRead.bestScore,wbReadAttempts),wbReadAttempts>0?'최근 '+reportScore(wbRead.latestScore)+' · 응시 '+wbReadAttempts+'회':'응시 기록 없음','assessment'),
     reportOverviewCard('워크북 듣기',reportAttemptedScore(wbListen.bestScore,wbListenAttempts),wbListenAttempts>0?'최근 '+reportScore(wbListen.latestScore)+' · 응시 '+wbListenAttempts+'회':'응시 기록 없음','assessment'),
-    reportOverviewCard('TOPIK I 읽기',reportTopikReadingScore(learning.topik1Reading, learning.topik1MobileStages&&learning.topik1MobileStages.rows),readSummarySub,'assessment'),
+    reportOverviewCard('모바일 TOPIK I 읽기 27단계',mobileRead.count?(mobileRead.passed+'/'+mobileRead.total+'단계 통과'):'기록 없음',readSummarySub,'assessment'),
+    reportOverviewCard('TOPIK I 읽기 IBT',reportAttemptedScore(learning.topik1Reading?.exam?.summary?.bestScore,learning.topik1Reading?.exam?.summary?.attempts),learning.topik1Reading?.exam?.summary?.attempts?'실전 모의고사 최고점':'실전 모의고사 기록 없음','assessment'),
+    reportOverviewCard('TOPIK I 듣기 IBT',reportAttemptedScore(learning.topik1Listening?.exam?.summary?.bestScore,learning.topik1Listening?.exam?.summary?.attempts),learning.topik1Listening?.exam?.summary?.attempts?'실전 모의고사 최고점':'실전 모의고사 기록 없음','assessment'),
     reportOverviewCard('교사 입력 평가',teacherScoreRows.length?teacherScoreRows.length+'건':'기록 없음',teacherScoreRows.length?('최근 '+reportText(teacherScoreRows[teacherScoreRows.length-1].date)+' · '+reportTeacherScoreEvalLabel(teacherScoreRows[teacherScoreRows.length-1])):(teacherScores.error?'교사 입력 기록 조회 실패':'Scores · TEACHER_MANUAL'),'assessment')
   ].join('');
 
@@ -2688,7 +2705,6 @@ function renderScoreHub(data){
   const gram=data.topik1Grammar?.summary||{};
   const topikReadExam=data.topik1Reading?.exam?.summary||{};
   const topikReadPractice=data.topik1Reading?.practice?.summary||{};
-  const topikReadReview=data.topik1Reading?.review?.summary||{};
   const mobileTopikSummary=topikMobileStageSummary(data.topik1MobileStages&&data.topik1MobileStages.rows);
 
   function specificCard(title,big,sub,meta,status){
@@ -2785,15 +2801,24 @@ function renderScoreHub(data){
       ''
     ),
     specificCard(
-      'TOPIK I 읽기',
-      mobileTopikSummary.count
-        ? ('현재 통과 '+mobileTopikSummary.passed+'/'+mobileTopikSummary.total+'단계')
-        : (topikReadExam.attempts?('별도 실전 최고 '+scoreFmt(topikReadExam.bestScore)+'점'):'기록 없음'),
-      mobileTopikSummary.count
-        ? ('유형 8 '+mobileTopikSummary.type8Passed+'/'+mobileTopikSummary.type8Total+'단계 · 최초 최고 '+scoreFmt(mobileTopikSummary.bestScore)+'점')
-        : ('연습 '+esc(scoreFmt(topikReadPractice.attempts||0))+'회'),
-      '<span>별도 실전 응시 '+esc(scoreFmt(topikReadExam.attempts||0))+'회</span>'+
-        (mobileTopikSummary.count?'<span>기준 90점 · 재응시 포함</span>':''),
+      '모바일 TOPIK I 읽기 27단계',
+      mobileTopikSummary.count?('현재 통과 '+mobileTopikSummary.passed+'/'+mobileTopikSummary.total+'단계'):'기록 없음',
+      mobileTopikSummary.count?('유형 8 '+mobileTopikSummary.type8Passed+'/'+mobileTopikSummary.type8Total+'단계 · 최초 최고 '+scoreFmt(mobileTopikSummary.bestScore)+'점'):'학습 기록 없음',
+      '<span>기준 90점 · 재응시 포함</span>',
+      ''
+    ),
+    specificCard(
+      'TOPIK I 읽기 IBT',
+      Number(topikReadExam.attempts||0)>0?('실전 최고 '+scoreFmt(topikReadExam.bestScore)+'점'):'실전 모의고사 기록 없음',
+      '유형별 연습 '+scoreFmt(topikReadPractice.attempts||0)+'회',
+      '<span>실전 응시 '+scoreFmt(topikReadExam.attempts||0)+'회</span>',
+      ''
+    ),
+    specificCard(
+      'TOPIK I 듣기 IBT',
+      Number(data.topik1Listening?.exam?.summary?.attempts||0)>0?('실전 최고 '+scoreFmt(data.topik1Listening.exam.summary.bestScore)+'점'):'실전 모의고사 기록 없음',
+      '유형별 연습 '+scoreFmt(data.topik1Listening?.practice?.summary?.attempts||0)+'회',
+      '<span>실전 응시 '+scoreFmt(data.topik1Listening?.exam?.summary?.attempts||0)+'회</span>',
       ''
     )
   ];
@@ -2816,27 +2841,42 @@ function renderScoreHub(data){
     reviewRows.slice().reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td>'+esc(r.book||'')+'</td><td class="left">'+esc(r.review||'')+'</td><td><strong>'+esc(scoreFmt(r.score))+'</strong></td><td>'+esc(r.correct===null?'—':scoreFmt(r.correct)+'/'+scoreFmt(r.total))+'</td><td>'+esc(r.duration===null?'—':scoreFmt(r.duration)+'초')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
     '</tbody></table></div>':'<div class="score-empty">복습 읽기·듣기 평가 기록이 없습니다.</div>';
 
-  const topikRows=[];
-  (data.topik1Collocation?.rows||[]).forEach(r=>topikRows.push({kind:'연어',label:(r.lesson||'')+'단계',score:r.bestScore,attempts:r.attemptsToday,status:r.status,date:r.date}));
-  (data.topik1Grammar?.rows||[]).forEach(r=>topikRows.push({kind:'문법',label:(r.lesson||'')+'단계',score:r.bestScore,attempts:r.attemptsToday,status:r.status,date:r.date}));
-  ['exam','practice','review'].forEach(key=>{
-    const label={exam:'읽기 실전',practice:'읽기 연습',review:'읽기 오답복습'}[key];
-    (data.topik1Reading?.[key]?.rows||[]).forEach(r=>topikRows.push({kind:label,label:r.generated_exam_label||r.test_scope||'',score:r.section_score_100,attempts:1,status:r.result_type,date:r.recorded_at||r.submitted_at}));
-  });
-  // Type/stage results are first-attempt grades, not independent IBT exam scores.
-  (data.topik1MobileStages?.rows||[]).forEach(r=>{
-    const stageName=reportTopikStageLabel(r.typeNumber,r.stageId);
-    const passedAt=r.firstPassedAt?' · 통과 '+r.firstPassedAt:'';
-    topikRows.push({kind:'읽기 유형별',label:'유형 '+String(r.typeNumber||'')+' · '+stageName,
-      score:r.firstScore,attempts:'—',status:String(r.currentPassStatus||'')+passedAt,
-      date:r.firstCompletedAt||'',firstAttempt:true});
-  });
-  const mobileStageNote=(data.topik1MobileStages?.rows||[]).length
-    ? '<p class="muted">※ TOPIK I 유형별 통과 기준은 90점 이상입니다. 표의 점수는 최초 응시 점수이고, PASS에는 이후 재응시 결과가 반영될 수 있습니다.</p>'
-    : '';
-  $('scoreHubTopikTable').innerHTML=topikRows.length?mobileStageNote+'<div class="table-wrap"><table class="score-table"><thead><tr><th>구분</th><th>내용</th><th>점수</th><th>응시</th><th>상태/유형</th><th>일시</th></tr></thead><tbody>'+
-    topikRows.slice().reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td class="left">'+esc(r.label||'')+'</td><td><strong>'+esc(scoreFmt(r.score)+(r.firstAttempt?'점 (최초)':''))+'</strong></td><td>'+esc(scoreFmt(r.attempts))+'</td><td>'+esc(r.status||'')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
-    '</tbody></table></div>':'<div class="score-empty">TOPIK I 기록이 없습니다.</div>';
+  // Keep the existing TOPIK area and styling; split the three source programs.
+  function tableRows(title,rows,columns,emptyMessage){
+    const head='<div class="report-mini-note">'+esc(title)+'</div>';
+    if(!rows.length)return head+'<div class="score-empty">'+esc(emptyMessage||'기록 없음')+'</div>';
+    return head+'<div class="table-wrap"><table class="score-table"><thead><tr>'+columns.map(c=>'<th>'+esc(c[0])+'</th>').join('')+'</tr></thead><tbody>'+
+      rows.slice().reverse().map(r=>'<tr>'+columns.map(c=>'<td>'+esc(c[1](r))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+  }
+  // Retain the original collocation/grammar score columns, attempts and status.
+  const oldTopik=[];
+  (data.topik1Collocation?.rows||[]).forEach(r=>oldTopik.push({kind:'연어',label:(r.lesson||'')+'단계',score:r.bestScore,attempts:r.attemptsToday,status:r.status,date:r.date}));
+  (data.topik1Grammar?.rows||[]).forEach(r=>oldTopik.push({kind:'문법',label:(r.lesson||'')+'단계',score:r.bestScore,attempts:r.attemptsToday,status:r.status,date:r.date}));
+  const oldTopikHtml=oldTopik.length
+    ? '<div class="report-mini-note">TOPIK I 연어·문법</div><div class="table-wrap"><table class="score-table"><thead><tr><th>구분</th><th>내용</th><th>점수</th><th>응시</th><th>상태/유형</th><th>일시</th></tr></thead><tbody>'+oldTopik.slice().reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td class="left">'+esc(r.label||'')+'</td><td><strong>'+esc(scoreFmt(r.score))+'</strong></td><td>'+esc(scoreFmt(r.attempts))+'</td><td>'+esc(r.status||'')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+'</tbody></table></div>'
+    : '<div class="report-mini-note">TOPIK I 연어·문법</div><div class="score-empty">기록 없음</div>';
+  const stageRows=(data.topik1MobileStages?.rows||[]);
+  const stageColumns=[['유형',r=>'유형 '+String(r.typeNumber||'')],['단계',r=>reportTopikStageLabel(r.typeNumber,r.stageId)],
+    ['최초 점수',r=>scoreFmt(r.firstScore)],['현재 통과상태',r=>r.currentPassStatus||'—'],
+    ['최초 응시일',r=>r.firstCompletedAt||'—'],['통과시각',r=>r.firstPassedAt||'—']];
+  const ibtColumns=[['구분',r=>String(r.result_type||'')],['시험/유형명',r=>r.generated_exam_label||r.test_name||r.test_scope||'—'],
+    ['원본 점수',r=>scoreFmt(r.section_score_100)],['응시일',r=>r.recorded_at||r.submitted_at||'—'],
+    ['정답',r=>scoreFmt(r.correct_count)],['오답',r=>scoreFmt(r.wrong_count)],['미응답',r=>scoreFmt(r.unanswered_count)],
+    ['문항',r=>scoreFmt(r.total_questions)],['응시횟수',r=>'1회']];
+  function ibtSection(title,source){
+    const practice=source?.practice?.rows||[];
+    const exam=source?.exam?.rows||[];
+    const level=source?.level?.rows||[];
+    return tableRows(title+' · 유형별 연습',practice,ibtColumns,'기록 없음')+
+      tableRows(title+' · 실전 모의고사',exam,ibtColumns,'실전 모의고사 기록 없음')+
+      (level.length?tableRows(title+' · 레벨테스트',level,ibtColumns):'');
+  }
+  const stageNote=stageRows.length?'<p class="muted">※ 모바일의 최초 점수와 현재 PASS는 구분합니다. 통과 기준 90점, 재응시 결과 반영.</p>':'';
+  $('scoreHubTopikTable').innerHTML=
+    oldTopikHtml+
+    stageNote+tableRows('모바일 TOPIK I 읽기 27단계',stageRows,stageColumns,'기록 없음')+
+    ibtSection('TOPIK I 읽기 IBT',data.topik1Reading)+
+    ibtSection('TOPIK I 듣기 IBT',data.topik1Listening);
 }
 async function loadScoreHubStudent(){
   const studentId=$('scoreStudentId').value;
