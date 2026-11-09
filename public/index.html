@@ -1538,13 +1538,18 @@ function reportPassedLessonCount(snu){
 function topikMobileStageSummary(rows){
   const items=Array.isArray(rows)?rows:[];
   const scores=items.map(r=>reportNum(r&&r.firstScore)).filter(n=>n!==null);
-  return {count:items.length,
-    passed:items.filter(r=>String(r&&r.currentPassStatus||'').toUpperCase()==='PASS').length,
+  const isPassed=r=>String(r&&r.currentPassStatus||'').toUpperCase()==='PASS';
+  const type8=items.filter(r=>Number(r&&r.typeNumber)===8);
+  // TOPIK I reading curriculum: types 1-7 have 3 stages each, type 8 has 6.
+  // firstScore is the first attempt, while PASS includes later >=90 retakes.
+  return {count:items.length,total:27,
+    passed:items.filter(isPassed).length,
+    type8Count:type8.length,type8Passed:type8.filter(isPassed).length,type8Total:6,
     bestScore:scores.length?Math.max(...scores):null};
 }
 function reportTopikReadingScore(reading, stages){
   const mobile=topikMobileStageSummary(stages);
-  if(mobile.count)return reportScore(mobile.bestScore);
+  if(mobile.count)return mobile.passed+'/'+mobile.total+'단계 통과';
   const s=reading&&reading.exam&&reading.exam.summary?reading.exam.summary:{};
   const attempts=Number(s.attempts||s.count||s.totalAttempts||0);
   if(attempts<=0)return '기록 없음';
@@ -1652,11 +1657,14 @@ function reportRenderTopikDetail(learning){
     ['최초 응시일',r=>reportFmtDateTime(r.firstCompletedAt)],
     ['통과시각',r=>reportFmtDateTime(r.firstPassedAt)]
   ];
+  const stageNote=stages.length
+    ? '<p class="muted">※ 유형별 통과 기준은 90점 이상입니다. 표시된 점수는 최초 응시 점수이며, 현재 통과 상태에는 이후 재응시 결과가 반영될 수 있습니다.</p>'
+    : '';
   box.innerHTML=reportRowsTable('TOPIK I 연어',coll.slice().reverse(),cols)+
     reportRowsTable('TOPIK I 문법',gram.slice().reverse(),cols)+
     reportRowsTable('TOPIK I 읽기 · 실전',readExam.slice().reverse(),cols)+
     reportRowsTable('TOPIK I 읽기 · 연습',readPractice.slice().reverse(),cols)+
-    reportRowsTable('TOPIK I 읽기 · 유형별 단계 (최초 점수 / 현재 통과상태)',stages.slice().reverse(),stageCols);
+    stageNote+reportRowsTable('TOPIK I 읽기 · 유형별 단계 (최초 점수 / 현재 통과상태)',stages.slice().reverse(),stageCols);
 }
 function reportRenderWorkbookDetail(learning){
   const box=$('reportWorkbookDetail');if(!box)return;
@@ -2074,7 +2082,9 @@ function renderStudentSummaryReportR1(data){
   const wbReadAttempts=Number(wbRead.attempts||0);
   const wbListenAttempts=Number(wbListen.attempts||0);
   const mobileRead=topikMobileStageSummary(learning.topik1MobileStages&&learning.topik1MobileStages.rows);
-  const readSummarySub=mobileRead.count?('유형별 '+mobileRead.count+'단계 · 현재 통과 '+mobileRead.passed+'단계 (최초 점수 기준)'):('별도 실전 응시 기록 기준');
+  const readSummarySub=mobileRead.count
+    ? ('유형 8 '+mobileRead.type8Passed+'/'+mobileRead.type8Total+'단계 · 최초 최고 '+reportScore(mobileRead.bestScore)+' · 통과 기준 90점(재응시 포함)')
+    : '별도 실전 응시 기록 기준';
   $('reportAssessmentGrid').innerHTML=[
     reportOverviewCard('워크북 읽기',reportAttemptedScore(wbRead.bestScore,wbReadAttempts),wbReadAttempts>0?'최근 '+reportScore(wbRead.latestScore)+' · 응시 '+wbReadAttempts+'회':'응시 기록 없음','assessment'),
     reportOverviewCard('워크북 듣기',reportAttemptedScore(wbListen.bestScore,wbListenAttempts),wbListenAttempts>0?'최근 '+reportScore(wbListen.latestScore)+' · 응시 '+wbListenAttempts+'회':'응시 기록 없음','assessment'),
@@ -2777,13 +2787,13 @@ function renderScoreHub(data){
     specificCard(
       'TOPIK I 읽기',
       mobileTopikSummary.count
-        ? (mobileTopikSummary.bestScore===null?('유형별 '+mobileTopikSummary.count+'단계')
-          : ('유형별 최초 최고 '+scoreFmt(mobileTopikSummary.bestScore)+'점'))
+        ? ('현재 통과 '+mobileTopikSummary.passed+'/'+mobileTopikSummary.total+'단계')
         : (topikReadExam.attempts?('별도 실전 최고 '+scoreFmt(topikReadExam.bestScore)+'점'):'기록 없음'),
       mobileTopikSummary.count
-        ? ('유형별 '+mobileTopikSummary.count+'단계 · 현재 통과 '+mobileTopikSummary.passed+'단계')
+        ? ('유형 8 '+mobileTopikSummary.type8Passed+'/'+mobileTopikSummary.type8Total+'단계 · 최초 최고 '+scoreFmt(mobileTopikSummary.bestScore)+'점')
         : ('연습 '+esc(scoreFmt(topikReadPractice.attempts||0))+'회'),
-      '<span>별도 실전 응시 '+esc(scoreFmt(topikReadExam.attempts||0))+'회</span>',
+      '<span>별도 실전 응시 '+esc(scoreFmt(topikReadExam.attempts||0))+'회</span>'+
+        (mobileTopikSummary.count?'<span>기준 90점 · 재응시 포함</span>':''),
       ''
     )
   ];
@@ -2821,7 +2831,10 @@ function renderScoreHub(data){
       score:r.firstScore,attempts:'—',status:String(r.currentPassStatus||'')+passedAt,
       date:r.firstCompletedAt||'',firstAttempt:true});
   });
-  $('scoreHubTopikTable').innerHTML=topikRows.length?'<div class="table-wrap"><table class="score-table"><thead><tr><th>구분</th><th>내용</th><th>점수</th><th>응시</th><th>상태/유형</th><th>일시</th></tr></thead><tbody>'+
+  const mobileStageNote=(data.topik1MobileStages?.rows||[]).length
+    ? '<p class="muted">※ TOPIK I 유형별 통과 기준은 90점 이상입니다. 표의 점수는 최초 응시 점수이고, PASS에는 이후 재응시 결과가 반영될 수 있습니다.</p>'
+    : '';
+  $('scoreHubTopikTable').innerHTML=topikRows.length?mobileStageNote+'<div class="table-wrap"><table class="score-table"><thead><tr><th>구분</th><th>내용</th><th>점수</th><th>응시</th><th>상태/유형</th><th>일시</th></tr></thead><tbody>'+
     topikRows.slice().reverse().map(r=>'<tr><td>'+esc(r.kind)+'</td><td class="left">'+esc(r.label||'')+'</td><td><strong>'+esc(scoreFmt(r.score)+(r.firstAttempt?'점 (최초)':''))+'</strong></td><td>'+esc(scoreFmt(r.attempts))+'</td><td>'+esc(r.status||'')+'</td><td>'+esc(r.date||'')+'</td></tr>').join('')+
     '</tbody></table></div>':'<div class="score-empty">TOPIK I 기록이 없습니다.</div>';
 }
