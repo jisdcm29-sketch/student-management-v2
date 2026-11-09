@@ -1179,7 +1179,10 @@
 </div>
 
 <script type="module">
-import {
+// Re-request the API module after a session-preserving full-page refresh.
+const V2_STRONG_REFRESH_URL_KEY='v2_refresh';
+const v2StrongRefreshTag=new URLSearchParams(window.location.search).get(V2_STRONG_REFRESH_URL_KEY);
+const {
   login, logout, validateSession, getHomeDashboard,
   listClasses, getClassDetail, saveClass, closeClass, deleteClass,
   listStudents, getStudentDetail, saveStudent, listArchivedStudents, restoreStudent,
@@ -1190,7 +1193,7 @@ import {
   listLessonAssignments, saveLessonAssignments,
   listArchivedLessons, archiveLesson, restoreArchivedLesson,
   getQrAttendanceSetup, startQrAttendanceSession, closeQrAttendanceSession
-} from '../src/api/api-client.js';
+} = await import('../src/api/api-client.js'+(v2StrongRefreshTag?'?'+V2_STRONG_REFRESH_URL_KEY+'='+encodeURIComponent(v2StrongRefreshTag):''));
 
 // Keep the session within the same browser tab across navigation and refresh.
 // The server validates the token on load; closing the tab clears sessionStorage.
@@ -1311,6 +1314,16 @@ function setLoggedIn(on){$('loginCard').classList.toggle('hidden',on);$('appArea
 const V2_REMEMBER_TEACHER_KEY='v2RememberTeacherId';
 const V2_CURRENT_PAGE_KEY='v2CurrentPage';
 const V2_REFRESH_FIX_VERSION='2026-10-05-session-fix1';
+const V2_STRONG_REFRESH_HOME_KEY='v2StrongRefreshHomeOnce';
+let v2RefreshHasUnsavedInputs=false;
+// Only user edits can trigger a warning about potentially unsaved form contents.
+function v2TrackFormChangesForRefresh(event){
+  const el=event.target;
+  if(!event.isTrusted||!el||!el.matches||!el.closest('.page-panel'))return;
+  if(el.matches('input, textarea, select, [contenteditable="true"]'))v2RefreshHasUnsavedInputs=true;
+}
+document.addEventListener('input',v2TrackFormChangesForRefresh,true);
+document.addEventListener('change',v2TrackFormChangesForRefresh,true);
 function restoreRememberedTeacherId(){
   const saved=localStorage.getItem(V2_REMEMBER_TEACHER_KEY)||'';
   if(saved){$('teacherId').value=saved;$('rememberTeacherId').checked=true}
@@ -4574,7 +4587,7 @@ async function initLessonPage(){
 }
 
 // Limited to initial login / F5 session recovery. No writes to student records.
-async function loadInitialDirectoryV2_(expectedToken){
+async function loadInitialDirectoryV2_(expectedToken,forceHomeAfterReload=false){
   const results=await Promise.allSettled([refreshClasses(),refreshStudents()]);
   if(token!==expectedToken)return;
   homeInitialSyncPending=false;
@@ -4590,7 +4603,7 @@ async function loadInitialDirectoryV2_(expectedToken){
     }));
   }
   if(currentTeacher&&$('homePage')&&!$('homePage').classList.contains('hidden')){
-    try{await loadHomeDashboard({force:false});}
+    try{await loadHomeDashboard({force:forceHomeAfterReload===true});}
     catch(e){console.warn('Initial home dashboard load failed',e);}
   }
 }
@@ -4616,7 +4629,9 @@ async function restoreV2SessionAfterRefresh(){
     currentTeacher=session.teacher||null;
     updateAuthLabel();
     // Do not block the visible page while loading class/student/home data.
-    loadInitialDirectoryV2_(token).catch(function(e){
+    const forceHomeAfterReload=sessionStorage.getItem(V2_STRONG_REFRESH_HOME_KEY)==='1';
+    sessionStorage.removeItem(V2_STRONG_REFRESH_HOME_KEY);
+    loadInitialDirectoryV2_(token,forceHomeAfterReload).catch(function(e){
       homeInitialSyncPending=false;
       console.warn('Session data load failed',e);
     });
@@ -4775,32 +4790,31 @@ $('homeAttentionClassId').onchange=()=>{
   $('homeAttentionBody').innerHTML='<tr><td colspan="4" class="dashboard-empty">조회 버튼을 눌러 선택한 반의 학생을 확인해 주세요.</td></tr>';
 };
 
-$('refreshBtn').onclick=async()=>{
+$('refreshBtn').onclick=()=>{
   const btn=$('refreshBtn');
   const status=$('refreshStatus');
   if(btn.disabled)return;
+  if(v2RefreshHasUnsavedInputs&&!confirm('저장하지 않은 입력 내용이 사라질 수 있습니다.\n로그인 상태를 유지하고 최신 화면을 다시 불러올까요?'))return;
   const activeBtn=document.querySelector('.sidebar-nav button.active');
   const currentPage=activeBtn&&activeBtn.dataset.page?activeBtn.dataset.page:'home';
   btn.disabled=true;
   btn.classList.add('is-loading');
   btn.innerHTML='<span class="refresh-spinner"></span>새로고침 중';
   status.className='refresh-status';
-  status.textContent='데이터 확인 중...';
+  status.textContent='최신 화면을 다시 불러오는 중...';
   try{
-    await Promise.all([refreshClasses(),refreshStudents()]);
-    if(currentPage==='home')await loadHomeDashboard({force:true});
-    else updateHome();
-    if(currentPage==='student'){fillStudentClassOptions();renderStudentList()}
-    if(currentPage==='attendance'){fillAttendanceClassOptions()}
-    if(currentPage==='lesson'){fillLessonClassOptions();lessonListDirty=true;if($('lessonListDetails')&&$('lessonListDetails').open)$('lessonListStatus').textContent='새로고침되었습니다. 조회 버튼을 눌러 최신 목록을 확인해 주세요.'}
-    status.className='refresh-status ok';
-    status.textContent='최신 상태 반영';
-    setTimeout(()=>{if(status.textContent==='최신 상태 반영')status.textContent=''},2200);
+    // Persist only the tab-scoped login token and the current menu.
+    persistV2SessionState(currentPage);
+    // Preserve the old refresh button's forced home recalculation behavior.
+    sessionStorage.setItem(V2_STRONG_REFRESH_HOME_KEY,'1');
+    sessionStorage.removeItem(V2_REPORT_DIRECTORY_CACHE_KEY);
+    const nextUrl=new URL(window.location.href);
+    nextUrl.searchParams.set(V2_STRONG_REFRESH_URL_KEY,String(Date.now()));
+    window.location.replace(nextUrl.toString());
   }catch(e){
     status.className='refresh-status error';
     status.textContent='새로고침 실패';
     alert('새로고침 오류: '+e.message);
-  }finally{
     btn.disabled=false;
     btn.classList.remove('is-loading');
     btn.textContent='새로고침';
