@@ -1617,6 +1617,20 @@ function reportRowsTable(title,rows,cols){
   if(!rows||!rows.length)return '<div class="report-mini-note">'+esc(title)+'</div><div class="report-chart-empty">기록이 없습니다.</div>';
   return '<div class="report-mini-note">'+esc(title)+'</div><div class="report-table-wrap"><table class="report-table"><thead><tr>'+cols.map(c=>'<th>'+esc(c[0])+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+cols.map(c=>'<td>'+esc(typeof c[1]==='function'?c[1](row):reportText(row[c[1]]))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 }
+// Keep source identifiers unchanged; display only the actual TOPIK I curriculum labels.
+// Type 8 has six subject-specific stages, not the 3 basic/develop/real stages.
+function reportTopikStageLabel(typeNumber, stageId){
+  const id=String(stageId||'').trim().toLowerCase();
+  if(Number(typeNumber)===8){
+    const longReading={
+      s1:'1단계 · 문장 삽입',s2:'2단계 · 빈칸·내용',
+      s3:'3단계 · 실용문 독해',s4:'4단계 · 독해 I',
+      s5:'5단계 · 독해 II',s6:'6단계 · 장문 실전'
+    };
+    if(longReading[id])return longReading[id];
+  }
+  return ({basic:'기초',develop:'발전',real:'실전'})[id]||String(stageId||'');
+}
 function reportRenderTopikDetail(learning){
   const box=$('reportTopikDetail');if(!box)return;
   const coll=learning.topik1Collocation&&learning.topik1Collocation.rows||[];
@@ -1632,7 +1646,7 @@ function reportRenderTopikDetail(learning){
     ['응시일',r=>reportFmtDateTime(r.recorded_at||r.submitted_at||r.date||r.submittedAt||r.timestamp||r.createdAt||r.updatedAt)]];
   const stageCols=[
     ['유형',r=>'유형 '+reportText(r.typeNumber)],
-    ['단계',r=>({basic:'기초',develop:'발전',real:'실전'})[String(r.stageId||'')]||reportText(r.stageId)],
+    ['단계',r=>reportTopikStageLabel(r.typeNumber,r.stageId)],
     ['최초 점수',r=>reportScore(r.firstScore)],
     ['현재 상태',r=>String(r.currentPassStatus||'').toUpperCase()==='PASS'?'통과':(String(r.currentPassStatus||'').toUpperCase()==='RETRY'?'재도전':reportText(r.currentPassStatus))],
     ['최초 응시일',r=>reportFmtDateTime(r.firstCompletedAt)],
@@ -2117,6 +2131,12 @@ async function loadStudentSummaryReportR1(){
   try{
     const key=reportCacheKey(studentId,options);
     const pendingPrefetch=reportPrefetchPromises.get(key);
+    // A click during the 400ms prefetch debounce must not launch a second
+    // identical, expensive report request after the direct query starts.
+    if(!pendingPrefetch&&reportPrefetchTimer){
+      clearTimeout(reportPrefetchTimer);
+      reportPrefetchTimer=null;
+    }
     const teacherScoresPromise=loadTeacherScoresForReportSafe(studentId);
     let data;
     if(pendingPrefetch){
@@ -2795,7 +2815,7 @@ function renderScoreHub(data){
   });
   // Type/stage results are first-attempt grades, not independent IBT exam scores.
   (data.topik1MobileStages?.rows||[]).forEach(r=>{
-    const stageName=({basic:'기초',develop:'발전',real:'실전'})[String(r.stageId||'')]||String(r.stageId||'');
+    const stageName=reportTopikStageLabel(r.typeNumber,r.stageId);
     const passedAt=r.firstPassedAt?' · 통과 '+r.firstPassedAt:'';
     topikRows.push({kind:'읽기 유형별',label:'유형 '+String(r.typeNumber||'')+' · '+stageName,
       score:r.firstScore,attempts:'—',status:String(r.currentPassStatus||'')+passedAt,
