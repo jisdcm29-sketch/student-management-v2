@@ -1691,13 +1691,21 @@ function topikIbtScoreV2(row){
   const n=Number(value);
   return Number.isFinite(n)?String(Math.round(n*10)/10)+'점':'기록 없음';
 }
-function topikIbtCardV2(source){
+function topikIbtRecentPracticeTypeV2(row){
+  const safe=topikIbtDisplayLabelV2(row,'reading','practice');
+  const range=safe.match(/(?:^|[^\d])(\d{1,2})\s*[~～\-–]\s*(\d{1,2})(?:\s*번)?/);
+  if(range)return range[1]+'~'+range[2]+'유형';
+  const single=safe.match(/^(\d{1,2})\s*번/);
+  if(single)return single[1]+'유형';
+  return '유형별 연습';
+}
+function topikIbtCardV2(source,subject){
   const practice=topikIbtLatestV2(source?.practice);
   const exam=topikIbtLatestV2(source?.exam);
   const practiceCount=Number(source?.practice?.summary?.attempts||0);
   const examCount=Number(source?.exam?.summary?.attempts||0);
   return {
-    primary:exam?'최근 실전 '+topikIbtScoreV2(exam):(practice?'최근 연습 '+topikIbtScoreV2(practice):'기록 없음'),
+    primary:exam?topikIbtDisplayLabelV2(exam,subject,'exam')+' '+topikIbtScoreV2(exam):(practice?topikIbtRecentPracticeTypeV2(practice)+' '+topikIbtScoreV2(practice):'기록 없음'),
     practice:'유형별 연습 '+practiceCount+'회'+(practice?' · 최근 '+topikIbtScoreV2(practice):''),
     exam:exam?'실전 최근 '+topikIbtScoreV2(exam):'실전 모의고사 기록 없음',
     examCount:examCount
@@ -2172,8 +2180,8 @@ function renderStudentSummaryReportR1(data){
     reportOverviewCard('워크북 읽기',reportAttemptedScore(wbRead.bestScore,wbReadAttempts),wbReadAttempts>0?'최근 '+reportScore(wbRead.latestScore)+' · 응시 '+wbReadAttempts+'회':'응시 기록 없음','assessment'),
     reportOverviewCard('워크북 듣기',reportAttemptedScore(wbListen.bestScore,wbListenAttempts),wbListenAttempts>0?'최근 '+reportScore(wbListen.latestScore)+' · 응시 '+wbListenAttempts+'회':'응시 기록 없음','assessment'),
     reportOverviewCard('모바일 TOPIK I 읽기 27단계',mobileRead.count?(mobileRead.passed+'/'+mobileRead.total+'단계 통과'):'기록 없음',readSummarySub,'assessment'),
-    reportOverviewCard('TOPIK I 읽기 IBT',topikIbtCardV2(learning.topik1Reading).primary,topikIbtCardV2(learning.topik1Reading).practice+' · '+topikIbtCardV2(learning.topik1Reading).exam,'assessment'),
-    reportOverviewCard('TOPIK I 듣기 IBT',topikIbtCardV2(learning.topik1Listening).primary,topikIbtCardV2(learning.topik1Listening).practice+' · '+topikIbtCardV2(learning.topik1Listening).exam,'assessment'),
+    reportOverviewCard('TOPIK I 읽기 IBT',topikIbtCardV2(learning.topik1Reading,'reading').primary,topikIbtCardV2(learning.topik1Reading,'reading').practice+' · '+topikIbtCardV2(learning.topik1Reading,'reading').exam,'assessment'),
+    reportOverviewCard('TOPIK I 듣기 IBT',topikIbtCardV2(learning.topik1Listening,'listening').primary,topikIbtCardV2(learning.topik1Listening,'listening').practice+' · '+topikIbtCardV2(learning.topik1Listening,'listening').exam,'assessment'),
     reportOverviewCard('교사 입력 평가',teacherScoreRows.length?teacherScoreRows.length+'건':'기록 없음',teacherScoreRows.length?('최근 '+reportText(teacherScoreRows[teacherScoreRows.length-1].date)+' · '+reportTeacherScoreEvalLabel(teacherScoreRows[teacherScoreRows.length-1])):(teacherScores.error?'교사 입력 기록 조회 실패':'Scores · TEACHER_MANUAL'),'assessment')
   ].join('');
 
@@ -2877,16 +2885,16 @@ function renderScoreHub(data){
     ),
     specificCard(
       'TOPIK I 읽기 IBT',
-      topikIbtCardV2(data.topik1Reading).primary,
-      topikIbtCardV2(data.topik1Reading).practice,
-      '<span>'+esc(topikIbtCardV2(data.topik1Reading).exam)+' · 실전 응시 '+scoreFmt(topikReadExam.attempts||0)+'회</span>',
+      topikIbtCardV2(data.topik1Reading,'reading').primary,
+      topikIbtCardV2(data.topik1Reading,'reading').practice,
+      '<span>'+esc(topikIbtCardV2(data.topik1Reading,'reading').exam)+' · 실전 응시 '+scoreFmt(topikReadExam.attempts||0)+'회</span>',
       ''
     ),
     specificCard(
       'TOPIK I 듣기 IBT',
-      topikIbtCardV2(data.topik1Listening).primary,
-      topikIbtCardV2(data.topik1Listening).practice,
-      '<span>'+esc(topikIbtCardV2(data.topik1Listening).exam)+' · 실전 응시 '+scoreFmt(data.topik1Listening?.exam?.summary?.attempts||0)+'회</span>',
+      topikIbtCardV2(data.topik1Listening,'listening').primary,
+      topikIbtCardV2(data.topik1Listening,'listening').practice,
+      '<span>'+esc(topikIbtCardV2(data.topik1Listening,'listening').exam)+' · 실전 응시 '+scoreFmt(data.topik1Listening?.exam?.summary?.attempts||0)+'회</span>',
       ''
     )
   ];
