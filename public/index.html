@@ -2772,6 +2772,29 @@ function scoreWorkbookLatestScope(source){
   }
   return '';
 }
+function scoreSnuTimeKey(value){
+  const raw=String(value||'').trim();
+  if(!raw)return null;
+  const ko=raw.match(/^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.?\s*(오전|오후)\s*(\d{1,2}):(\d{2})/);
+  if(ko){
+    const hour=Number(ko[5])%12+(ko[4]==='오후'?12:0);
+    return Date.UTC(Number(ko[1]),Number(ko[2])-1,Number(ko[3]),hour,Number(ko[6]));
+  }
+  const ms=Date.parse(raw);
+  return Number.isFinite(ms)?ms:null;
+}
+function scoreLatestSnuTest(snu){
+  const rows=snu&&Array.isArray(snu.rows)?snu.rows:[];
+  let latest=null,latestTime=null;
+  rows.forEach(row=>{
+    if(!row||!/^SNU-/i.test(String(row.book||''))||!String(row.lesson||'').trim()||!['vocab','grammar','mixed'].includes(String(row.testType||'')))return;
+    const at=scoreSnuTimeKey(row.lastAt||row.bestAt||row.firstAt||row.date);
+    if(!latest||(at!==null&&(latestTime===null||at>=latestTime))||(at===null&&latestTime===null)){
+      latest=row;latestTime=at;
+    }
+  });
+  return latest;
+}
 function renderScoreHub(data){
   const student=data.student||{}, p=data.progress||{}, classLearning=data.classLearning||{};
   $('scoreHubStudentPanel').classList.remove('hidden');
@@ -2804,6 +2827,16 @@ function renderScoreHub(data){
   }
   const passedLessons=masteryRows.filter(r=>r.status==='PASS').length;
   const currentLessonText=(p.currentBook||'—')+(p.currentLesson?' '+p.currentLesson+'과':'');
+  const recentSnuTest=scoreLatestSnuTest(data.snu);
+  const recentSnuTitle=recentSnuTest
+    ? String(recentSnuTest.book)+' '+String(recentSnuTest.lesson)+'과 · '+scoreTestLabel(recentSnuTest.testType)
+    : (p.recentTest?String(p.recentTest):'기록 없음');
+  const recentSnuScore=recentSnuTest
+    ? (recentSnuTest.bestScore!==null&&recentSnuTest.bestScore!==undefined&&String(recentSnuTest.bestScore).trim()!==''?'해당 시험 최고 '+scoreFmt(recentSnuTest.bestScore)+'점':'시험 점수 기록 없음')
+    : (p.recentScore!==null&&p.recentScore!==undefined&&p.recentScore!==''?'최근 점수 '+p.recentScore+'점':'최근 점수 기록 없음');
+  const recentSnuDate=recentSnuTest
+    ? ('최근 시험 '+String(recentSnuTest.lastAt||recentSnuTest.bestAt||recentSnuTest.firstAt||recentSnuTest.date||'시각 기록 없음'))
+    : String(p.recentActivityAt||p.recentLoginAt||'최근 활동 없음');
   const currentTests=[
     {label:'어휘',score:p.vocabBest},
     {label:'문법',score:p.grammarBest},
@@ -2866,9 +2899,9 @@ function renderScoreHub(data){
     ),
     specificCard(
       '최근 서울대 학습',
-      p.recentTest?String(p.recentTest):'기록 없음',
-      p.recentScore!==null&&p.recentScore!==undefined&&p.recentScore!==''?('최근 점수 '+p.recentScore+'점'):'최근 점수 기록 없음',
-      '<span>'+(p.recentActivityAt||p.recentLoginAt?esc(p.recentActivityAt||p.recentLoginAt):'최근 활동 없음')+'</span>',
+      recentSnuTitle,
+      recentSnuScore,
+      '<span>'+esc(recentSnuDate)+'</span>',
       ''
     ),
     specificCard(
