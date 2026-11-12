@@ -2746,6 +2746,55 @@ function scoreStatusPill(status){
   const cls=s==='PASS'?'pass':(s==='RETRY'?'retry':'');
   return '<span class="score-pill '+cls+'">'+esc(s||'-')+'</span>';
 }
+function scoreTopik10StageStatus(state){
+  // Display only: the source uses the first unpassed stage (not the number passed).
+  const value=String(state||'').trim();
+  if(value==='완료')return {label:'10/10단계 완료',detail:'10단계 모두 통과'};
+  if(value==='미시작'||!value)return {label:'미시작',detail:'전체 10단계 중 시작 전'};
+  const match=value.match(/^([1-9]|10)\s*단계$/);
+  if(match){
+    const current=Number(match[1]);
+    return {label:current+'/10단계 진행 중',detail:(current-1)+'/10단계 통과'};
+  }
+  return {label:value,detail:'전체 10단계'};
+}
+function scoreWorkbookLatestScope(source){
+  // Match the existing latest-score rule: use the last row with a numeric submitted score.
+  // Keep lesson/range labels exactly as recorded by the workbook; never infer a lesson.
+  const rows=(source&&Array.isArray(source.rows))?source.rows:[];
+  for(let i=rows.length-1;i>=0;i--){
+    const row=rows[i]||{};
+    const score=row['점수(100)'];
+    if(score===null||score===undefined||String(score).trim()===''||!Number.isFinite(Number(score)))continue;
+    const book=String(row['교재']||'').trim();
+    const review=String(row['복습']||'').trim();
+    return [book,review].filter(Boolean).join(' · ');
+  }
+  return '';
+}
+function scoreSnuTimeKey(value){
+  const raw=String(value||'').trim();
+  if(!raw)return null;
+  const ko=raw.match(/^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.?\s*(오전|오후)\s*(\d{1,2}):(\d{2})/);
+  if(ko){
+    const hour=Number(ko[5])%12+(ko[4]==='오후'?12:0);
+    return Date.UTC(Number(ko[1]),Number(ko[2])-1,Number(ko[3]),hour,Number(ko[6]));
+  }
+  const ms=Date.parse(raw);
+  return Number.isFinite(ms)?ms:null;
+}
+function scoreLatestSnuTest(snu){
+  const rows=snu&&Array.isArray(snu.rows)?snu.rows:[];
+  let latest=null,latestTime=null;
+  rows.forEach(row=>{
+    if(!row||!/^SNU-/i.test(String(row.book||''))||!String(row.lesson||'').trim()||!['vocab','grammar','mixed'].includes(String(row.testType||'')))return;
+    const at=scoreSnuTimeKey(row.lastAt||row.bestAt||row.firstAt||row.date);
+    if(!latest||(at!==null&&(latestTime===null||at>=latestTime))||(at===null&&latestTime===null)){
+      latest=row;latestTime=at;
+    }
+  });
+  return latest;
+}
 function renderScoreHub(data){
   const student=data.student||{}, p=data.progress||{}, classLearning=data.classLearning||{};
   $('scoreHubStudentPanel').classList.remove('hidden');
@@ -2778,6 +2827,16 @@ function renderScoreHub(data){
   }
   const passedLessons=masteryRows.filter(r=>r.status==='PASS').length;
   const currentLessonText=(p.currentBook||'—')+(p.currentLesson?' '+p.currentLesson+'과':'');
+  const recentSnuTest=scoreLatestSnuTest(data.snu);
+  const recentSnuTitle=recentSnuTest
+    ? String(recentSnuTest.book)+' '+String(recentSnuTest.lesson)+'과 · '+scoreTestLabel(recentSnuTest.testType)
+    : (p.recentTest?String(p.recentTest):'기록 없음');
+  const recentSnuScore=recentSnuTest
+    ? (recentSnuTest.bestScore!==null&&recentSnuTest.bestScore!==undefined&&String(recentSnuTest.bestScore).trim()!==''?'해당 시험 최고 '+scoreFmt(recentSnuTest.bestScore)+'점':'시험 점수 기록 없음')
+    : (p.recentScore!==null&&p.recentScore!==undefined&&p.recentScore!==''?'최근 점수 '+p.recentScore+'점':'최근 점수 기록 없음');
+  const recentSnuDate=recentSnuTest
+    ? ('최근 시험 '+String(recentSnuTest.lastAt||recentSnuTest.bestAt||recentSnuTest.firstAt||recentSnuTest.date||'시각 기록 없음'))
+    : String(p.recentActivityAt||p.recentLoginAt||'최근 활동 없음');
   const currentTests=[
     {label:'어휘',score:p.vocabBest},
     {label:'문법',score:p.grammarBest},
@@ -2790,6 +2849,8 @@ function renderScoreHub(data){
 
   const wbRead=data.workbookReading?.summary||{};
   const wbListen=data.workbookListening?.summary||{};
+  const wbReadLatestScope=scoreWorkbookLatestScope(data.workbookReading);
+  const wbListenLatestScope=scoreWorkbookLatestScope(data.workbookListening);
   const coll=data.topik1Collocation?.summary||{};
   const gram=data.topik1Grammar?.summary||{};
   const topikReadExam=data.topik1Reading?.exam?.summary||{};
@@ -2838,9 +2899,9 @@ function renderScoreHub(data){
     ),
     specificCard(
       '최근 서울대 학습',
-      p.recentTest?String(p.recentTest):'기록 없음',
-      p.recentScore!==null&&p.recentScore!==undefined&&p.recentScore!==''?('최근 점수 '+p.recentScore+'점'):'최근 점수 기록 없음',
-      '<span>'+(p.recentActivityAt||p.recentLoginAt?esc(p.recentActivityAt||p.recentLoginAt):'최근 활동 없음')+'</span>',
+      recentSnuTitle,
+      recentSnuScore,
+      '<span>'+esc(recentSnuDate)+'</span>',
       ''
     ),
     specificCard(
@@ -2853,39 +2914,43 @@ function renderScoreHub(data){
   ];
   $('scoreHubCurrentGrid').innerHTML=currentCards.join('');
 
+  const topikCollocationStage=scoreTopik10StageStatus(p.topikCollocationState);
+  const topikGrammarStage=scoreTopik10StageStatus(p.topikGrammarState);
+  const snuBookIndex=MANUAL_SNU_BOOKS.findIndex(b=>b.id===String(p.currentBook||'').toUpperCase());
+  const snuBookOrder=snuBookIndex>=0?' · 전체 8권 중 '+(snuBookIndex+1)+'번째 교재':'';
   const achievementCards=[
     specificCard(
       '서울대 누적 통과',
       passedLessons+'개 과',
       '어휘·문법·종합 모두 90점 이상인 과',
-      '<span>현재 '+esc(currentLessonText)+'</span>',
+      '<span>현재 '+esc(currentLessonText+snuBookOrder)+'</span>',
       ''
     ),
     specificCard(
       '복습 읽기 평가',
       wbRead.attempts?('최고 '+scoreFmt(wbRead.bestScore)+'점'):'기록 없음',
       wbRead.attempts?('최근 '+scoreFmt(wbRead.latestScore)+'점'):'응시 기록 없음',
-      '<span>응시 '+esc(scoreFmt(wbRead.attempts||0))+'회</span>',
+      '<span>응시 '+esc(scoreFmt(wbRead.attempts||0))+'회</span>'+(wbRead.attempts?'<span>최근 평가: '+esc(wbReadLatestScope||'교재·복습 범위 기록 없음')+'</span>':''),
       ''
     ),
     specificCard(
       '복습 듣기 평가',
       wbListen.attempts?('최고 '+scoreFmt(wbListen.bestScore)+'점'):'기록 없음',
       wbListen.attempts?('최근 '+scoreFmt(wbListen.latestScore)+'점'):'응시 기록 없음',
-      '<span>완료 '+esc(scoreFmt(wbListen.attempts||0))+'회</span>'+(data.workbookListening?.inProgressCount?'<span>진행중 '+esc(data.workbookListening.inProgressCount)+'회</span>':''),
+      '<span>완료 '+esc(scoreFmt(wbListen.attempts||0))+'회</span>'+(data.workbookListening?.inProgressCount?'<span>진행중 '+esc(data.workbookListening.inProgressCount)+'회</span>':'')+(wbListen.attempts?'<span>최근 평가: '+esc(wbListenLatestScope||'교재·복습 범위 기록 없음')+'</span>':''),
       ''
     ),
     specificCard(
       'TOPIK I 연어',
-      p.topikCollocationState||'미시작',
-      coll.attempts?('최고 '+scoreFmt(coll.bestScore)+'점'):'시험 기록 없음',
+      topikCollocationStage.label,
+      (coll.attempts?('최고 '+scoreFmt(coll.bestScore)+'점 · '):'')+topikCollocationStage.detail,
       '<span>응시 '+esc(scoreFmt(coll.attempts||0))+'회</span>',
       ''
     ),
     specificCard(
       'TOPIK I 문법',
-      p.topikGrammarState||'미시작',
-      gram.attempts?('최고 '+scoreFmt(gram.bestScore)+'점'):'시험 기록 없음',
+      topikGrammarStage.label,
+      (gram.attempts?('최고 '+scoreFmt(gram.bestScore)+'점 · '):'')+topikGrammarStage.detail,
       '<span>응시 '+esc(scoreFmt(gram.attempts||0))+'회</span>',
       ''
     ),
