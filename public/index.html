@@ -2746,6 +2746,18 @@ function scoreStatusPill(status){
   const cls=s==='PASS'?'pass':(s==='RETRY'?'retry':'');
   return '<span class="score-pill '+cls+'">'+esc(s||'-')+'</span>';
 }
+function scoreTopik10StageStatus(state){
+  // Display only: the source uses the first unpassed stage (not the number passed).
+  const value=String(state||'').trim();
+  if(value==='완료')return {label:'10/10단계 완료',detail:'10단계 모두 통과'};
+  if(value==='미시작'||!value)return {label:'미시작',detail:'전체 10단계 중 시작 전'};
+  const match=value.match(/^([1-9]|10)\s*단계$/);
+  if(match){
+    const current=Number(match[1]);
+    return {label:current+'/10단계 진행 중',detail:(current-1)+'/10단계 통과'};
+  }
+  return {label:value,detail:'전체 10단계'};
+}
 function renderScoreHub(data){
   const student=data.student||{}, p=data.progress||{}, classLearning=data.classLearning||{};
   $('scoreHubStudentPanel').classList.remove('hidden');
@@ -2853,12 +2865,16 @@ function renderScoreHub(data){
   ];
   $('scoreHubCurrentGrid').innerHTML=currentCards.join('');
 
+  const topikCollocationStage=scoreTopik10StageStatus(p.topikCollocationState);
+  const topikGrammarStage=scoreTopik10StageStatus(p.topikGrammarState);
+  const snuBookIndex=MANUAL_SNU_BOOKS.findIndex(b=>b.id===String(p.currentBook||'').toUpperCase());
+  const snuBookOrder=snuBookIndex>=0?' · 전체 8권 중 '+(snuBookIndex+1)+'번째 교재':'';
   const achievementCards=[
     specificCard(
       '서울대 누적 통과',
       passedLessons+'개 과',
       '어휘·문법·종합 모두 90점 이상인 과',
-      '<span>현재 '+esc(currentLessonText)+'</span>',
+      '<span>현재 '+esc(currentLessonText+snuBookOrder)+'</span>',
       ''
     ),
     specificCard(
@@ -2877,15 +2893,15 @@ function renderScoreHub(data){
     ),
     specificCard(
       'TOPIK I 연어',
-      p.topikCollocationState||'미시작',
-      coll.attempts?('최고 '+scoreFmt(coll.bestScore)+'점'):'시험 기록 없음',
+      topikCollocationStage.label,
+      (coll.attempts?('최고 '+scoreFmt(coll.bestScore)+'점 · '):'')+topikCollocationStage.detail,
       '<span>응시 '+esc(scoreFmt(coll.attempts||0))+'회</span>',
       ''
     ),
     specificCard(
       'TOPIK I 문법',
-      p.topikGrammarState||'미시작',
-      gram.attempts?('최고 '+scoreFmt(gram.bestScore)+'점'):'시험 기록 없음',
+      topikGrammarStage.label,
+      (gram.attempts?('최고 '+scoreFmt(gram.bestScore)+'점 · '):'')+topikGrammarStage.detail,
       '<span>응시 '+esc(scoreFmt(gram.attempts||0))+'회</span>',
       ''
     ),
