@@ -2171,27 +2171,48 @@ function renderStudentSummaryReportR1(data){
   ].join('');
 
   const passed=reportPassedLessonCount(snu);
-  const recentScore=(progress.recentTest&&progress.recentScore!==null&&progress.recentScore!==undefined)?reportScore(progress.recentScore):'기록 없음';
+  // Share the same read-only learning labels as the Score Management page.
+  const currentSnuLesson=(progress.currentBook||'—')+(progress.currentLesson?' '+progress.currentLesson+'과':'');
+  const snuBookIndex=MANUAL_SNU_BOOKS.findIndex(b=>b.id===String(progress.currentBook||'').toUpperCase());
+  const snuBookOrder=snuBookIndex>=0?' · 전체 8권 중 '+(snuBookIndex+1)+'번째 교재':'';
+  const recentSnuTest=scoreLatestSnuTest(snu);
+  const recentSnuTitle=recentSnuTest
+    ? String(recentSnuTest.book)+' '+String(recentSnuTest.lesson)+'과 · '+scoreTestLabel(recentSnuTest.testType)
+    : (progress.recentTest?String(progress.recentTest):'기록 없음');
+  const recentSnuScore=recentSnuTest
+    ? (recentSnuTest.bestScore!==null&&recentSnuTest.bestScore!==undefined&&String(recentSnuTest.bestScore).trim()!==''?'해당 시험 최고 '+scoreFmt(recentSnuTest.bestScore)+'점':'시험 점수 기록 없음')
+    : (progress.recentScore!==null&&progress.recentScore!==undefined&&progress.recentScore!==''?'최근 점수 '+progress.recentScore+'점':'최근 점수 기록 없음');
+  const recentSnuDate=recentSnuTest
+    ? ('최근 시험 '+String(recentSnuTest.lastAt||recentSnuTest.bestAt||recentSnuTest.firstAt||recentSnuTest.date||'시각 기록 없음'))
+    : String(progress.recentActivityAt||progress.recentLoginAt||'최근 활동 없음');
   const progressComparison=reportProgressComparison(classLearning,progress);
   $('reportOverviewGrid').innerHTML=[
     reportOverviewCard('현재 수업 진도',reportClassLessonText(classLearning),reportClassLessonSubText(classLearning),'learning'),
     reportOverviewCard('앱 진도',reportCurrentProgressText(progress),progress.currentState||progress.nextStep||'','learning'),
     reportOverviewCard('학습 성취 비교',progressComparison.value,progressComparison.sub,'learning'),
     reportOverviewCard('출석률',(Number(att.total||0)>0?reportText(att.attendanceRate,0)+'%':'기록 없음'),'전체 출결 '+reportText(att.total,0)+'회','attendance'),
-    reportOverviewCard('SNU 누적 통과',passed+'개 과','어휘·문법·종합 각각 90점 이상','assessment'),
-    reportOverviewCard('최근 학습 점수',recentScore,progress.recentTest||'최근 시험 기록 없음','assessment'),
+    reportOverviewCard('SNU 누적 통과',passed+'개 과','어휘·문법·종합 각각 90점 이상 · 현재 '+currentSnuLesson+snuBookOrder,'assessment'),
+    reportOverviewCard('최근 서울대 학습',recentSnuTitle,recentSnuScore+' · '+recentSnuDate,'assessment'),
     reportOverviewCard('학습 활동',reportText(activity.totalEvents,0)+'건','V2 연동 평가 이력 기준 · 모든 클릭/세션 기록은 아님','learning')
   ].join('');
 
   const wbReadAttempts=Number(wbRead.attempts||0);
   const wbListenAttempts=Number(wbListen.attempts||0);
+  const wbReadLatestScope=scoreWorkbookLatestScope(learning.workbookReading);
+  const wbListenLatestScope=scoreWorkbookLatestScope(learning.workbookListening);
+  const coll=learning.topik1Collocation?.summary||{};
+  const gram=learning.topik1Grammar?.summary||{};
+  const collStage=scoreTopik10StageStatus(progress.topikCollocationState);
+  const gramStage=scoreTopik10StageStatus(progress.topikGrammarState);
   const mobileRead=topikMobileStageSummary(learning.topik1MobileStages&&learning.topik1MobileStages.rows);
   const readSummarySub=mobileRead.count
     ? ('유형 8 '+mobileRead.type8Passed+'/'+mobileRead.type8Total+'단계 · 최초 최고 '+reportScore(mobileRead.bestScore)+' · 통과 기준 90점(재응시 포함)')
     : '별도 실전 응시 기록 기준';
   $('reportAssessmentGrid').innerHTML=[
-    reportOverviewCard('워크북 읽기',reportAttemptedScore(wbRead.bestScore,wbReadAttempts),wbReadAttempts>0?'최근 '+reportScore(wbRead.latestScore)+' · 응시 '+wbReadAttempts+'회':'응시 기록 없음','assessment'),
-    reportOverviewCard('워크북 듣기',reportAttemptedScore(wbListen.bestScore,wbListenAttempts),wbListenAttempts>0?'최근 '+reportScore(wbListen.latestScore)+' · 응시 '+wbListenAttempts+'회':'응시 기록 없음','assessment'),
+    reportOverviewCard('워크북 읽기',reportAttemptedScore(wbRead.bestScore,wbReadAttempts),wbReadAttempts>0?'최근 '+reportScore(wbRead.latestScore)+' · 응시 '+wbReadAttempts+'회 · 최근 평가: '+(wbReadLatestScope||'교재·복습 범위 기록 없음'):'응시 기록 없음','assessment'),
+    reportOverviewCard('워크북 듣기',reportAttemptedScore(wbListen.bestScore,wbListenAttempts),wbListenAttempts>0?'최근 '+reportScore(wbListen.latestScore)+' · 완료 '+wbListenAttempts+'회 · 최근 평가: '+(wbListenLatestScope||'교재·복습 범위 기록 없음'):'응시 기록 없음','assessment'),
+    reportOverviewCard('TOPIK I 연어',collStage.label,(coll.attempts?'최고 '+reportScore(coll.bestScore)+' · ':'')+collStage.detail+' · 응시 '+reportText(coll.attempts,0)+'회','assessment'),
+    reportOverviewCard('TOPIK I 문법',gramStage.label,(gram.attempts?'최고 '+reportScore(gram.bestScore)+' · ':'')+gramStage.detail+' · 응시 '+reportText(gram.attempts,0)+'회','assessment'),
     reportOverviewCard('모바일 TOPIK I 읽기 27단계',mobileRead.count?(mobileRead.passed+'/'+mobileRead.total+'단계 통과'):'기록 없음',readSummarySub,'assessment'),
     reportOverviewCard('TOPIK I 읽기 IBT',topikIbtCardV2(learning.topik1Reading,'reading').primary,topikIbtCardV2(learning.topik1Reading,'reading').practice+' · '+topikIbtCardV2(learning.topik1Reading,'reading').exam,'assessment'),
     reportOverviewCard('TOPIK I 듣기 IBT',topikIbtCardV2(learning.topik1Listening,'listening').primary,topikIbtCardV2(learning.topik1Listening,'listening').practice+' · '+topikIbtCardV2(learning.topik1Listening,'listening').exam,'assessment'),
