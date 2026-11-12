@@ -2758,6 +2758,20 @@ function scoreTopik10StageStatus(state){
   }
   return {label:value,detail:'전체 10단계'};
 }
+function scoreWorkbookLatestScope(source){
+  // Match the existing latest-score rule: use the last row with a numeric submitted score.
+  // Keep lesson/range labels exactly as recorded by the workbook; never infer a lesson.
+  const rows=(source&&Array.isArray(source.rows))?source.rows:[];
+  for(let i=rows.length-1;i>=0;i--){
+    const row=rows[i]||{};
+    const score=row['점수(100)'];
+    if(score===null||score===undefined||String(score).trim()===''||!Number.isFinite(Number(score)))continue;
+    const book=String(row['교재']||'').trim();
+    const review=String(row['복습']||'').trim();
+    return [book,review].filter(Boolean).join(' · ');
+  }
+  return '';
+}
 function renderScoreHub(data){
   const student=data.student||{}, p=data.progress||{}, classLearning=data.classLearning||{};
   $('scoreHubStudentPanel').classList.remove('hidden');
@@ -2802,6 +2816,8 @@ function renderScoreHub(data){
 
   const wbRead=data.workbookReading?.summary||{};
   const wbListen=data.workbookListening?.summary||{};
+  const wbReadLatestScope=scoreWorkbookLatestScope(data.workbookReading);
+  const wbListenLatestScope=scoreWorkbookLatestScope(data.workbookListening);
   const coll=data.topik1Collocation?.summary||{};
   const gram=data.topik1Grammar?.summary||{};
   const topikReadExam=data.topik1Reading?.exam?.summary||{};
@@ -2881,14 +2897,14 @@ function renderScoreHub(data){
       '복습 읽기 평가',
       wbRead.attempts?('최고 '+scoreFmt(wbRead.bestScore)+'점'):'기록 없음',
       wbRead.attempts?('최근 '+scoreFmt(wbRead.latestScore)+'점'):'응시 기록 없음',
-      '<span>응시 '+esc(scoreFmt(wbRead.attempts||0))+'회</span>',
+      '<span>응시 '+esc(scoreFmt(wbRead.attempts||0))+'회</span>'+(wbRead.attempts?'<span>최근 평가: '+esc(wbReadLatestScope||'교재·복습 범위 기록 없음')+'</span>':''),
       ''
     ),
     specificCard(
       '복습 듣기 평가',
       wbListen.attempts?('최고 '+scoreFmt(wbListen.bestScore)+'점'):'기록 없음',
       wbListen.attempts?('최근 '+scoreFmt(wbListen.latestScore)+'점'):'응시 기록 없음',
-      '<span>완료 '+esc(scoreFmt(wbListen.attempts||0))+'회</span>'+(data.workbookListening?.inProgressCount?'<span>진행중 '+esc(data.workbookListening.inProgressCount)+'회</span>':''),
+      '<span>완료 '+esc(scoreFmt(wbListen.attempts||0))+'회</span>'+(data.workbookListening?.inProgressCount?'<span>진행중 '+esc(data.workbookListening.inProgressCount)+'회</span>':'')+(wbListen.attempts?'<span>최근 평가: '+esc(wbListenLatestScope||'교재·복습 범위 기록 없음')+'</span>':''),
       ''
     ),
     specificCard(
